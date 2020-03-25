@@ -26,7 +26,7 @@ gameRevision = 1
 padToPowerOfTwo = 1
 ;	| If 1, pads the end of the ROM to the next power of two bytes (for real hardware)
 ;
-allOptimizations = 0
+allOptimizations = 1
 ;	| If 1, enables all optimizations
 ;
 skipChecksumCheck = 0|allOptimizations
@@ -4331,6 +4331,9 @@ Level_ClrRam:
 	clearRAM Oscillating_Data,Oscillating_variables_End
 	; Bug: The '+C0' shouldn't be here; CNZ_saucer_data is only $40 bytes large
 	clearRAM CNZ_saucer_data,CNZ_saucer_data_End+$C0
+
+	move.w  #400,(Screen_Width_Px).w
+
 
 	cmpi.w	#chemical_plant_zone_act_2,(Current_ZoneAndAct).w ; CPZ 2
 	beq.s	Level_InitWater
@@ -17107,10 +17110,10 @@ Draw_FG:
 	bclr	#3,(a2)		; has the level scrolled to the right?
 	beq.s	return_DB5A	; if not, return
 	moveq	#-$10,d4
-	move.w	#400,d5
+	move.w	(Screen_Width_Px).w,d5
 	bsr.w	CalcBlockVRAMPos
 	moveq	#-$10,d4
-	move.w	#400,d5
+	move.w	(Screen_Width_Px).w,d5
 	bsr.w	DrawBlockCol1	; redraw right-most column
 
 return_DB5A:
@@ -17152,10 +17155,10 @@ Draw_FG_P2:
 	bclr	#3,(a2)
 	beq.s	return_DBC0
 	moveq	#-$10,d4
-	move.w	#400,d5
+	move.w	(Screen_Width_Px).w,d5
 	bsr.w	CalcBlockVRAMPosB
 	moveq	#-$10,d4
-	move.w	#400,d5
+	move.w	(Screen_Width_Px).w,d5
 	bsr.w	DrawBlockCol1
 
 return_DBC0:
@@ -17199,10 +17202,10 @@ Draw_BG1:
 	bclr	#3,(a2)
 	beq.s	+
 	moveq	#-$10,d4
-	move.w	#400,d5
+	move.w	(Screen_Width_Px).w,d5
 	bsr.w	CalcBlockVRAMPos
 	moveq	#-$10,d4
-	move.w	#400,d5
+	move.w	(Screen_Width_Px).w,d5
 	bsr.w	DrawBlockCol1
 +
 	bclr	#4,(a2)
@@ -17269,10 +17272,10 @@ Draw_BG2:
 	bclr	#1,(a2)
 	beq.s	+	; rts
 	move.w	#$70,d4
-	move.w	#400,d5
+	move.w	(Screen_Width_Px).w,d5
 	bsr.w	CalcBlockVRAMPos
 	move.w	#$70,d4
-	move.w	#400,d5
+	move.w	(Screen_Width_Px).w,d5
 	moveq	#2,d6
 	bsr.w	DrawBlockCol2
 +
@@ -17367,7 +17370,7 @@ SBZ_CameraSections:
 	beq.s	+
 	lsr.b	#1,d0
 	move.b	d0,(a2)
-	move.w	#400,d5
+	move.w	(Screen_Width_Px).w,d5
 +
 	lea_	SBZ_CameraSections,a0
 	move.w	(Camera_BG_Y_pos).w,d0
@@ -17399,10 +17402,10 @@ Draw_BG3:
 	bclr	#1,(a2)
 	beq.s	+	; rts
 	move.w	#$40,d4
-	move.w	#400,d5
+	move.w	(Screen_Width_Px).w,d5
 	bsr.w	CalcBlockVRAMPos
 	move.w	#$40,d4
-	move.w	#400,d5
+	move.w	(Screen_Width_Px).w,d5
 	moveq	#2,d6
 	bsr.w	DrawBlockCol2
 +
@@ -17515,7 +17518,7 @@ Draw_BG3_CPZ:
 	beq.s	+
 	lsr.b	#1,d0
 	move.b	d0,(a2)
-	move.w	#400,d5
+	move.w	(Screen_Width_Px).w,d5
 +
 	lea_	CPZ_CameraSections,a0
 	move.w	(Camera_BG_Y_pos).w,d0
@@ -18841,7 +18844,7 @@ LevEvents_HTZ_Routine1:
 	move.w	d0,(Camera_BG_X_pos_diff).w
 	move.w	d0,(Camera_BG_Y_pos_diff).w
 	move.w	d0,(Camera_BG_X_offset).w
-	move.w	#400,(Camera_BG_Y_offset).w
+	move.w	#320,(Camera_BG_Y_offset).w
 	subi.w	#$100,(Camera_BG_Y_pos).w
 	move.w	#0,(HTZ_Terrain_Delay).w
 	addq.b	#2,(Dynamic_Resize_Routine).w ; => LevEvents_HTZ_Routine2
@@ -18874,7 +18877,7 @@ LevEvents_HTZ_Routine2:
 .keep_shaking:
 	tst.b	(HTZ_Terrain_Direction).w
 	bne.s	.sinking
-	cmpi.w	#400,(Camera_BG_Y_offset).w
+	cmpi.w	#320,(Camera_BG_Y_offset).w
 	beq.s	.flip_delay
 	move.w	(Timer_frames).w,d0
 	move.w	d0,d1
@@ -18955,7 +18958,7 @@ LevEvents_HTZ_Routine3:
 	move.w	d0,(Camera_BG_X_pos_diff).w
 	move.w	d0,(Camera_BG_Y_pos_diff).w
 	move.w	d0,(Camera_BG_X_offset).w
-	move.w	#400,(Camera_BG_Y_offset).w
+	move.w	#320,(Camera_BG_Y_offset).w
 	subi.w	#$100,(Camera_BG_Y_pos).w
 	move.w	#0,(HTZ_Terrain_Delay).w
 	subq.b	#2,(Dynamic_Resize_Routine).w ; => LevEvents_HTZ_Routine2
@@ -19803,7 +19806,7 @@ LevEvents_DEZ_Index: offsetTable
 ; ===========================================================================
 ; loc_F45E:
 LevEvents_DEZ_Routine1:
-	move.w	#400,d0
+	move.w	(Screen_Width_Px).w,d0
 	cmp.w	(Camera_X_pos).w,d0
 	bhi.s	+	; rts
 	addq.b	#2,(Dynamic_Resize_Routine).w
@@ -28154,7 +28157,7 @@ BuildSprites_ObjLoop:
 	bmi.w	BuildSprites_NextObj	; if it is, branch
 	move.w	d3,d1
 	sub.w	d0,d1
-	cmpi.w	#400,d1	; is the object left edge to the right of the screen?
+	cmp.w	(Screen_Width_Px).w,d1	; is the object left edge to the right of the screen?
 	bge.w	BuildSprites_NextObj	; if it is, branch
 	addi.w	#128,d3
 	btst	#4,d4		; is the accurate Y check flag set?
@@ -28249,7 +28252,7 @@ BuildSprites_MultiDraw:
 	bmi.w	BuildSprites_MultiDraw_NextObj
 	move.w	d3,d1
 	sub.w	d0,d1
-	cmpi.w	#400,d1
+	cmp.w	(Screen_Width_Px).w,d1
 	bge.w	BuildSprites_MultiDraw_NextObj
 	addi.w	#128,d3
 
@@ -28550,7 +28553,7 @@ BuildSprites_P1_ObjLoop:
 	bmi.w	BuildSprites_P1_NextObj
 	move.w	d3,d1
 	sub.w	d0,d1
-	cmpi.w	#400,d1
+	cmp.w	(Screen_Width_Px).w,d1
 	bge.s	BuildSprites_P1_NextObj
 	addi.w	#128,d3
 	btst	#4,d4
@@ -28663,7 +28666,7 @@ BuildSprites_P2_ObjLoop:
 	bmi.w	BuildSprites_P2_NextObj
 	move.w	d3,d1
 	sub.w	d0,d1
-	cmpi.w	#400,d1
+	cmp.w	(Screen_Width_Px).w,d1
 	bge.s	BuildSprites_P2_NextObj
 	addi.w	#128,d3
 	btst	#4,d4
@@ -28752,7 +28755,7 @@ BuildSprites_P1_MultiDraw:
 	bmi.w	BuildSprites_P1_MultiDraw_NextObj
 	move.w	d3,d1
 	sub.w	d0,d1
-	cmpi.w	#400,d1
+	cmp.w	(Screen_Width_Px).w,d1
 	bge.w	BuildSprites_P1_MultiDraw_NextObj
 	addi.w	#128,d3
 	btst	#4,d4
@@ -28842,7 +28845,7 @@ BuildSprites_P2_MultiDraw:
 	bmi.w	BuildSprites_P2_MultiDraw_NextObj
 	move.w	d3,d1
 	sub.w	d0,d1
-	cmpi.w	#400,d1
+	cmp.w	(Screen_Width_Px).w,d1
 	bge.w	BuildSprites_P2_MultiDraw_NextObj
 	addi.w	#128,d3
 	btst	#4,d4
@@ -29239,7 +29242,8 @@ RingsManager_Init:
 	bhi.s	-		; if it is, check next ring
 	move.w	a1,(Ring_start_addr).w	; set start addresses
 	move.w	a1,(Ring_start_addr_P2).w
-	addi.w	#400+16,d4	; advance by a screen
+	add.w	(Screen_Width_Px).w,d4	; advance by a screen
+	addi.w	#16,d4	; advance by a screen
 	bra.s	+
 -
 	lea	6(a1),a1	; load next ring
@@ -29292,7 +29296,8 @@ RingsManager_Main:
 	move.w	a1,(Ring_start_addr).w	; update start address
 
 	movea.w	(Ring_end_addr).w,a2
-	addi.w	#400+16,d4
+	add.w	(Screen_Width_Px).w,d4
+	addi.w	#16,d4
 	bra.s	+
 -
 	lea	6(a2),a2
@@ -29333,7 +29338,8 @@ RingsManager_Main:
 	move.w	a1,(Ring_start_addr_P2).w	; update start address
 
 	movea.w	(Ring_end_addr_P2).w,a2
-	addi.w	#400+16,d4
+	add.w	(Screen_Width_Px).w,d4
+	addi.w	#16,d4
 	bra.s	+
 -
 	lea	6(a2),a2
@@ -34227,7 +34233,8 @@ Sonic_LevelBound:
 	cmp.w	d1,d0			; has Sonic touched the left boundary?
 	bhi.s	Sonic_Boundary_Sides	; if yes, branch
 	move.w	(Camera_Max_X_pos).w,d0
-	addi.w	#400-24,d0		; screen width - Sonic's width_pixels
+	add.w	(Screen_Width_Px).w,d0		; screen width - Sonic's width_pixels
+	subi.w	#24,d0		; screen width - Sonic's width_pixels
 	tst.b	(Current_Boss_ID).w
 	bne.s	+
 	addi.w	#$40,d0
