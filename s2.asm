@@ -4002,7 +4002,7 @@ TitleScreen:
 -	move.w	#-1,(a1)+
 	dbf	d0,-
 
-	move.w	#-$280,(Camera_X_pos).w
+	move.w	#-$300,(Camera_X_pos).w
 	move.w	(VDP_Reg1_val).w,d0
 	ori.b	#$40,d0
 	move.w	d0,(VDP_control_port).l
@@ -16575,7 +16575,7 @@ ScrollHoriz:
 ; loc_D732:
 .checkIfShouldScroll:
 	sub.w	(a1),d0
-	subi.w	#(320/2)-16,d0		; is the player less than 144 pixels from the screen edge?
+	subi.w	#(400/2)-16,d0		; is the player less than 144 pixels from the screen edge?
 	blt.s	.scrollLeft	; if he is, scroll left
 	subi.w	#16,d0		; is the player more than 159 pixels from the screen edge?
 	bge.s	.scrollRight	; if he is, scroll right
@@ -17107,10 +17107,10 @@ Draw_FG:
 	bclr	#3,(a2)		; has the level scrolled to the right?
 	beq.s	return_DB5A	; if not, return
 	moveq	#-$10,d4
-	move.w	#320,d5
+	move.w	#400,d5
 	bsr.w	CalcBlockVRAMPos
 	moveq	#-$10,d4
-	move.w	#320,d5
+	move.w	#400,d5
 	bsr.w	DrawBlockCol1	; redraw right-most column
 
 return_DB5A:
@@ -17152,10 +17152,10 @@ Draw_FG_P2:
 	bclr	#3,(a2)
 	beq.s	return_DBC0
 	moveq	#-$10,d4
-	move.w	#320,d5
+	move.w	#400,d5
 	bsr.w	CalcBlockVRAMPosB
 	moveq	#-$10,d4
-	move.w	#320,d5
+	move.w	#400,d5
 	bsr.w	DrawBlockCol1
 
 return_DBC0:
@@ -17199,10 +17199,10 @@ Draw_BG1:
 	bclr	#3,(a2)
 	beq.s	+
 	moveq	#-$10,d4
-	move.w	#320,d5
+	move.w	#400,d5
 	bsr.w	CalcBlockVRAMPos
 	moveq	#-$10,d4
-	move.w	#320,d5
+	move.w	#400,d5
 	bsr.w	DrawBlockCol1
 +
 	bclr	#4,(a2)
@@ -17269,10 +17269,10 @@ Draw_BG2:
 	bclr	#1,(a2)
 	beq.s	+	; rts
 	move.w	#$70,d4
-	move.w	#320,d5
+	move.w	#400,d5
 	bsr.w	CalcBlockVRAMPos
 	move.w	#$70,d4
-	move.w	#320,d5
+	move.w	#400,d5
 	moveq	#2,d6
 	bsr.w	DrawBlockCol2
 +
@@ -17367,7 +17367,7 @@ SBZ_CameraSections:
 	beq.s	+
 	lsr.b	#1,d0
 	move.b	d0,(a2)
-	move.w	#320,d5
+	move.w	#400,d5
 +
 	lea_	SBZ_CameraSections,a0
 	move.w	(Camera_BG_Y_pos).w,d0
@@ -17399,10 +17399,10 @@ Draw_BG3:
 	bclr	#1,(a2)
 	beq.s	+	; rts
 	move.w	#$40,d4
-	move.w	#320,d5
+	move.w	#400,d5
 	bsr.w	CalcBlockVRAMPos
 	move.w	#$40,d4
-	move.w	#320,d5
+	move.w	#400,d5
 	moveq	#2,d6
 	bsr.w	DrawBlockCol2
 +
@@ -17515,7 +17515,7 @@ Draw_BG3_CPZ:
 	beq.s	+
 	lsr.b	#1,d0
 	move.b	d0,(a2)
-	move.w	#320,d5
+	move.w	#400,d5
 +
 	lea_	CPZ_CameraSections,a0
 	move.w	(Camera_BG_Y_pos).w,d0
@@ -17652,7 +17652,7 @@ DrawBlockRow:
 
 ; sub_DF92: DrawTiles_Vertical1:
 DrawBlockRow1:
-	moveq	#$15,d6
+	moveq	#26,d6
 	add.w	(a3),d5		; add X pos
 ; loc_DF96: DrawTiles_Vertical2:
 DrawBlockRow2:
@@ -18841,7 +18841,7 @@ LevEvents_HTZ_Routine1:
 	move.w	d0,(Camera_BG_X_pos_diff).w
 	move.w	d0,(Camera_BG_Y_pos_diff).w
 	move.w	d0,(Camera_BG_X_offset).w
-	move.w	#320,(Camera_BG_Y_offset).w
+	move.w	#400,(Camera_BG_Y_offset).w
 	subi.w	#$100,(Camera_BG_Y_pos).w
 	move.w	#0,(HTZ_Terrain_Delay).w
 	addq.b	#2,(Dynamic_Resize_Routine).w ; => LevEvents_HTZ_Routine2
@@ -18874,7 +18874,7 @@ LevEvents_HTZ_Routine2:
 .keep_shaking:
 	tst.b	(HTZ_Terrain_Direction).w
 	bne.s	.sinking
-	cmpi.w	#320,(Camera_BG_Y_offset).w
+	cmpi.w	#400,(Camera_BG_Y_offset).w
 	beq.s	.flip_delay
 	move.w	(Timer_frames).w,d0
 	move.w	d0,d1
@@ -18955,7 +18955,7 @@ LevEvents_HTZ_Routine3:
 	move.w	d0,(Camera_BG_X_pos_diff).w
 	move.w	d0,(Camera_BG_Y_pos_diff).w
 	move.w	d0,(Camera_BG_X_offset).w
-	move.w	#320,(Camera_BG_Y_offset).w
+	move.w	#400,(Camera_BG_Y_offset).w
 	subi.w	#$100,(Camera_BG_Y_pos).w
 	move.w	#0,(HTZ_Terrain_Delay).w
 	subq.b	#2,(Dynamic_Resize_Routine).w ; => LevEvents_HTZ_Routine2
@@ -19803,7 +19803,7 @@ LevEvents_DEZ_Index: offsetTable
 ; ===========================================================================
 ; loc_F45E:
 LevEvents_DEZ_Routine1:
-	move.w	#320,d0
+	move.w	#400,d0
 	cmp.w	(Camera_X_pos).w,d0
 	bhi.s	+	; rts
 	addq.b	#2,(Dynamic_Resize_Routine).w
@@ -20185,7 +20185,7 @@ Obj11_Unload:
 	move.w	x_pos(a0),d0
 	andi.w	#$FF80,d0
 	sub.w	(Camera_X_pos_coarse).w,d0
-	cmpi.w	#$280,d0
+	cmpi.w	#$300,d0
 	bhi.s	+
 	rts
 ; ---------------------------------------------------------------------------
@@ -20855,7 +20855,7 @@ loc_1000C:
 	move.w	objoff_3A(a0),d0
 	andi.w	#$FF80,d0
 	sub.w	(Camera_X_pos_coarse).w,d0
-	cmpi.w	#$280,d0
+	cmpi.w	#$300,d0
 	bhi.w	+
 	bra.w	DisplaySprite
 ; ===========================================================================
@@ -21178,7 +21178,7 @@ Obj17_Main:
 	move.w	x_pos(a0),d0
 	andi.w	#$FF80,d0
 	sub.w	(Camera_X_pos_coarse).w,d0
-	cmpi.w	#$280,d0
+	cmpi.w	#$300,d0
 	bhi.w	Obj17_DelAll
 	bra.w	DisplaySprite
 ; ===========================================================================
@@ -21345,7 +21345,7 @@ loc_105B0:
 	move.w	objoff_32(a0),d0
 	andi.w	#$FF80,d0
 	sub.w	(Camera_X_pos_coarse).w,d0
-	cmpi.w	#$280,d0
+	cmpi.w	#$300,d0
 	bhi.s	BranchTo3_DeleteObject
 	bra.w	DisplaySprite
 ; ===========================================================================
@@ -23289,7 +23289,7 @@ BigRing_Main:
 	move.w	x_pos(a0),d0
 	andi.w	#$FF80,d0
 	sub.w	(Camera_X_pos_coarse).w,d0
-	cmpi.w	#$280,d0
+	cmpi.w	#$300,d0
 	bhi.w	DeleteObject
 	bra.w	DisplaySprite
 ; ===========================================================================
@@ -23350,7 +23350,7 @@ BigRingFlash_Main:
 	move.w	x_pos(a0),d0
 	andi.w	#$FF80,d0
 	sub.w	(Camera_X_pos_coarse).w,d0
-	cmpi.w	#$280,d0
+	cmpi.w	#$300,d0
 	bhi.w	DeleteObject
 	bra.w	DisplaySprite
 
@@ -27249,7 +27249,7 @@ Obj3B_Main:
 	move.w	x_pos(a0),d0
 	andi.w	#$FF80,d0
 	sub.w	(Camera_X_pos_coarse).w,d0
-	cmpi.w	#$280,d0
+	cmpi.w	#$300,d0
 	bhi.w	DeleteObject
 	bra.w	DisplaySprite
 ; ===========================================================================
@@ -27804,7 +27804,7 @@ MarkObjGone:
 	move.w	x_pos(a0),d0
 	andi.w	#$FF80,d0
 	sub.w	(Camera_X_pos_coarse).w,d0
-	cmpi.w	#$80+320+$40+$80,d0	; This gives an object $80 pixels of room offscreen before being unloaded (the $40 is there to round up 320 to a multiple of $80)
+	cmpi.w	#$80+400+$70+$80,d0	; This gives an object $80 pixels of room offscreen before being unloaded (the $40 is there to round up 320 to a multiple of $80)
 	bhi.w	+
 	bra.w	DisplaySprite
 
@@ -27825,7 +27825,7 @@ MarkObjGone2:
 +
 	andi.w	#$FF80,d0
 	sub.w	(Camera_X_pos_coarse).w,d0
-	cmpi.w	#$80+320+$40+$80,d0	; This gives an object $80 pixels of room offscreen before being unloaded (the $40 is there to round up 320 to a multiple of $80)
+	cmpi.w	#$80+400+$70+$80,d0	; This gives an object $80 pixels of room offscreen before being unloaded (the $40 is there to round up 320 to a multiple of $80)
 	bhi.w	+
 	bra.w	DisplaySprite
 +
@@ -27848,7 +27848,7 @@ MarkObjGone3:
 	move.w	x_pos(a0),d0
 	andi.w	#$FF80,d0
 	sub.w	(Camera_X_pos_coarse).w,d0
-	cmpi.w	#$80+320+$40+$80,d0	; This gives an object $80 pixels of room offscreen before being unloaded (the $40 is there to round up 320 to a multiple of $80)
+	cmpi.w	#$80+400+$70+$80,d0	; This gives an object $80 pixels of room offscreen before being unloaded (the $40 is there to round up 320 to a multiple of $80)
 	bhi.w	+
 	rts
 +
@@ -27868,7 +27868,7 @@ MarkObjGone_P1:
 	move.w	x_pos(a0),d0
 	andi.w	#$FF80,d0
 	sub.w	(Camera_X_pos_coarse).w,d0
-	cmpi.w	#$80+320+$40+$80,d0	; This gives an object $80 pixels of room offscreen before being unloaded (the $40 is there to round up 320 to a multiple of $80)
+	cmpi.w	#$80+400+$70+$80,d0	; This gives an object $80 pixels of room offscreen before being unloaded (the $40 is there to round up 320 to a multiple of $80)
 	bhi.w	+
 	bra.w	DisplaySprite
 +
@@ -28154,7 +28154,7 @@ BuildSprites_ObjLoop:
 	bmi.w	BuildSprites_NextObj	; if it is, branch
 	move.w	d3,d1
 	sub.w	d0,d1
-	cmpi.w	#320,d1	; is the object left edge to the right of the screen?
+	cmpi.w	#400,d1	; is the object left edge to the right of the screen?
 	bge.w	BuildSprites_NextObj	; if it is, branch
 	addi.w	#128,d3
 	btst	#4,d4		; is the accurate Y check flag set?
@@ -28249,7 +28249,7 @@ BuildSprites_MultiDraw:
 	bmi.w	BuildSprites_MultiDraw_NextObj
 	move.w	d3,d1
 	sub.w	d0,d1
-	cmpi.w	#320,d1
+	cmpi.w	#400,d1
 	bge.w	BuildSprites_MultiDraw_NextObj
 	addi.w	#128,d3
 
@@ -28550,7 +28550,7 @@ BuildSprites_P1_ObjLoop:
 	bmi.w	BuildSprites_P1_NextObj
 	move.w	d3,d1
 	sub.w	d0,d1
-	cmpi.w	#320,d1
+	cmpi.w	#400,d1
 	bge.s	BuildSprites_P1_NextObj
 	addi.w	#128,d3
 	btst	#4,d4
@@ -28663,7 +28663,7 @@ BuildSprites_P2_ObjLoop:
 	bmi.w	BuildSprites_P2_NextObj
 	move.w	d3,d1
 	sub.w	d0,d1
-	cmpi.w	#320,d1
+	cmpi.w	#400,d1
 	bge.s	BuildSprites_P2_NextObj
 	addi.w	#128,d3
 	btst	#4,d4
@@ -28752,7 +28752,7 @@ BuildSprites_P1_MultiDraw:
 	bmi.w	BuildSprites_P1_MultiDraw_NextObj
 	move.w	d3,d1
 	sub.w	d0,d1
-	cmpi.w	#320,d1
+	cmpi.w	#400,d1
 	bge.w	BuildSprites_P1_MultiDraw_NextObj
 	addi.w	#128,d3
 	btst	#4,d4
@@ -28842,7 +28842,7 @@ BuildSprites_P2_MultiDraw:
 	bmi.w	BuildSprites_P2_MultiDraw_NextObj
 	move.w	d3,d1
 	sub.w	d0,d1
-	cmpi.w	#320,d1
+	cmpi.w	#400,d1
 	bge.w	BuildSprites_P2_MultiDraw_NextObj
 	addi.w	#128,d3
 	btst	#4,d4
@@ -29239,7 +29239,7 @@ RingsManager_Init:
 	bhi.s	-		; if it is, check next ring
 	move.w	a1,(Ring_start_addr).w	; set start addresses
 	move.w	a1,(Ring_start_addr_P2).w
-	addi.w	#320+16,d4	; advance by a screen
+	addi.w	#400+16,d4	; advance by a screen
 	bra.s	+
 -
 	lea	6(a1),a1	; load next ring
@@ -29292,7 +29292,7 @@ RingsManager_Main:
 	move.w	a1,(Ring_start_addr).w	; update start address
 
 	movea.w	(Ring_end_addr).w,a2
-	addi.w	#320+16,d4
+	addi.w	#400+16,d4
 	bra.s	+
 -
 	lea	6(a2),a2
@@ -29333,7 +29333,7 @@ RingsManager_Main:
 	move.w	a1,(Ring_start_addr_P2).w	; update start address
 
 	movea.w	(Ring_end_addr_P2).w,a2
-	addi.w	#320+16,d4
+	addi.w	#400+16,d4
 	bra.s	+
 -
 	lea	6(a2),a2
@@ -30373,7 +30373,7 @@ ObjectsManager_Main:
 loc_17BE6:
 	move.l	a0,(Obj_load_addr_left).w	; remember current object from the left
 	movea.l	(Obj_load_addr_right).w,a0	; get next object from the right
-	addi.w	#$300,d6	; look two chunks beyond the right edge of the screen
+	addi.w	#$380,d6	; look two chunks beyond the right edge of the screen
 
 -	; subtract number of objects that have been moved out of range (from the right side)
 	cmp.w	-6(a0),d6	; is the previous object's X pos less than d6?
@@ -30394,7 +30394,7 @@ loc_17C04:
 ObjectsManager_GoingForward:
 	move.w	d6,(Camera_X_pos_last).w
 	movea.l	(Obj_load_addr_right).w,a0	; get next object from the right
-	addi.w	#$280,d6	; look two chunks forward
+	addi.w	#$300,d6	; look two chunks forward
 
 -	; load all objects right of the screen that are now in range
 	cmp.w	(a0),d6		; is object's x position >= d6?
@@ -34227,7 +34227,7 @@ Sonic_LevelBound:
 	cmp.w	d1,d0			; has Sonic touched the left boundary?
 	bhi.s	Sonic_Boundary_Sides	; if yes, branch
 	move.w	(Camera_Max_X_pos).w,d0
-	addi.w	#320-24,d0		; screen width - Sonic's width_pixels
+	addi.w	#400-24,d0		; screen width - Sonic's width_pixels
 	tst.b	(Current_Boss_ID).w
 	bne.s	+
 	addi.w	#$40,d0
@@ -41656,7 +41656,7 @@ Obj7D_NoAdd:
 	move.w	x_pos(a0),d0
 	andi.w	#$FF80,d0
 	sub.w	(Camera_X_pos_coarse).w,d0
-	cmpi.w	#$280,d0
+	cmpi.w	#$300,d0
 	bhi.s	JmpTo11_DeleteObject
 	rts
 ; ===========================================================================
@@ -41677,7 +41677,7 @@ Obj7D_Main:
 	move.w	x_pos(a0),d0
 	andi.w	#$FF80,d0
 	sub.w	(Camera_X_pos_coarse).w,d0
-	cmpi.w	#$280,d0
+	cmpi.w	#$300,d0
 	bhi.s	JmpTo12_DeleteObject
 	jmp	(DisplaySprite).l
 ; ===========================================================================
@@ -42030,7 +42030,7 @@ loc_1FACE:
 	move.w	x_pos(a0),d0
 	andi.w	#$FF80,d0
 	sub.w	(Camera_X_pos_coarse).w,d0
-	cmpi.w	#$280,d0
+	cmpi.w	#$300,d0
 	bhi.w	JmpTo15_DeleteObject
 	move.w	(Water_Level_1).w,d0
 	cmp.w	y_pos(a0),d0
@@ -42777,7 +42777,7 @@ Obj12_Main:
 	move.w	x_pos(a0),d0
 	andi.w	#$FF80,d0
 	sub.w	(Camera_X_pos_coarse).w,d0
-	cmpi.w	#$280,d0
+	cmpi.w	#$300,d0
 	bhi.w	JmpTo16_DeleteObject
 	jmpto	(DisplaySprite).l, JmpTo8_DisplaySprite
 ; ===========================================================================
@@ -42910,7 +42910,7 @@ loc_204D8:
 	move.w	x_pos(a0),d0
 	andi.w	#$FF80,d0
 	sub.w	(Camera_X_pos_coarse).w,d0
-	cmpi.w	#$280,d0
+	cmpi.w	#$300,d0
 	bhi.w	JmpTo17_DeleteObject
 	jmpto	(DisplaySprite).l, JmpTo9_DisplaySprite
 ; ===========================================================================
@@ -42922,7 +42922,7 @@ loc_204F0:
 	move.w	x_pos(a0),d0
 	andi.w	#$FF80,d0
 	sub.w	(Camera_X_pos_coarse).w,d0
-	cmpi.w	#$280,d0
+	cmpi.w	#$300,d0
 	bhi.w	JmpTo17_DeleteObject
 	rts
 ; ===========================================================================
@@ -42931,7 +42931,7 @@ Obj13_ChkDel:
 	move.w	x_pos(a0),d0
 	andi.w	#$FF80,d0
 	sub.w	(Camera_X_pos_coarse).w,d0
-	cmpi.w	#$280,d0
+	cmpi.w	#$300,d0
 	bhi.w	JmpTo17_DeleteObject
 	jmpto	(DisplaySprite).l, JmpTo9_DisplaySprite
 ; ===========================================================================
@@ -43100,7 +43100,7 @@ Obj49_ChkDel:
 	move.w	x_pos(a0),d0
 	andi.w	#$FF80,d0
 	sub.w	(Camera_X_pos_coarse).w,d0
-	cmpi.w	#$280,d0
+	cmpi.w	#$300,d0
 	bhi.w	JmpTo18_DeleteObject
 +
 	move.w	x_pos(a0),d1
@@ -43186,7 +43186,7 @@ Obj31_Main:
 	move.w	x_pos(a0),d0
 	andi.w	#$FF80,d0
 	sub.w	(Camera_X_pos_coarse).w,d0
-	cmpi.w	#$280,d0
+	cmpi.w	#$300,d0
 	bhi.w	JmpTo18_DeleteObject
 +
 	tst.w	(Debug_placement_mode).w
@@ -43257,7 +43257,7 @@ Obj74_Main:
 	move.w	x_pos(a0),d0
 	andi.w	#$FF80,d0
 	sub.w	(Camera_X_pos_coarse).w,d0
-	cmpi.w	#$280,d0
+	cmpi.w	#$300,d0
 	bhi.w	JmpTo18_DeleteObject
     if gameRevision=0
     ; this object was visible with debug mode in REV00
@@ -43758,7 +43758,7 @@ Obj06_ChkDel:
 	move.w	x_pos(a0),d0
 	andi.w	#$FF80,d0
 	sub.w	(Camera_X_pos_coarse).w,d0
-	cmpi.w	#$280,d0
+	cmpi.w	#$300,d0
 	bhi.s	JmpTo19_DeleteObject
 	rts
 ; ---------------------------------------------------------------------------
@@ -44683,7 +44683,7 @@ Obj19_Main:
 	move.w	objoff_30(a0),d0
 	andi.w	#$FF80,d0
 	sub.w	(Camera_X_pos_coarse).w,d0
-	cmpi.w	#$280,d0
+	cmpi.w	#$300,d0
 	bhi.w	JmpTo20_DeleteObject
 	jmpto	(DisplaySprite).l, JmpTo11_DisplaySprite
 ; ---------------------------------------------------------------------------
@@ -46806,12 +46806,12 @@ loc_23F0A:
 	move.w	objoff_32(a0),d0
 	andi.w	#$FF80,d0
 	sub.w	(Camera_X_pos_coarse).w,d0
-	cmpi.w	#$280,d0
+	cmpi.w	#$300,d0
 	bls.s	JmpTo13_DisplaySprite
 	move.w	objoff_34(a0),d0
 	andi.w	#$FF80,d0
 	sub.w	(Camera_X_pos_coarse).w,d0
-	cmpi.w	#$280,d0
+	cmpi.w	#$300,d0
 	bhi.s	loc_23F36
 
 JmpTo13_DisplaySprite
@@ -48917,7 +48917,7 @@ Obj2C_Main:
 	move.w	x_pos(a0),d0
 	andi.w	#$FF80,d0
 	sub.w	(Camera_X_pos_coarse).w,d0
-	cmpi.w	#$280,d0
+	cmpi.w	#$300,d0
 	bhi.w	JmpTo29_DeleteObject
 	move.b	collision_property(a0),d0
 	beq.s	loc_261C2
@@ -49611,7 +49611,7 @@ Obj64_Main:
 	move.w	objoff_34(a0),d0
 	andi.w	#$FF80,d0
 	sub.w	(Camera_X_pos_coarse).w,d0
-	cmpi.w	#$280,d0
+	cmpi.w	#$300,d0
 	bhi.s	JmpTo31_DeleteObject
 	jmp	(DisplaySprite).l
 ; ===========================================================================
@@ -49814,7 +49814,7 @@ loc_26C1C:
 	move.w	objoff_34(a0),d0
 	andi.w	#$FF80,d0
 	sub.w	(Camera_X_pos_coarse).w,d0
-	cmpi.w	#$280,d0
+	cmpi.w	#$300,d0
 	bhi.s	loc_26C66
 	jmp	(DisplaySprite).l
 ; ===========================================================================
@@ -50195,7 +50195,7 @@ loc_2702C:
 	move.w	x_pos(a0),d0
 	andi.w	#$FF80,d0
 	sub.w	(Camera_X_pos_coarse).w,d0
-	cmpi.w	#$280,d0
+	cmpi.w	#$300,d0
 	bhi.w	JmpTo33_DeleteObject
     if gameRevision=0
        ; this object was visible with debug mode in REV00
@@ -51617,7 +51617,7 @@ Obj6C:
 	move.w	objoff_30(a0),d0
 	andi.w	#$FF80,d0
 	sub.w	(Camera_X_pos_coarse).w,d0
-	cmpi.w	#$280,d0
+	cmpi.w	#$300,d0
 	bhi.s	+
 	jmpto	(DisplaySprite).l, JmpTo20_DisplaySprite
 ; ===========================================================================
@@ -51972,7 +51972,7 @@ loc_28432:
 	move.w	objoff_34(a0),d0
 	andi.w	#$FF80,d0
 	sub.w	(Camera_X_pos_coarse).w,d0
-	cmpi.w	#$280,d0
+	cmpi.w	#$300,d0
 	bhi.s	+
 	jmp	(DisplaySprite).l
 ; ===========================================================================
@@ -52013,7 +52013,7 @@ loc_284BC:
 	move.w	objoff_34(a0),d0
 	andi.w	#$FF80,d0
 	sub.w	(Camera_X_pos_coarse).w,d0
-	cmpi.w	#$280,d0
+	cmpi.w	#$300,d0
 	bhi.s	+
 	jmp	(DisplaySprite).l
 ; ===========================================================================
@@ -52158,7 +52158,7 @@ loc_286CA:
 	move.w	objoff_32(a0),d0
 	andi.w	#$FF80,d0
 	sub.w	(Camera_X_pos_coarse).w,d0
-	cmpi.w	#$280,d0
+	cmpi.w	#$300,d0
 	bhi.s	+
 	jmp	(DisplaySprite).l
 ; ===========================================================================
@@ -52463,7 +52463,7 @@ loc_28B46:
 	move.w	objoff_3A(a0),d0
 	andi.w	#$FF80,d0
 	sub.w	(Camera_X_pos_coarse).w,d0
-	cmpi.w	#$280,d0
+	cmpi.w	#$300,d0
 	bhi.w	+
 	jmpto	(DisplaySprite).l, JmpTo21_DisplaySprite
 ; ===========================================================================
@@ -52653,7 +52653,7 @@ loc_28D3E:
 	move.w	objoff_30(a0),d0
 	andi.w	#$FF80,d0
 	sub.w	(Camera_X_pos_coarse).w,d0
-	cmpi.w	#$280,d0
+	cmpi.w	#$300,d0
 	bhi.w	+
 	jmpto	(DisplaySprite).l, JmpTo22_DisplaySprite
 ; ===========================================================================
@@ -53297,12 +53297,12 @@ Obj7A_Main:
 	move.w	objoff_32(a0),d0
 	andi.w	#$FF80,d0
 	sub.w	(Camera_X_pos_coarse).w,d0
-	cmpi.w	#$280,d0
+	cmpi.w	#$300,d0
 	bls.s	+
 	move.w	objoff_34(a0),d0
 	andi.w	#$FF80,d0
 	sub.w	(Camera_X_pos_coarse).w,d0
-	cmpi.w	#$280,d0
+	cmpi.w	#$300,d0
 	bhi.s	loc_294C4
 +
 	jmp	(DisplaySprite).l
@@ -53415,7 +53415,7 @@ Obj7B:
 	move.w	x_pos(a0),d0
 	andi.w	#$FF80,d0
 	sub.w	(Camera_X_pos_coarse).w,d0
-	cmpi.w	#$280,d0
+	cmpi.w	#$300,d0
 	bhi.w	JmpTo40_DeleteObject
 	jmpto	(DisplaySprite).l, JmpTo25_DisplaySprite
 
@@ -54163,7 +54163,7 @@ loc_2A1B4:
 	move.w	objoff_30(a0),d0
 	andi.w	#$FF80,d0
 	sub.w	(Camera_X_pos_coarse).w,d0
-	cmpi.w	#$280,d0
+	cmpi.w	#$300,d0
 	bhi.w	+
 	jmpto	(DisplaySprite).l, JmpTo26_DisplaySprite
 ; ---------------------------------------------------------------------------
@@ -54709,7 +54709,7 @@ Obj83_Main:
 	move.w	Obj83_initial_x_pos(a0),d0
 	andi.w	#$FF80,d0
 	sub.w	(Camera_X_pos_coarse).w,d0
-	cmpi.w	#$280,d0
+	cmpi.w	#$300,d0
 	bhi.w	.objectOffscreen
 	jmpto	(DisplaySprite).l, JmpTo27_DisplaySprite
 ; ===========================================================================
@@ -55044,7 +55044,7 @@ Obj85:
 	move.w	x_pos(a0),d1
 	andi.w	#$FF80,d1
 	sub.w	(Camera_X_pos_coarse).w,d1
-	cmpi.w	#$280,d1
+	cmpi.w	#$300,d1
 	bhi.w	+
 	jmpto	(DisplaySprite3).l, JmpTo4_DisplaySprite3
 ; ===========================================================================
@@ -57213,12 +57213,12 @@ loc_2C5C4:
 	move.w	objoff_30(a0),d0
 	andi.w	#$FF80,d0
 	sub.w	(Camera_X_pos_coarse).w,d0
-	cmpi.w	#$280,d0
+	cmpi.w	#$300,d0
 	bls.s	+
 	move.w	objoff_32(a0),d0
 	andi.w	#$FF80,d0
 	sub.w	(Camera_X_pos_coarse).w,d0
-	cmpi.w	#$280,d0
+	cmpi.w	#$300,d0
 	bhi.s	loc_2C5F8
 +
 	jmp	(DisplaySprite).l
@@ -69747,7 +69747,7 @@ Obj_DeleteOffScreen:
 	move.w	x_pos(a0),d0
 	andi.w	#$FF80,d0
 	sub.w	(Camera_X_pos_coarse).w,d0
-	cmpi.w	#$280,d0
+	cmpi.w	#$300,d0
 	bhi.w	JmpTo64_DeleteObject
 	jmp	(DisplaySprite).l
 ; ===========================================================================
@@ -71972,7 +71972,7 @@ loc_37EFC:
 	dbf	d6,-
 
 loc_37F6C:
-	move.w	#$280,d0
+	move.w	#$300,d0
 	jmpto	(DisplaySprite3).l, JmpTo5_DisplaySprite3
 ; ===========================================================================
 
@@ -73611,7 +73611,7 @@ loc_39182:
 +	move.w	x_pos(a0),d0
 	andi.w	#$FF80,d0
 	sub.w	(Camera_X_pos_coarse).w,d0
-	cmpi.w	#$280,d0
+	cmpi.w	#$300,d0
 	bhi.w	+
 	jmpto	(DisplaySprite).l, JmpTo45_DisplaySprite
 ; ---------------------------------------------------------------------------
