@@ -4358,8 +4358,8 @@ Level_InitWater:
 	move.w	#$8004,(a6)		; H-INT disabled
 	move.w	#$8720,(a6)		; Background palette/color: 2/0
 	move.w	#$8C81,(a6)		; H res 40 cells, no interlace
-	tst.b	(Debug_options_flag).w
-	beq.s	++
+	;tst.b	(Debug_options_flag).w
+	;beq.s	++
 	btst	#button_C,(Ctrl_1_Held).w
 	beq.s	+
 	move.w	#$8C89,(a6)	; H res 40 cells, no interlace, S/H enabled
@@ -16617,16 +16617,18 @@ ScrollHoriz:
 ; loc_D762:
 .maxNotReached2:
 	add.w	(a1),d0		; get new camera position
-	add.w   (Screen_Width_Px).w,d0
-	subi.w	#320,d0
+	;add.w   (Screen_Width_Px).w,d0
+	;subi.w	#320,d0
+	addi.w   #80,d0
 	cmp.w	Camera_Max_X_pos-Camera_Min_X_pos(a2),d0	; is it less than the max position?
 	blt.s	.removeOffset	; if it is, branch
-	;move.w	Camera_Max_X_pos-Camera_Min_X_pos(a2),d0	; prevent camera from going any further forward
-	bra.s   .doScroll
+	move.w	Camera_Max_X_pos-Camera_Min_X_pos(a2),d0	; prevent camera from going any further forward
+
 
 .removeOffset:
-	addi.w	#320,d0
-	sub.w   (Screen_Width_Px).w,d0
+	;addi.w	#320,d0
+	;sub.w   (Screen_Width_Px).w,d0
+	subi.w   #80,d0
 
 ; loc_D76E:
 .doScroll:
@@ -43371,13 +43373,14 @@ Obj7C_Init:
 Obj7C_Main:
 	move.w	(Camera_X_pos).w,d1
 	andi.w	#$3FF,d1
-	cmpi.w	#$2E0,d1
+	cmpi.w	#$230,d1
 	bhs.s	+	; rts
-	asr.w	#1,d1
+
+	asr.w	#1,d1 ; * 0.75 speed to camera
 	move.w	d1,d0
 	asr.w	#1,d1
 	add.w	d1,d0
-	neg.w	d0
+	neg.w	d0    ; Move backwards for parallax
 	move.w	d0,x_pixel(a0)
 	move.w	(Camera_Y_pos).w,d1
 	asr.w	#1,d1
