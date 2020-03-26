@@ -396,6 +396,9 @@ GameClrRAM:
 	move.l	d7,(a6)+
 	dbf	d6,GameClrRAM	; clear RAM ($0000-$FDFF)
 
+	move.w  #400,(Screen_Width_Px).w
+	move.w  #$300,(Screen_Width_Unload).w
+
 	bsr.w	VDPSetupGame
 	bsr.w	JmpTo_SoundDriverLoad
 	bsr.w	JoypadInit
@@ -3783,15 +3786,15 @@ SegaScreen:
 	bsr.w	EniDec
 	lea	(Chunk_Table).l,a1
 	move.l	#vdpComm(VRAM_SegaScr_Plane_B_Name_Table,VRAM,WRITE),d0
-	moveq	#$27,d1		; 40 cells wide
+	moveq	#$31,d1		; 50 cells wide
 	moveq	#$1B,d2		; 28 cells tall
 	bsr.w	PlaneMapToVRAM_H80_Sega
 	tst.b	(Graphics_Flags).w ; are we on a Japanese Mega Drive?
 	bmi.s	SegaScreen_Contin ; if not, branch
 	; load an extra sprite to hide the TM (trademark) symbol on the SEGA screen
-	lea	(SegaHideTM).w,a1
-	move.b	#ObjID_SegaHideTM,id(a1)	; load objB1 at $FFFFB080
-	move.b	#$4E,subtype(a1) ; <== ObjB1_SubObjData
+	;lea	(SegaHideTM).w,a1
+	;move.b	#ObjID_SegaHideTM,id(a1)	; load objB1 at $FFFFB080
+	;move.b	#$4E,subtype(a1) ; <== ObjB1_SubObjData
 ; loc_38CE:
 SegaScreen_Contin:
 	moveq	#PalID_SEGA,d0
@@ -3935,30 +3938,33 @@ TitleScreen:
 	move.b	#0,(Level_started_flag).w
 	bsr.w	Pal_FadeToBlack
 	move	#$2700,sr
+	
 	lea	(Chunk_Table).l,a1
 	lea	(MapEng_TitleScreen).l,a0
 	move.w	#make_art_tile(ArtTile_ArtNem_Title,2,0),d0
 	bsr.w	EniDec
 	lea	(Chunk_Table).l,a1
 	move.l	#vdpComm(VRAM_TtlScr_Plane_B_Name_Table,VRAM,WRITE),d0
-	moveq	#$27,d1
+	moveq	#$31,d1
 	moveq	#$1B,d2
 	jsrto	(PlaneMapToVRAM_H40).l, PlaneMapToVRAM_H40
+
 	lea	(Chunk_Table).l,a1
 	lea	(MapEng_TitleBack).l,a0
 	move.w	#make_art_tile(ArtTile_ArtNem_Title,2,0),d0
 	bsr.w	EniDec
 	lea	(Chunk_Table).l,a1
 	move.l	#vdpComm(VRAM_TtlScr_Plane_B_Name_Table + planeLocH40($28,0),VRAM,WRITE),d0
-	moveq	#$17,d1
+	moveq	#$31,d1
 	moveq	#$1B,d2
 	jsrto	(PlaneMapToVRAM_H40).l, PlaneMapToVRAM_H40
+
 	lea	(Chunk_Table).l,a1
 	lea	(MapEng_TitleLogo).l,a0
 	move.w	#make_art_tile(ArtTile_ArtNem_Title,3,1),d0
 	bsr.w	EniDec
 
-	lea	(Chunk_Table+$858).l,a1
+	lea	(Chunk_Table+$A74).l,a1
 	lea	(CopyrightText).l,a2
 
 	moveq	#bytesToWcnt(CopyrightText_End-CopyrightText),d6
@@ -3967,7 +3973,7 @@ TitleScreen:
 
 	lea	(Chunk_Table).l,a1
 	move.l	#vdpComm(VRAM_TtlScr_Plane_A_Name_Table,VRAM,WRITE),d0
-	moveq	#$27,d1
+	moveq	#$31,d1
 	moveq	#$1B,d2
 	jsrto	(PlaneMapToVRAM_H40).l, PlaneMapToVRAM_H40
 
@@ -4066,8 +4072,8 @@ TitleScreen_Loop:
     else
 	move.w #emerald_hill_zone_act_1,(Current_ZoneAndAct).w
     endif
-	tst.b	(Level_select_flag).w	; has level select cheat been entered?
-	beq.s	+			; if not, branch
+	;tst.b	(Level_select_flag).w	; has level select cheat been entered?
+	;beq.s	+			; if not, branch
 	btst	#button_A,(Ctrl_1_Held).w ; is A held down?
 	beq.s	+	 		; if not, branch
 	move.b	#GameModeID_LevelSelect,(Game_Mode).w ; => LevelSelectMenu
@@ -4331,9 +4337,6 @@ Level_ClrRam:
 	clearRAM Oscillating_Data,Oscillating_variables_End
 	; Bug: The '+C0' shouldn't be here; CNZ_saucer_data is only $40 bytes large
 	clearRAM CNZ_saucer_data,CNZ_saucer_data_End+$C0
-
-	move.w  #400,(Screen_Width_Px).w
-	move.w  #$300,(Screen_Width_Unload).w
 
 	cmpi.w	#chemical_plant_zone_act_2,(Current_ZoneAndAct).w ; CPZ 2
 	beq.s	Level_InitWater
@@ -11170,13 +11173,14 @@ MenuScreen:
 	move.l	#vdpComm(tiles_to_bytes(ArtTile_ArtNem_LevelSelectPics),VRAM,WRITE),(VDP_control_port).l
 	lea	(ArtNem_LevelSelectPics).l,a0
 	bsr.w	NemDec
+	
 	lea	(Chunk_Table).l,a1
 	lea	(MapEng_MenuBack).l,a0
 	move.w	#make_art_tile(ArtTile_VRAM_Start,3,0),d0
 	bsr.w	EniDec
 	lea	(Chunk_Table).l,a1
 	move.l	#vdpComm(VRAM_Plane_B_Name_Table,VRAM,WRITE),d0
-	moveq	#$27,d1
+	moveq	#$31,d1 ; prev $27
 	moveq	#$1B,d2
 	jsrto	(PlaneMapToVRAM_H40).l, JmpTo_PlaneMapToVRAM_H40	; fullscreen background
 
@@ -11793,7 +11797,7 @@ MenuScreen_LevelSelect:
 
 	lea	(Chunk_Table).l,a1
 	move.l	#vdpComm(VRAM_Plane_A_Name_Table,VRAM,WRITE),d0
-	moveq	#$27,d1
+	moveq	#$31,d1
 	moveq	#$1B,d2	; 40x28 = whole screen
 	jsrto	(PlaneMapToVRAM_H40).l, JmpTo_PlaneMapToVRAM_H40	; display patterns
 
@@ -11802,7 +11806,7 @@ MenuScreen_LevelSelect:
 	bsr.w	LevelSelect_DrawSoundNumber
 
 	; Load zone icon
-	lea	(Chunk_Table+$8C0).l,a1
+	lea	(Chunk_Table+$8D2).l,a1
 	lea	(MapEng_LevSelIcon).l,a0
 	move.w	#make_art_tile(ArtTile_ArtNem_LevelSelectPics,0,0),d0
 	bsr.w	EniDec
@@ -12091,7 +12095,7 @@ LevelSelect_MarkFields:
 	lea	(a5,d0.w),a3
 	moveq	#0,d0
 	move.b	(a3),d0
-	mulu.w	#$50,d0
+	mulu.w	#$64,d0
 	moveq	#0,d1
 	move.b	1(a3),d1
 	add.w	d1,d0
@@ -12117,7 +12121,7 @@ LevelSelect_MarkFields:
 	moveq	#0,d0
 	move.b	(a3),d0
 	beq.s	+
-	mulu.w	#$50,d0
+	mulu.w	#$64,d0
 	moveq	#0,d1
 	move.b	1(a3),d1
 	add.w	d1,d0
@@ -12145,7 +12149,7 @@ LevelSelect_MarkFields:
 ; ===========================================================================
 ;loc_965A:
 LevelSelect_DrawSoundNumber:
-	move.l	#vdpComm(VRAM_Plane_A_Name_Table+planeLocH40(34,18),VRAM,WRITE),(VDP_control_port).l
+	move.l	#vdpComm(VRAM_Plane_A_Name_Table+planeLocH40(39,18),VRAM,WRITE),(VDP_control_port).l
 	move.w	(Sound_test_sound).w,d0
 	move.b	d0,d2
 	lsr.b	#4,d0
@@ -12170,7 +12174,7 @@ LevelSelect_DrawIcon:
 	move.w	(Level_select_zone).w,d0
 	lea	(LevSel_IconTable).l,a3
 	lea	(a3,d0.w),a3
-	lea	(Chunk_Table+$8C0).l,a1
+	lea	(Chunk_Table+$8D2).l,a1
 	moveq	#0,d0
 	move.b	(a3),d0
 	lsl.w	#3,d0
@@ -12178,7 +12182,7 @@ LevelSelect_DrawIcon:
 	add.w	d0,d0
 	add.w	d1,d0
 	lea	(a1,d0.w),a1
-	move.l	#vdpComm(VRAM_Plane_A_Name_Table+planeLocH40(27,22),VRAM,WRITE),d0
+	move.l	#vdpComm(VRAM_Plane_A_Name_Table+planeLocH40(32,22),VRAM,WRITE),d0
 	moveq	#3,d1
 	moveq	#2,d2
 	jsrto	(PlaneMapToVRAM_H40).l, JmpTo_PlaneMapToVRAM_H40
@@ -12214,29 +12218,29 @@ LevSel_IconTable:
 ;byte_96EE:
 LevSel_MarkTable:	; 4 bytes per level select entry
 ; line primary, 2*column ($E fields), line secondary, 2*column secondary (1 field)
-	dc.b   3,  6,  3,$24	;0
-	dc.b   3,  6,  4,$24
-	dc.b   6,  6,  6,$24
-	dc.b   6,  6,  7,$24
-	dc.b   9,  6,  9,$24	;4
-	dc.b   9,  6, $A,$24
-	dc.b  $C,  6, $C,$24
-	dc.b  $C,  6, $D,$24
-	dc.b  $F,  6, $F,$24	;8
-	dc.b  $F,  6,$10,$24
-	dc.b $12,  6,$12,$24
-	dc.b $12,  6,$13,$24
-	dc.b $15,  6,$15,$24	;$C
-	dc.b $15,  6,$16,$24
+	dc.b   3,  16,  3,46	;0
+	dc.b   3,  16,  4,46
+	dc.b   6,  16,  6,46
+	dc.b   6,  16,  7,46
+	dc.b   9,  16,  9,46	;4
+	dc.b   9,  16, $A,46
+	dc.b  $C,  16, $C,46
+	dc.b  $C,  16, $D,46
+	dc.b  $F,  16, $F,46	;8
+	dc.b  $F,  16,$10,46
+	dc.b $12,  16,$12,46
+	dc.b $12,  16,$13,46
+	dc.b $15,  16,$15,46	;$C
+	dc.b $15,  16,$16,46
 ; --- second column ---
-	dc.b   3,$2C,  3,$48
-	dc.b   3,$2C,  4,$48
-	dc.b   3,$2C,  5,$48	;$10
-	dc.b   6,$2C,  0,  0
-	dc.b   9,$2C,  0,  0
-	dc.b  $C,$2C,  0,  0
-	dc.b  $F,$2C,  0,  0	;$14
-	dc.b $12,$2C,$12,$48
+	dc.b   3,   54,  3,82
+	dc.b   3,   54,  4,82
+	dc.b   3,   54,  5,82	;$10
+	dc.b   6,   54,  0,  0
+	dc.b   9,   54,  0,  0
+	dc.b  $C,   54,  0,  0
+	dc.b  $F,   54,  0,  0	;$14
+	dc.b $12,   54,$12,82
 ; ===========================================================================
 ; loc_9746:
 CheckCheats:	; This is called from 2 places: the options screen and the level select screen
@@ -13746,10 +13750,15 @@ loc_B272:
 	move	#$2700,sr
 	lea	(VDP_data_port).l,a6
 -
-	move.l	(a1)+,d0
+	move.l	(a1)+,d0 ; d0 contains letter?
 	bmi.s	++
 	movea.l	d0,a2
-	move.w	(a1)+,d0
+	
+	move.w  (Screen_Width_Px).w, d0
+	subi.w  #320,d0
+	asr.w   #3,d0
+	add.w	(a1)+,d0 ; d0 contains xpos?
+	
 	bsr.s	sub_B29E
 	move.l	d0,4(a6)
 	move.b	(a2)+,d0
@@ -24283,6 +24292,7 @@ Obj0E_Sonic_Init:
 	addq.b	#2,routine_secondary(a0)
 	move.b	#5,mapping_frame(a0)
 	move.w	#$110,x_pixel(a0)
+	addi.w  #40,x_pixel(a0)
 	move.w	#$E0,y_pixel(a0)
 	lea	(IntroLargeStar).w,a1
 	move.b	#ObjID_IntroStars,id(a1) ; load obj0E (flashing intro stars) at $FFFFB0C0
@@ -24354,6 +24364,7 @@ loc_12F20:
 	move.w	d0,y_pixel(a0)
 	swap	d0
 	move.w	d0,x_pixel(a0)
+	addi.w  #40,x_pixel(a0)
 +
 	bra.w	DisplaySprite
 ; ===========================================================================
@@ -24526,6 +24537,7 @@ Obj0E_LogoTop_Init:
 +
 	move.b	#2,priority(a0)
 	move.w	#$120,x_pixel(a0)
+	addi.w  #40,x_pixel(a0)
 	move.w	#$E8,y_pixel(a0)
 
 loc_1310A:
@@ -24552,6 +24564,7 @@ Obj0E_SkyPiece_Init:
 	move.b	#$11,mapping_frame(a0)
 	move.b	#2,priority(a0)
 	move.w	#$100,x_pixel(a0)
+	addi.w  #40,x_pixel(a0)
 	move.w	#$F0,y_pixel(a0)
 
 BranchTo12_DisplaySprite
@@ -24578,6 +24591,7 @@ Obj0E_LargeStar_Init:
 	move.b	#2,anim(a0)
 	move.b	#1,priority(a0)
 	move.w	#$100,x_pixel(a0)
+	addi.w  #40,x_pixel(a0)
 	move.w	#$A8,y_pixel(a0)
 	move.w	#4,objoff_2A(a0)
 	rts
@@ -24607,6 +24621,7 @@ loc_1319E:
 	move.w	d0,y_pixel(a0)
 	swap	d0
 	move.w	d0,x_pixel(a0)
+	addi.w  #40,x_pixel(a0)
 	moveq	#SndID_Sparkle,d0 ; play intro sparkle sound
 	jmpto	(PlaySound).l, JmpTo4_PlaySound
 ; ===========================================================================
@@ -24709,6 +24724,7 @@ Obj0E_SmallStar_Init:
 	move.b	#$C,mapping_frame(a0)
 	move.b	#5,priority(a0)
 	move.w	#$170,x_pixel(a0)
+	addi.w  #40,x_pixel(a0)
 	move.w	#$80,y_pixel(a0)
 	move.b	#3,anim(a0)
 	move.w	#$8C,objoff_2A(a0)
@@ -25002,6 +25018,7 @@ Obj0F_Index:	offsetTable
 Obj0F_Init:
 	addq.b	#2,routine(a0) ; => Obj0F_Main
 	move.w	#$128,x_pixel(a0)
+	addi.w  #40,x_pixel(a0)
 	move.w	#$14C,y_pixel(a0)
 	move.l	#Obj0F_MapUnc_13B70,mappings(a0)
 	move.w	#make_art_tile(ArtTile_ArtKos_LevelArt,0,0),art_tile(a0)
@@ -74822,6 +74839,7 @@ ObjB0_Index:	offsetTable
 ObjB0_Init:
 	bsr.w	LoadSubObject
 	move.w	#$1E8,x_pixel(a0)
+	add.w   #80,x_pixel(a0)
 	move.w	#$F0,y_pixel(a0)
 	move.w	#$B,objoff_2A(a0)
 	move.w	#2,(SegaScr_VInt_Subrout).w
@@ -74855,7 +74873,7 @@ ObjB0_Init:
 	; Depending on the exact location (and size) of the art being used,
 	; you may encounter an overflow in the original code which garbles
 	; the enlarged Sonic. The following code fixes this:
-    if 1==0
+    if 1==1
 	andi.l	#$FFF,d0
 	lsl.l	#5,d0
 	lea	(a3,d0.l),a4 ; source ROM address of tiles to copy
