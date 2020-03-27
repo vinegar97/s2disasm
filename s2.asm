@@ -26,7 +26,7 @@ gameRevision = 1
 padToPowerOfTwo = 1
 ;	| If 1, pads the end of the ROM to the next power of two bytes (for real hardware)
 ;
-allOptimizations = 0
+allOptimizations = 1
 ;	| If 1, enables all optimizations
 ;
 skipChecksumCheck = 0|allOptimizations
@@ -17098,19 +17098,19 @@ Draw_FG:
 	bclr	#2,(a2)		; has the level scrolled to the left?
 	beq.s	+	; if not, branch
 	moveq	#-$10,d4
-	moveq	#-$10,d5
+	moveq	#-$30,d5
 	bsr.w	CalcBlockVRAMPos
 	moveq	#-$10,d4
-	moveq	#-$10,d5
+	moveq	#-$30,d5
 	bsr.w	DrawBlockCol1	; redraw left-most column
 +
 	bclr	#3,(a2)		; has the level scrolled to the right?
 	beq.s	return_DB5A	; if not, return
 	moveq	#-$10,d4
-	move.w	#320,d5
+	move.w	#384,d5
 	bsr.w	CalcBlockVRAMPos
 	moveq	#-$10,d4
-	move.w	#320,d5
+	move.w	#384,d5
 	bsr.w	DrawBlockCol1	; redraw right-most column
 
 return_DB5A:
@@ -17152,10 +17152,10 @@ Draw_FG_P2:
 	bclr	#3,(a2)
 	beq.s	return_DBC0
 	moveq	#-$10,d4
-	move.w	#320,d5
+	move.w	#384,d5
 	bsr.w	CalcBlockVRAMPosB
 	moveq	#-$10,d4
-	move.w	#320,d5
+	move.w	#384,d5
 	bsr.w	DrawBlockCol1
 
 return_DBC0:
@@ -17199,10 +17199,10 @@ Draw_BG1:
 	bclr	#3,(a2)
 	beq.s	+
 	moveq	#-$10,d4
-	move.w	#320,d5
+	move.w	#384,d5
 	bsr.w	CalcBlockVRAMPos
 	moveq	#-$10,d4
-	move.w	#320,d5
+	move.w	#384,d5
 	bsr.w	DrawBlockCol1
 +
 	bclr	#4,(a2)
@@ -17269,10 +17269,10 @@ Draw_BG2:
 	bclr	#1,(a2)
 	beq.s	+	; rts
 	move.w	#$70,d4
-	move.w	#320,d5
+	move.w	#384,d5
 	bsr.w	CalcBlockVRAMPos
 	move.w	#$70,d4
-	move.w	#320,d5
+	move.w	#384,d5
 	moveq	#2,d6
 	bsr.w	DrawBlockCol2
 +
@@ -17367,7 +17367,7 @@ SBZ_CameraSections:
 	beq.s	+
 	lsr.b	#1,d0
 	move.b	d0,(a2)
-	move.w	#320,d5
+	move.w	#384,d5
 +
 	lea_	SBZ_CameraSections,a0
 	move.w	(Camera_BG_Y_pos).w,d0
@@ -17399,10 +17399,10 @@ Draw_BG3:
 	bclr	#1,(a2)
 	beq.s	+	; rts
 	move.w	#$40,d4
-	move.w	#320,d5
+	move.w	#384,d5
 	bsr.w	CalcBlockVRAMPos
 	move.w	#$40,d4
-	move.w	#320,d5
+	move.w	#384,d5
 	moveq	#2,d6
 	bsr.w	DrawBlockCol2
 +
@@ -17515,7 +17515,7 @@ Draw_BG3_CPZ:
 	beq.s	+
 	lsr.b	#1,d0
 	move.b	d0,(a2)
-	move.w	#320,d5
+	move.w	#384,d5
 +
 	lea_	CPZ_CameraSections,a0
 	move.w	(Camera_BG_Y_pos).w,d0
@@ -17652,7 +17652,7 @@ DrawBlockRow:
 
 ; sub_DF92: DrawTiles_Vertical1:
 DrawBlockRow1:
-	moveq	#$15,d6
+	moveq	#27,d6
 	add.w	(a3),d5		; add X pos
 ; loc_DF96: DrawTiles_Vertical2:
 DrawBlockRow2:
@@ -27804,7 +27804,7 @@ MarkObjGone:
 	move.w	x_pos(a0),d0
 	andi.w	#$FF80,d0
 	sub.w	(Camera_X_pos_coarse).w,d0
-	cmpi.w	#$80+320+$40+$80,d0	; This gives an object $80 pixels of room offscreen before being unloaded (the $40 is there to round up 320 to a multiple of $80)
+	cmpi.w	#$80+320+$40+$80+40,d0	; This gives an object $80 pixels of room offscreen before being unloaded (the $40 is there to round up 320 to a multiple of $80)
 	bhi.w	+
 	bra.w	DisplaySprite
 
@@ -27824,8 +27824,9 @@ MarkObjGone2:
 	bra.w	DisplaySprite
 +
 	andi.w	#$FF80,d0
+	addi.w  #40,d0
 	sub.w	(Camera_X_pos_coarse).w,d0
-	cmpi.w	#$80+320+$40+$80,d0	; This gives an object $80 pixels of room offscreen before being unloaded (the $40 is there to round up 320 to a multiple of $80)
+	cmpi.w	#$80+320+$40+$80+40,d0	; This gives an object $80 pixels of room offscreen before being unloaded (the $40 is there to round up 320 to a multiple of $80)
 	bhi.w	+
 	bra.w	DisplaySprite
 +
@@ -27847,8 +27848,9 @@ MarkObjGone3:
 +
 	move.w	x_pos(a0),d0
 	andi.w	#$FF80,d0
+	addi.w  #40,d0
 	sub.w	(Camera_X_pos_coarse).w,d0
-	cmpi.w	#$80+320+$40+$80,d0	; This gives an object $80 pixels of room offscreen before being unloaded (the $40 is there to round up 320 to a multiple of $80)
+	cmpi.w	#$80+320+$40+$80+40,d0	; This gives an object $80 pixels of room offscreen before being unloaded (the $40 is there to round up 320 to a multiple of $80)
 	bhi.w	+
 	rts
 +
@@ -27867,8 +27869,9 @@ MarkObjGone_P1:
 	bne.s	MarkObjGone_P2
 	move.w	x_pos(a0),d0
 	andi.w	#$FF80,d0
+	addi.w  #40,d0
 	sub.w	(Camera_X_pos_coarse).w,d0
-	cmpi.w	#$80+320+$40+$80,d0	; This gives an object $80 pixels of room offscreen before being unloaded (the $40 is there to round up 320 to a multiple of $80)
+	cmpi.w	#$80+320+$40+$80+40,d0	; This gives an object $80 pixels of room offscreen before being unloaded (the $40 is there to round up 320 to a multiple of $80)
 	bhi.w	+
 	bra.w	DisplaySprite
 +
@@ -28154,7 +28157,7 @@ BuildSprites_ObjLoop:
 	bmi.w	BuildSprites_NextObj	; if it is, branch
 	move.w	d3,d1
 	sub.w	d0,d1
-	cmpi.w	#320,d1	; is the object left edge to the right of the screen?
+	cmpi.w	#400,d1	; is the object left edge to the right of the screen?
 	bge.w	BuildSprites_NextObj	; if it is, branch
 	addi.w	#128,d3
 	btst	#4,d4		; is the accurate Y check flag set?
@@ -28244,13 +28247,15 @@ BuildSprites_MultiDraw:
 	move.b	mainspr_width(a0),d0	; load pixel width
 	move.w	x_pos(a0),d3
 	sub.w	(a4),d3
+	addi.w  #40,d3
 	move.w	d3,d1
 	add.w	d0,d1
 	bmi.w	BuildSprites_MultiDraw_NextObj
 	move.w	d3,d1
 	sub.w	d0,d1
-	cmpi.w	#320,d1
+	cmpi.w	#400,d1
 	bge.w	BuildSprites_MultiDraw_NextObj
+	;subi.w  #40,d3
 	addi.w	#128,d3
 
 	; check if object is within Y bounds
@@ -28302,6 +28307,7 @@ BuildSprites_MultiDraw:
 -	swap	d0
 	move.w	(a6)+,d3	; get X pos
 	sub.w	(a4),d3
+	;addi.w  #40,d3
 	addi.w	#128,d3
 	move.w	(a6)+,d2	; get Y pos
 	sub.w	4(a4),d2
@@ -28550,7 +28556,7 @@ BuildSprites_P1_ObjLoop:
 	bmi.w	BuildSprites_P1_NextObj
 	move.w	d3,d1
 	sub.w	d0,d1
-	cmpi.w	#320,d1
+	cmpi.w	#400,d1
 	bge.s	BuildSprites_P1_NextObj
 	addi.w	#128,d3
 	btst	#4,d4
@@ -28663,7 +28669,7 @@ BuildSprites_P2_ObjLoop:
 	bmi.w	BuildSprites_P2_NextObj
 	move.w	d3,d1
 	sub.w	d0,d1
-	cmpi.w	#320,d1
+	cmpi.w	#400,d1
 	bge.s	BuildSprites_P2_NextObj
 	addi.w	#128,d3
 	btst	#4,d4
@@ -28747,12 +28753,13 @@ BuildSprites_P1_MultiDraw:
 	move.b	mainspr_width(a0),d0
 	move.w	x_pos(a0),d3
 	sub.w	(a4),d3
+	addi.w  #40,d3
 	move.w	d3,d1
 	add.w	d0,d1
 	bmi.w	BuildSprites_P1_MultiDraw_NextObj
 	move.w	d3,d1
 	sub.w	d0,d1
-	cmpi.w	#320,d1
+	cmpi.w	#400,d1
 	bge.w	BuildSprites_P1_MultiDraw_NextObj
 	addi.w	#128,d3
 	btst	#4,d4
@@ -28803,6 +28810,7 @@ BuildSprites_P1_MultiDraw:
 -	swap	d0
 	move.w	(a6)+,d3
 	sub.w	(a4),d3
+	addi.w  #40,d3
 	addi.w	#128,d3
 	move.w	(a6)+,d2
 	sub.w	4(a4),d2
@@ -28837,12 +28845,13 @@ BuildSprites_P2_MultiDraw:
 	move.b	mainspr_width(a0),d0
 	move.w	x_pos(a0),d3
 	sub.w	(a4),d3
+	addi.w  #40,d3
 	move.w	d3,d1
 	add.w	d0,d1
 	bmi.w	BuildSprites_P2_MultiDraw_NextObj
 	move.w	d3,d1
 	sub.w	d0,d1
-	cmpi.w	#320,d1
+	cmpi.w	#400,d1
 	bge.w	BuildSprites_P2_MultiDraw_NextObj
 	addi.w	#128,d3
 	btst	#4,d4
@@ -28893,6 +28902,7 @@ BuildSprites_P2_MultiDraw:
 -	swap	d0
 	move.w	(a6)+,d3
 	sub.w	(a4),d3
+	addi.w  #40,d3
 	addi.w	#128,d3
 	move.w	(a6)+,d2
 	sub.w	4(a4),d2
@@ -29228,7 +29238,7 @@ RingsManager_Init:
 	bsr.w	RingsManager_Setup	; perform initial setup
 	lea	(Ring_Positions).w,a1
 	move.w	(Camera_X_pos).w,d4
-	subq.w	#8,d4
+	subi.w	#48,d4
 	bhi.s	+
 	moveq	#1,d4	; no negative values allowed
 	bra.s	+
@@ -29239,7 +29249,7 @@ RingsManager_Init:
 	bhi.s	-		; if it is, check next ring
 	move.w	a1,(Ring_start_addr).w	; set start addresses
 	move.w	a1,(Ring_start_addr_P2).w
-	addi.w	#320+16,d4	; advance by a screen
+	addi.w	#400+16,d4	; advance by a screen
 	bra.s	+
 -
 	lea	6(a1),a1	; load next ring
@@ -29274,7 +29284,7 @@ RingsManager_Main:
 	; update ring start and end addresses
 	movea.w	(Ring_start_addr).w,a1
 	move.w	(Camera_X_pos).w,d4
-	subq.w	#8,d4
+	subi.w	#48,d4
 	bhi.s	+
 	moveq	#1,d4
 	bra.s	+
@@ -29292,7 +29302,7 @@ RingsManager_Main:
 	move.w	a1,(Ring_start_addr).w	; update start address
 
 	movea.w	(Ring_end_addr).w,a2
-	addi.w	#320+16,d4
+	addi.w	#400+16,d4
 	bra.s	+
 -
 	lea	6(a2),a2
@@ -29315,7 +29325,7 @@ RingsManager_Main:
 	; update ring start and end addresses for P2
 	movea.w	(Ring_start_addr_P2).w,a1
 	move.w	(Camera_X_pos_P2).w,d4
-	subq.w	#8,d4
+	subi.w	#48,d4
 	bhi.s	+
 	moveq	#1,d4
 	bra.s	+
@@ -29333,7 +29343,7 @@ RingsManager_Main:
 	move.w	a1,(Ring_start_addr_P2).w	; update start address
 
 	movea.w	(Ring_end_addr_P2).w,a2
-	addi.w	#320+16,d4
+	addi.w	#400+16,d4
 	bra.s	+
 -
 	lea	6(a2),a2
