@@ -50,12 +50,11 @@ bytesToLcnt function n,n>>2-1
 ; that writes n bytes total at 2 bytes per iteration
 bytesToWcnt function n,n>>1-1
 
-; fills a region of 68k RAM with 0
-clearRAM macro startaddr,endaddr
+fillRAM macro value,startaddr,endaddr
     if startaddr>endaddr
-	fatal "Starting address of clearRAM \{startaddr} is after ending address \{endaddr}."
+	fatal "Starting address of fillRAM \{startaddr} is after ending address \{endaddr}."
     elseif startaddr==endaddr
-	warning "clearRAM is clearing zero bytes. Turning this into a nop instead."
+	warning "fillRAM is filling zero bytes. Turning this into a nop instead."
 	exitm
     endif
     if ((startaddr)&$8000)==0
@@ -63,7 +62,7 @@ clearRAM macro startaddr,endaddr
     else
 	lea	(startaddr).w,a1
     endif
-	moveq	#0,d0
+	moveq	value,d0
     if ((startaddr)&1)
 	move.b	d0,(a1)+
     endif
@@ -77,6 +76,11 @@ clearRAM macro startaddr,endaddr
 	move.b	d0,(a1)+
     endif
     endm
+
+; fills a region of 68k RAM with 0
+clearRAM macro startaddr,endaddr
+	fillRAM  #0,startaddr,endaddr
+	endm
 
 ; tells the Z80 to stop, and waits for it to finish stopping (acquire bus)
 stopZ80 macro
