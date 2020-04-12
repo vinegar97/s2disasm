@@ -21,7 +21,7 @@
 customAMPS =		1		; set to 1 to enable features
 
     ifndef gameRevision
-gameRevision =		1
+gameRevision =		2
     endif
 ;	| If 0, a REV00 ROM is built
 ;	| If 1, a REV01 ROM is built, which contains some fixes
@@ -149,8 +149,8 @@ Vectors:
 Header:
 	dc.b "SEGA GENESIS    " ; Console name
 	dc.b "(C)SEGA 1992.SEP" ; Copyright holder and release date (generally year)
-	dc.b "SONIC THE HEDGEHOG 2 WITH AMPS                  " ; Domestic name
-	dc.b "SONIC THE HEDGEHOG 2 WITH AMPS                  " ; International name
+	dc.b "Sonic The             Hedgehog 2                " ; Domestic name
+	dc.b "Sonic The             Hedgehog 2                " ; International name
     if gameRevision=0
 	dc.b "GM 00001051-00"   ; Version (REV00)
     elseif gameRevision=1
@@ -1199,8 +1199,8 @@ ClearScreen:
 	clr.l	(unk_F61A).w
 
 	; Bug: These '+4's shouldn't be here; clearRAM accidentally clears an additional 4 bytes
-	clearRAM Sprite_Table,Sprite_Table_End+4
-	clearRAM Horiz_Scroll_Buf,Horiz_Scroll_Buf_End+4
+	clearRAM Sprite_Table,Sprite_Table_End
+	clearRAM Horiz_Scroll_Buf,Horiz_Scroll_Buf_End
 
 	startZ80
 	rts
@@ -3450,6 +3450,7 @@ SegaScreen:
 	bsr.w	ClearScreen
 
 	dmaFillVRAM 0,VRAM_SegaScr_Plane_A_Name_Table,VRAM_SegaScr_Plane_Table_Size ; clear Plane A pattern name table
+	;fillRAM #-40,Horiz_Scroll_Buf,Horiz_Scroll_Buf_End	; Bug: That '+$C04' shouldn't be there; accidentally clears an additional $C04 bytes
 
 	move.l	#vdpComm(tiles_to_bytes(ArtTile_ArtNem_Sega_Logo),VRAM,WRITE),(VDP_control_port).l
 	lea	(ArtNem_SEGA).l,a0
@@ -3465,16 +3466,16 @@ SegaScreen:
 	move.w	#make_art_tile(ArtTile_VRAM_Start,0,0),d0
 	bsr.w	EniDec
 	lea	(Chunk_Table).l,a1
-	move.l	#vdpComm(VRAM_SegaScr_Plane_B_Name_Table,VRAM,WRITE),d0
-	moveq	#$27,d1		; 40 cells wide
+	move.l	#vdpComm(VRAM_SegaScr_Plane_B_Name_Table-10,VRAM,WRITE),d0
+	moveq	#$27+10,d1		; 40 cells wide
 	moveq	#$1B,d2		; 28 cells tall
 	bsr.w	PlaneMapToVRAM_H80_Sega
-	tst.b	(Graphics_Flags).w ; are we on a Japanese Mega Drive?
-	bmi.s	SegaScreen_Contin ; if not, branch
+	;tst.b	(Graphics_Flags).w ; are we on a Japanese Mega Drive?
+	;bmi.s	SegaScreen_Contin ; if not, branch
 	; load an extra sprite to hide the TM (trademark) symbol on the SEGA screen
-	lea	(SegaHideTM).w,a1
-	move.l	#Obj_SegaHideTM,id(a1)	; load Obj_SegaHideTM at $FFFFB080
-	move.b	#$4E,subtype(a1) ; <== Obj_SegaHideTM_SubObjData
+	;lea	(SegaHideTM).w,a1
+	;move.b	#ObjID_SegaHideTM,id(a1)	; load objB1 at $FFFFB080
+	;move.b	#$4E,subtype(a1) ; <== ObjB1_SubObjData
 ; loc_38CE:
 SegaScreen_Contin:
 	moveq	#PalID_SEGA,d0
@@ -3662,7 +3663,7 @@ TitleScreen:
 	move.w	#make_art_tile(ArtTile_ArtNem_Title,3,1),d0
 	bsr.w	EniDec
 
-	lea	(Chunk_Table+$858).l,a1
+	lea	(Chunk_Table+$858+46+$AC).l,a1
 	lea	(CopyrightText).l,a2
 
 	moveq	#bytesToWcnt(CopyrightText_End-CopyrightText),d6
@@ -3671,7 +3672,7 @@ TitleScreen:
 
 	lea	(Chunk_Table).l,a1
 	move.l	#vdpComm(VRAM_TtlScr_Plane_A_Name_Table,VRAM,WRITE),d0
-	moveq	#$27,d1
+	moveq	#$2B,d1
 	moveq	#$1B,d2
 	jsrto	(PlaneMapToVRAM_H40).l, PlaneMapToVRAM_H40
 
@@ -3763,8 +3764,8 @@ TitleScreen_Loop:
     else
 	move.w	#emerald_hill_zone_act_1,(Current_ZoneAndAct).w
     endif
-	tst.b	(Level_select_flag).w	; has level select cheat been entered?
-	beq.s	+			; if not, branch
+	;tst.b	(Level_select_flag).w	; has level select cheat been entered?
+	;beq.s	+			; if not, branch
 	btst	#button_A,(Ctrl_1_Held).w ; is A held down?
 	beq.s	+	 		; if not, branch
 	move.b	#GameModeID_LevelSelect,(Game_Mode).w ; => LevelSelectMenu
@@ -4046,8 +4047,8 @@ Level_InitWater:
 	move.w	#$8004,(a6)		; H-INT disabled
 	move.w	#$8720,(a6)		; Background palette/color: 2/0
 	move.w	#$8C81,(a6)		; H res 40 cells, no interlace
-	tst.b	(Debug_options_flag).w
-	beq.s	++
+	;tst.b	(Debug_options_flag).w
+	;beq.s	++
 	btst	#button_C,(Ctrl_1_Held).w
 	beq.s	+
 	move.w	#$8C89,(a6)	; H res 40 cells, no interlace, S/H enabled
@@ -5038,8 +5039,8 @@ Off_ColP: zoneOrderedTable 4,1
 	zoneTableEntry.l ColP_OOZ	; 10
 	zoneTableEntry.l ColP_MCZ	; 11
 	zoneTableEntry.l ColP_CNZ	; 12
-	zoneTableEntry.l ColP_CPZDEZ	; 13
-	zoneTableEntry.l ColP_CPZDEZ	; 14
+	zoneTableEntry.l ColP_CPZ	; 13
+	zoneTableEntry.l ColP_DEZ	; 14
 	zoneTableEntry.l ColP_ARZ	; 15
 	zoneTableEntry.l ColP_WFZSCZ	; 16
     zoneTableEnd
@@ -5065,8 +5066,8 @@ Off_ColS: zoneOrderedTable 4,1
 	zoneTableEntry.l ColP_OOZ	; 10
 	zoneTableEntry.l ColP_MCZ	; 11
 	zoneTableEntry.l ColS_CNZ	; 12
-	zoneTableEntry.l ColS_CPZDEZ	; 13
-	zoneTableEntry.l ColS_CPZDEZ	; 14
+	zoneTableEntry.l ColS_CPZ	; 13
+	zoneTableEntry.l ColS_DEZ	; 14
 	zoneTableEntry.l ColS_ARZ	; 15
 	zoneTableEntry.l ColS_WFZSCZ	; 16
     zoneTableEnd
@@ -10797,8 +10798,8 @@ MenuScreen:
 	move.w	#make_art_tile(ArtTile_VRAM_Start,3,0),d0
 	bsr.w	EniDec
 	lea	(Chunk_Table).l,a1
-	move.l	#vdpComm(VRAM_Plane_B_Name_Table,VRAM,WRITE),d0
-	moveq	#$27,d1
+	move.l	#vdpComm(VRAM_Plane_B_Name_Table-10,VRAM,WRITE),d0
+	moveq	#$27+10,d1
 	moveq	#$1B,d2
 	jsrto	(PlaneMapToVRAM_H40).l, JmpTo_PlaneMapToVRAM_H40	; fullscreen background
 
@@ -12662,8 +12663,8 @@ Obj_EndingTrigger_Init:
 	move.b	#4,mapping_frame(a0)
 	move.b	#1,anim(a0)
 +
-	move.w	#-$10,x_pos(a0)
-	move.w	#$C0,y_pos(a0)
+	move.w	#-$10-$20,x_pos(a0)
+	move.w	#$C0+$10,y_pos(a0)
 	move.w	#$100,x_vel(a0)
 	move.w	#-$80,y_vel(a0)
 	move.b	#$14,objoff_35(a0)
@@ -13190,7 +13191,7 @@ Obj_EndingClouds_Init:
 	beq.s	+
 	andi.w	#$FF,d1
 	move.w	d1,y_pos(a0)
-	move.w	#$150,x_pos(a0)
+	move.w	#$150+40+16,x_pos(a0)
 	rts
 ; ===========================================================================
 +
@@ -13224,7 +13225,7 @@ loc_AA8A:
 	jsrto	(ObjectMove).l, JmpTo2_ObjectMove
 	tst.b	(CutScene+objoff_34).w
 	beq.s	+
-	cmpi.w	#-$20,x_pos(a0)
+	cmpi.w	#-$20-40,x_pos(a0)
 	blt.w	JmpTo3_DeleteObject
 	jmpto	(DisplaySprite).l, JmpTo5_DisplaySprite
 ; ===========================================================================
@@ -14474,6 +14475,11 @@ SwScrl_EHZ:
 	add.l	d0,d3
 	swap	d3
 	dbf	d1,-
+	move.w	d4,(a1)+
+	move.w	d3,(a1)+
+	move.w	d4,(a1)+
+	move.w	d3,(a1)+
+	rts
 
 	; note there is a bug here. the bottom 8 pixels haven't had their hscroll values set. only the EHZ scrolling code has this bug.
 
@@ -16350,9 +16356,14 @@ ScrollHoriz:
 ; loc_D74E:
 .maxNotReached:
 	add.w	(a1),d0		; get new camera position
-	cmp.w	(a2),d0		; is it greater than the minimum position?
+	move.w  (a2),d1
+	cmpi.w  #0,(Camera_Min_X_pos).w
+	bne.s   .skipOffset
+	addi.w	#40,d1
+.skipOffset:
+	cmp.w	d1,d0		; is it greater than the minimum position?
 	bgt.s	.doScroll		; if it is, branch
-	move.w	(a2),d0		; prevent camera from going any further back
+	move.w	d1,d0		; prevent camera from going any further back
 	bra.s	.doScroll
 ; ===========================================================================
 ; loc_D758:
@@ -16363,9 +16374,11 @@ ScrollHoriz:
 ; loc_D762:
 .maxNotReached2:
 	add.w	(a1),d0		; get new camera position
-	cmp.w	Camera_Max_X_pos-Camera_Min_X_pos(a2),d0	; is it less than the max position?
+	move.w  Camera_Max_X_pos-Camera_Min_X_pos(a2),d1
+	;addi.w	#40,d1
+	cmp.w	d1,d0	; is it less than the max position?
 	blt.s	.doScroll	; if it is, branch
-	move.w	Camera_Max_X_pos-Camera_Min_X_pos(a2),d0	; prevent camera from going any further forward
+	move.w	d1,d0	; prevent camera from going any further forward
 ; loc_D76E:
 .doScroll:
 	move.w	d0,d1
@@ -16814,16 +16827,16 @@ LoadTilesAsYouMove:
 	beq.s	Draw_FG
 
 	move.b	#0,(Screen_redraw_flag).w
-	moveq	#-$10,d4
+	moveq	#-$30,d4
 	moveq	#$F,d6
 ; loc_DACE:
 Draw_All:
 	movem.l	d4-d6,-(sp)	; This whole routine basically redraws the whole
-	moveq	#-$10,d5	; area instead of merely a line of tiles
+	moveq	#-$30,d5	; area instead of merely a line of tiles
 	move.w	d4,d1
 	bsr.w	CalcBlockVRAMPos
 	move.w	d1,d4
-	moveq	#-$10,d5
+	moveq	#-$30,d5
 	bsr.w	DrawBlockRow1	; draw the current row
 	movem.l	(sp)+,d4-d6
 	addi.w	#$10,d4		; move onto the next row
@@ -16838,37 +16851,37 @@ Draw_FG:
 	bclr	#0,(a2)		; has the level scrolled up?
 	beq.s	+		; if not, branch
 	moveq	#-$10,d4
-	moveq	#-$10,d5
+	moveq	#-$30,d5
 	bsr.w	CalcBlockVRAMPos
 	moveq	#-$10,d4
-	moveq	#-$10,d5
+	moveq	#-$30,d5
 	bsr.w	DrawBlockRow1	; redraw upper row
 +
 	bclr	#1,(a2)		; has the level scrolled down?
 	beq.s	+		; if not, branch
 	move.w	#224,d4
-	moveq	#-$10,d5
+	moveq	#-$30,d5
 	bsr.w	CalcBlockVRAMPos
 	move.w	#224,d4
-	moveq	#-$10,d5
+	moveq	#-$30,d5
 	bsr.w	DrawBlockRow1	; redraw bottom row
 +
 	bclr	#2,(a2)		; has the level scrolled to the left?
 	beq.s	+	; if not, branch
 	moveq	#-$10,d4
-	moveq	#-$10,d5
+	moveq	#-$30,d5
 	bsr.w	CalcBlockVRAMPos
 	moveq	#-$10,d4
-	moveq	#-$10,d5
+	moveq	#-$30,d5
 	bsr.w	DrawBlockCol1	; redraw left-most column
 +
 	bclr	#3,(a2)		; has the level scrolled to the right?
 	beq.s	return_DB5A	; if not, return
 	moveq	#-$10,d4
-	move.w	#320,d5
+	move.w	#384,d5
 	bsr.w	CalcBlockVRAMPos
 	moveq	#-$10,d4
-	move.w	#320,d5
+	move.w	#384,d5
 	bsr.w	DrawBlockCol1	; redraw right-most column
 
 return_DB5A:
@@ -16883,37 +16896,37 @@ Draw_FG_P2:
 	bclr	#0,(a2)
 	beq.s	+
 	moveq	#-$10,d4
-	moveq	#-$10,d5
+	moveq	#-$30,d5
 	bsr.w	CalcBlockVRAMPosB
 	moveq	#-$10,d4
-	moveq	#-$10,d5
+	moveq	#-$30,d5
 	bsr.w	DrawBlockRow1
 +
 	bclr	#1,(a2)
 	beq.s	+
 	move.w	#$E0,d4
-	moveq	#-$10,d5
+	moveq	#-$30,d5
 	bsr.w	CalcBlockVRAMPosB
 	move.w	#$E0,d4
-	moveq	#-$10,d5
+	moveq	#-$30,d5
 	bsr.w	DrawBlockRow1
 +
 	bclr	#2,(a2)
 	beq.s	+
 	moveq	#-$10,d4
-	moveq	#-$10,d5
+	moveq	#-$30,d5
 	bsr.w	CalcBlockVRAMPosB
 	moveq	#-$10,d4
-	moveq	#-$10,d5
+	moveq	#-$30,d5
 	bsr.w	DrawBlockCol1
 +
 	bclr	#3,(a2)
 	beq.s	return_DBC0
 	moveq	#-$10,d4
-	move.w	#320,d5
+	move.w	#384,d5
 	bsr.w	CalcBlockVRAMPosB
 	moveq	#-$10,d4
-	move.w	#320,d5
+	move.w	#384,d5
 	bsr.w	DrawBlockCol1
 
 return_DBC0:
@@ -16930,37 +16943,37 @@ Draw_BG1:
 	bclr	#0,(a2)
 	beq.s	+
 	moveq	#-$10,d4
-	moveq	#-$10,d5
+	moveq	#-$30,d5
 	bsr.w	CalcBlockVRAMPos
 	moveq	#-$10,d4
-	moveq	#-$10,d5
+	moveq	#-$30,d5
 	bsr.w	DrawBlockRow1
 +
 	bclr	#1,(a2)
 	beq.s	+
 	move.w	#$E0,d4
-	moveq	#-$10,d5
+	moveq	#-$30,d5
 	bsr.w	CalcBlockVRAMPos
 	move.w	#$E0,d4
-	moveq	#-$10,d5
+	moveq	#-$30,d5
 	bsr.w	DrawBlockRow1
 +
 	bclr	#2,(a2)
 	beq.s	+
 	moveq	#-$10,d4
-	moveq	#-$10,d5
+	moveq	#-$30,d5
 	bsr.w	CalcBlockVRAMPos
 	moveq	#-$10,d4
-	moveq	#-$10,d5
+	moveq	#-$30,d5
 	bsr.w	DrawBlockCol1
 +
 	bclr	#3,(a2)
 	beq.s	+
 	moveq	#-$10,d4
-	move.w	#320,d5
+	move.w	#384,d5
 	bsr.w	CalcBlockVRAMPos
 	moveq	#-$10,d4
-	move.w	#320,d5
+	move.w	#384,d5
 	bsr.w	DrawBlockCol1
 +
 	bclr	#4,(a2)
@@ -16986,20 +16999,20 @@ Draw_BG1:
 	bclr	#6,(a2)
 	beq.s	+
 	moveq	#-$10,d4
-	moveq	#-$10,d5
+	moveq	#-$30,d5
 	bsr.w	CalcBlockVRAMPos
 	moveq	#-$10,d4
-	moveq	#-$10,d5
+	moveq	#-$30,d5
 	moveq	#$1F,d6
 	bsr.w	DrawBlockRow
 +
 	bclr	#7,(a2)
 	beq.s	return_DC90
 	move.w	#$E0,d4
-	moveq	#-$10,d5
+	moveq	#-$30,d5
 	bsr.w	CalcBlockVRAMPos
 	move.w	#$E0,d4
-	moveq	#-$10,d5
+	moveq	#-$30,d5
 	moveq	#$1F,d6
 	bsr.w	DrawBlockRow
 
@@ -17017,20 +17030,20 @@ Draw_BG2:
 	bclr	#0,(a2)
 	beq.s	+
 	move.w	#$70,d4
-	moveq	#-$10,d5
+	moveq	#-$30,d5
 	bsr.w	CalcBlockVRAMPos
 	move.w	#$70,d4
-	moveq	#-$10,d5
+	moveq	#-$30,d5
 	moveq	#2,d6
 	bsr.w	DrawBlockCol2
 +
 	bclr	#1,(a2)
 	beq.s	+	; rts
 	move.w	#$70,d4
-	move.w	#320,d5
+	move.w	#384,d5
 	bsr.w	CalcBlockVRAMPos
 	move.w	#$70,d4
-	move.w	#320,d5
+	move.w	#384,d5
 	moveq	#2,d6
 	bsr.w	DrawBlockCol2
 +
@@ -17125,7 +17138,7 @@ SBZ_CameraSections:
 	beq.s	+
 	lsr.b	#1,d0
 	move.b	d0,(a2)
-	move.w	#320,d5
+	move.w	#384,d5
 +
 	lea_	SBZ_CameraSections,a0
 	move.w	(Camera_BG_Y_pos).w,d0
@@ -17147,20 +17160,20 @@ Draw_BG3:
 	bclr	#0,(a2)
 	beq.s	+
 	move.w	#$40,d4
-	moveq	#-$10,d5
+	moveq	#-$30,d5
 	bsr.w	CalcBlockVRAMPos
 	move.w	#$40,d4
-	moveq	#-$10,d5
+	moveq	#-$30,d5
 	moveq	#2,d6
 	bsr.w	DrawBlockCol2
 +
 	bclr	#1,(a2)
 	beq.s	+	; rts
 	move.w	#$40,d4
-	move.w	#320,d5
+	move.w	#384,d5
 	bsr.w	CalcBlockVRAMPos
 	move.w	#$40,d4
-	move.w	#320,d5
+	move.w	#384,d5
 	moveq	#2,d6
 	bsr.w	DrawBlockCol2
 +
@@ -17255,7 +17268,7 @@ Draw_BG3_CPZ:
 	lsr.w	#4,d0
 	move.b	(a0,d0.w),d0
 	movea.w	BGCameraLookup(pc,d0.w),a3	; Camera, either BG, BG2 or BG3 depending on Y
-	moveq	#-$10,d5
+	moveq	#-$30,d5
 	movem.l	d4-d5,-(sp)
 	bsr.w	CalcBlockVRAMPos
 	movem.l	(sp)+,d4-d5
@@ -17267,13 +17280,13 @@ Draw_BG3_CPZ:
 ; ===========================================================================
 +
 	moveq	#-$10,d4
-	moveq	#-$10,d5
+	moveq	#-$30,d5
 	move.b	(a2),d0
 	andi.b	#-$58,d0
 	beq.s	+
 	lsr.b	#1,d0
 	move.b	d0,(a2)
-	move.w	#320,d5
+	move.w	#384,d5
 +
 	lea_	CPZ_CameraSections,a0
 	move.w	(Camera_BG_Y_pos).w,d0
@@ -17410,7 +17423,7 @@ DrawBlockRow:
 
 ; sub_DF92: DrawTiles_Vertical1:
 DrawBlockRow1:
-	moveq	#$15,d6
+	moveq	#27,d6
 	add.w	(a3),d5		; add X pos
 ; loc_DF96: DrawTiles_Vertical2:
 DrawBlockRow2:
@@ -18291,12 +18304,12 @@ LevEvents_EHZ2_Routine1:
 ; ===========================================================================
 ; loc_E6B0:
 LevEvents_EHZ2_Routine2:
-	cmpi.w	#$28F0,(Camera_X_pos).w
+	cmpi.w	#$28F0+40+40,(Camera_X_pos).w
 	blo.s	+	; rts
-	move.w	#$28F0,(Camera_Min_X_pos).w
-	move.w	#$2940,(Camera_Max_X_pos).w
-	move.w	#$28F0,(Tails_Min_X_pos).w
-	move.w	#$2940,(Tails_Max_X_pos).w
+	move.w	#$28F0+40+40,(Camera_Min_X_pos).w
+	move.w	#$2940-40+40,(Camera_Max_X_pos).w
+	move.w	#$28F0+40+40,(Tails_Min_X_pos).w
+	move.w	#$2940-40+40,(Tails_Max_X_pos).w
 	addq.b	#2,(Dynamic_Resize_Routine).w ; => LevEvents_EHZ2_Routine3
 	command	Mus_FadeOut
 	clr.b	(ScreenShift).w
@@ -18540,14 +18553,14 @@ LevEvents_WFZ_Routine4:
 ; ===========================================================================
 ; loc_E94A:
 LevEvents_WFZ_Routine5:
-	cmpi.w	#$2880,(Camera_X_pos).w
+	cmpi.w	#$2880+40,(Camera_X_pos).w
 	blo.s	+	; rts
 	cmpi.w	#$400,(Camera_Y_pos).w
 	blo.s	+	; rts
 	addq.w	#2,(WFZ_LevEvent_Subrout).w ; => LevEvents_WFZ_Routine6
 	moveq	#PLCID_WfzBoss,d0
 	jsrto	(LoadPLC).l, JmpTo2_LoadPLC
-	move.w	#$2880,(Camera_Min_X_pos).w
+	move.w	#$2880+40,(Camera_Min_X_pos).w
 +
 	rts
 ; ===========================================================================
@@ -19103,10 +19116,10 @@ LevEvents_HTZ2_Routine6:
 LevEvents_HTZ2_Routine7:
 	cmpi.w	#$2EDF,(Camera_X_pos).w
 	blo.s	+	; rts
-	move.w	#$2EE0,(Camera_Min_X_pos).w
-	move.w	#$2F5E,(Camera_Max_X_pos).w
-	move.w	#$2EE0,(Tails_Min_X_pos).w
-	move.w	#$2F5E,(Tails_Max_X_pos).w
+	move.w	#$2EE0+40,(Camera_Min_X_pos).w
+	move.w	#$2F5E-40,(Camera_Max_X_pos).w
+	move.w	#$2EE0+40,(Tails_Min_X_pos).w
+	move.w	#$2F5E-40,(Tails_Max_X_pos).w
 	addq.b	#2,(Dynamic_Resize_Routine).w ; => LevEvents_HTZ2_Routine8
 	command	Mus_FadeOut
 	clr.b	(ScreenShift).w
@@ -19203,10 +19216,10 @@ LevEvents_OOZ2_Routine1:
 LevEvents_OOZ2_Routine2:
 	cmpi.w	#$2880,(Camera_X_pos).w
 	blo.s	+	; rts
-	move.w	#$2880,(Camera_Min_X_pos).w
-	move.w	#$28C0,(Camera_Max_X_pos).w
-	move.w	#$2880,(Tails_Min_X_pos).w
-	move.w	#$28C0,(Tails_Max_X_pos).w
+	move.w	#$2880+40,(Camera_Min_X_pos).w
+	move.w	#$28C0-40,(Camera_Max_X_pos).w
+	move.w	#$2880+40,(Tails_Min_X_pos).w
+	move.w	#$28C0-40,(Tails_Max_X_pos).w
 	addq.b	#2,(Dynamic_Resize_Routine).w
 	command	Mus_FadeOut
 	clr.b	(ScreenShift).w
@@ -19288,12 +19301,12 @@ LevEvents_MCZ2_Routine1:
 ; ===========================================================================
 ; loc_F196:
 LevEvents_MCZ2_Routine2:
-	cmpi.w	#$20F0,(Camera_X_pos).w
+	cmpi.w	#$20F0+40,(Camera_X_pos).w
 	blo.s	+	; rts
-	move.w	#$20F0,(Camera_Max_X_pos).w
-	move.w	#$20F0,(Camera_Min_X_pos).w
-	move.w	#$20F0,(Tails_Max_X_pos).w
-	move.w	#$20F0,(Tails_Min_X_pos).w
+	move.w	#$20F0+40,(Camera_Max_X_pos).w
+	move.w	#$20F0+40,(Camera_Min_X_pos).w
+	move.w	#$20F0+40,(Tails_Max_X_pos).w
+	move.w	#$20F0+40,(Tails_Min_X_pos).w
 	addq.b	#2,(Dynamic_Resize_Routine).w
 	command	Mus_FadeOut
 	clr.b	(ScreenShift).w
@@ -19392,13 +19405,13 @@ LevEvents_CNZ2_Routine1:
 ; ===========================================================================
 ; loc_F2CE:
 LevEvents_CNZ2_Routine2:
-	cmpi.w	#$2890,(Camera_X_pos).w
+	cmpi.w	#$28A0,(Camera_X_pos).w
 	blo.s	+	; rts
 	move.b	#$F9,(Level_Layout+$C50).w
-	move.w	#$2860,(Camera_Min_X_pos).w
-	move.w	#$28E0,(Camera_Max_X_pos).w
-	move.w	#$2860,(Tails_Min_X_pos).w
-	move.w	#$28E0,(Tails_Max_X_pos).w
+	move.w	#$28A0,(Camera_Min_X_pos).w
+	move.w	#$28A0,(Camera_Max_X_pos).w
+	move.w	#$28A0,(Tails_Min_X_pos).w
+	move.w	#$28A0,(Tails_Max_X_pos).w
 	addq.b	#2,(Dynamic_Resize_Routine).w
 	command	Mus_FadeOut
 	clr.b	(ScreenShift).w
@@ -22015,6 +22028,7 @@ Obj_Barrier_Init:
 	move.w	#prio(4),priority(a0)
 	move.w	y_pos(a0),objoff_32(a0)
 	move.b	subtype(a0),mapping_frame(a0)
+	andi.b  #%0011,mapping_frame(a0)
 	move.w	x_pos(a0),d2
 	move.w	d2,d3
 	subi.w	#$200,d2
@@ -22084,7 +22098,13 @@ Obj_Barrier_Main:
 ; sub_117F4
 Obj_Barrier_CheckCharacter:
     ; rect ltrb (d2, d4, d3, d5)
-
+	cmpi.b   #4,subtype(a0)
+	bne.s   +
+	tst.b   (ButtonVine_Trigger).w
+	beq.s   return_11820
+	move.b	#2,routine_secondary(a0)             ; set barrier to move up
+	rts
++
 	move.w	x_pos(a1),d0
 	cmp.w	d2,d0
 	blt.w	return_11820
@@ -25056,7 +25076,7 @@ Obj_TitleCard_BottomPartIn:	; the yellow part at the bottom, coming in
 	bne.s	+
 	add.w	d1,d1				; double distance down for 1P mode
 +
-	move.w	#VRAM_Plane_A_Name_Table,d2
+	move.w	#VRAM_Plane_A_Name_Table+(5*2),d2
 	add.w	d0,d2
 	add.w	d1,d2
 	move.w	d2,titlecard_vram_dest(a0)
@@ -25076,15 +25096,19 @@ Obj_TitleCard_BottomPartIn:	; the yellow part at the bottom, coming in
 Obj_TitleCard_LeftPartIn:	; the red part on the left, coming in
 	jsr	Obj_TitleCard_Wait(pc)
 	tst.w	titlecard_location(a0)
-	bmi.w	Obj_TitleCard_MoveTowardsTargetPosition
-	move.w	#VRAM_Plane_A_Name_Table,titlecard_vram_dest(a0)
+	bmi.w	Obj34_MoveTowardsTargetPosition
+	move.w	#VRAM_Plane_A_Name_Table+(2*50)+(2*9),titlecard_vram_dest(a0)
 	tst.w	(Two_player_mode).w
 	beq.s	+
 	move.w	#VRAM_Plane_A_Name_Table_2P,titlecard_vram_dest_2P(a0)
 +
 	addq.w	#2,titlecard_location(a0)
+	cmpi.w	#8,titlecard_location(a0)
+	blt.s   +
+	subi.w  #(2*50)+(2*9),titlecard_vram_dest(a0)
++
 	move.w	titlecard_location(a0),titlecard_split_point(a0)
-	cmpi.w	#$E,titlecard_location(a0)
+	cmpi.w	#14,titlecard_location(a0)
 	seq	titlecard_location(a0)
 	bra.w	Obj_TitleCard_MoveTowardsTargetPosition
 ; ===========================================================================
@@ -25160,7 +25184,11 @@ Obj_TitleCard_LeftPartOut:	; red part on the left, going out
 	add.w	d0,titlecard_vram_dest_2P(a0)
 +
 	subq.w	#4,titlecard_location(a0)
-	cmpi.w	#-2,titlecard_location(a0)
+	;cmpi.w	#-2,titlecard_location(a0)
+	;bgt.s   +
+	;addi.w  #(2*50),titlecard_vram_dest(a0)
+;+
+	cmpi.w	#-12,titlecard_location(a0)
 	bne.s	+
 	clr.w	titlecard_location(a0)
 +
@@ -25182,7 +25210,7 @@ Obj_TitleCard_BottomPartOut:	; yellow part at the bottom, going out
 	bne.s	+
 	add.w	d1,d1				; double distance down for 1P mode
 +
-	move.w	#VRAM_Plane_A_Name_Table,d2
+	move.w	#VRAM_Plane_A_Name_Table+(5*2),d2
 	add.w	d0,d2
 	add.w	d1,d2
 	move.w	d2,titlecard_vram_dest(a0)
@@ -26564,7 +26592,7 @@ loc_156F4:
 	addi.l	#vdpCommDelta($0080),d0
 	dbf	d4,-
 
-loc_15714:
+loc_15714: ; Draw level?
 	dbf	d7,loc_156F4
 	move.w	(TitleCard_Background+titlecard_vram_dest).w,d4
 	beq.s	loc_1578C
@@ -26577,11 +26605,11 @@ loc_15714:
 
 	moveq	#1,d6
 -	movem.l	d4-d6,-(sp)
-	moveq	#-$10,d5
+	moveq	#-$30,d5
 	move.w	d4,d1
 	bsr.w	CalcBlockVRAMPosB
 	move.w	d1,d4
-	moveq	#-$10,d5
+	moveq	#-$30,d5
 	moveq	#$1F,d6
 	bsr.w	DrawBlockRow
 	movem.l	(sp)+,d4-d6
@@ -26596,11 +26624,11 @@ loc_15758:
 
 	moveq	#1,d6
 -	movem.l	d4-d6,-(sp)
-	moveq	#-$10,d5
+	moveq	#-$30,d5
 	move.w	d4,d1
 	bsr.w	CalcBlockVRAMPos
 	move.w	d1,d4
-	moveq	#-$10,d5
+	moveq	#-$30,d5
 	moveq	#$1F,d6
 	bsr.w	DrawBlockRow
 	movem.l	(sp)+,d4-d6
@@ -27386,8 +27414,9 @@ MarkObjGone:
 +
 	move.w	x_pos(a0),d0
 	andi.w	#$FF80,d0
+	addi.w  #40,d0
 	sub.w	(Camera_X_pos_coarse).w,d0
-	cmpi.w	#$80+320+$40+$80,d0	; This gives an object $80 pixels of room offscreen before being unloaded (the $40 is there to round up 320 to a multiple of $80)
+	cmpi.w	#$80+320+$40+$80+40,d0	; This gives an object $80 pixels of room offscreen before being unloaded (the $40 is there to round up 320 to a multiple of $80)
 	bhi.w	+
 	bra.w	DisplaySprite
 
@@ -27404,8 +27433,9 @@ MarkObjGone2:
 	bra.w	DisplaySprite
 +
 	andi.w	#$FF80,d0
+	addi.w  #40,d0
 	sub.w	(Camera_X_pos_coarse).w,d0
-	cmpi.w	#$80+320+$40+$80,d0	; This gives an object $80 pixels of room offscreen before being unloaded (the $40 is there to round up 320 to a multiple of $80)
+	cmpi.w	#$80+320+$40+$80+40,d0	; This gives an object $80 pixels of room offscreen before being unloaded (the $40 is there to round up 320 to a multiple of $80)
 	bhi.w	+
 	bra.w	DisplaySprite
 +
@@ -27424,8 +27454,9 @@ MarkObjGone3:
 +
 	move.w	x_pos(a0),d0
 	andi.w	#$FF80,d0
+	addi.w  #40,d0
 	sub.w	(Camera_X_pos_coarse).w,d0
-	cmpi.w	#$80+320+$40+$80,d0	; This gives an object $80 pixels of room offscreen before being unloaded (the $40 is there to round up 320 to a multiple of $80)
+	cmpi.w	#$80+320+$40+$80+40,d0	; This gives an object $80 pixels of room offscreen before being unloaded (the $40 is there to round up 320 to a multiple of $80)
 	bhi.w	+
 	rts
 +
@@ -27441,8 +27472,9 @@ MarkObjGone_P1:
 	bne.s	MarkObjGone_P2
 	move.w	x_pos(a0),d0
 	andi.w	#$FF80,d0
+	addi.w  #40,d0
 	sub.w	(Camera_X_pos_coarse).w,d0
-	cmpi.w	#$80+320+$40+$80,d0	; This gives an object $80 pixels of room offscreen before being unloaded (the $40 is there to round up 320 to a multiple of $80)
+	cmpi.w	#$80+320+$40+$80+40,d0	; This gives an object $80 pixels of room offscreen before being unloaded (the $40 is there to round up 320 to a multiple of $80)
 	bhi.w	+
 	bra.w	DisplaySprite
 +
@@ -27660,8 +27692,19 @@ BuildSprites_LevelLoop:
 ; loc_16630:
 BuildSprites_ObjLoop:
 	movea.w	(a4,d6.w),a0 ; a0=object
-	tst.l	id(a0)			; is this object slot occupied?
-	beq.w	BuildSprites_NextObj	; if not, check next one
+
+    ;if gameRevision=0
+	; the additional check prevents a crash triggered by placing an object in debug mode while dead
+	; unfortunately, the code it branches *to* causes a crash of its own
+	tst.b	id(a0)			; is this object slot occupied?
+	beq.w	BuildSprites_NextObj	; if not, branch
+	tst.l	mappings(a0)		; does this object have any mappings?
+	beq.w	BuildSprites_NextObj	; if not, branch
+    ;else
+	; REV01 uses a better branch, but removed the useful check
+	;tst.b	id(a0)			; is this object slot occupied?
+	;beq.w	BuildSprites_NextObj	; if not, check next one
+    ;endif
 
 	andi.b	#$7F,render_flags(a0)	; clear on-screen flag
 	move.b	render_flags(a0),d0
@@ -27675,12 +27718,15 @@ BuildSprites_ObjLoop:
 	move.b	width_pixels(a0),d0
 	move.w	x_pos(a0),d3
 	sub.w	(a1),d3
+	addi.w  #40,d3
 	move.w	d3,d1
 	add.w	d0,d1	; is the object right edge to the left of the screen?
 	bmi.w	BuildSprites_NextObj	; if it is, branch
+	subi.w  #40,d3
+
 	move.w	d3,d1
 	sub.w	d0,d1
-	cmpi.w	#320,d1	; is the object left edge to the right of the screen?
+	cmpi.w	#400,d1	; is the object left edge to the right of the screen?
 	bge.w	BuildSprites_NextObj	; if it is, branch
 	addi.w	#128,d3
 	btst	#4,d4		; is the accurate Y check flag set?
@@ -27761,13 +27807,15 @@ BuildSprites_MultiDraw:
 	move.b	mainspr_width(a0),d0	; load pixel width
 	move.w	x_pos(a0),d3
 	sub.w	(a4),d3
+	addi.w  #40,d3
 	move.w	d3,d1
 	add.w	d0,d1
 	bmi.w	BuildSprites_MultiDraw_NextObj
 	move.w	d3,d1
 	sub.w	d0,d1
-	cmpi.w	#320,d1
+	cmpi.w	#400,d1
 	bge.w	BuildSprites_MultiDraw_NextObj
+	subi.w  #40,d3
 	addi.w	#128,d3
 
 	; check if object is within Y bounds
@@ -27850,9 +27898,12 @@ BuildSprites_MultiDraw_NextObj:
 
 ; sub_1680A:
 ChkDrawSprite:
+	cmpi.w  #0,d3 ; hack to prevent underflows for widescreen
+	ble.s   +
 	cmpi.b	#80,d5		; has the sprite limit been reached?
 	blo.s	DrawSprite_Cont	; if it hasn't, branch
-	rts	; otherwise, return
++
+	rts
 ; End of function ChkDrawSprite
 
 
@@ -27861,8 +27912,7 @@ ChkDrawSprite:
 ; sub_16812:
 DrawSprite:
 	movea.w	art_tile(a0),a3
-	cmpi.b	#80,d5
-	bhs.s	DrawSprite_Done
+	bra.s   ChkDrawSprite
 ; loc_1681C:
 DrawSprite_Cont:
 	btst	#0,d4	; is the sprite to be X-flipped?
@@ -28067,7 +28117,7 @@ BuildSprites_P1_ObjLoop:
 	bmi.w	BuildSprites_P1_NextObj
 	move.w	d3,d1
 	sub.w	d0,d1
-	cmpi.w	#320,d1
+	cmpi.w	#400,d1
 	bge.s	BuildSprites_P1_NextObj
 	addi.w	#128,d3
 	btst	#4,d4
@@ -28180,7 +28230,7 @@ BuildSprites_P2_ObjLoop:
 	bmi.w	BuildSprites_P2_NextObj
 	move.w	d3,d1
 	sub.w	d0,d1
-	cmpi.w	#320,d1
+	cmpi.w	#400,d1
 	bge.s	BuildSprites_P2_NextObj
 	addi.w	#128,d3
 	btst	#4,d4
@@ -28264,12 +28314,13 @@ BuildSprites_P1_MultiDraw:
 	move.b	mainspr_width(a0),d0
 	move.w	x_pos(a0),d3
 	sub.w	(a4),d3
+	addi.w  #40,d3
 	move.w	d3,d1
 	add.w	d0,d1
 	bmi.w	BuildSprites_P1_MultiDraw_NextObj
 	move.w	d3,d1
 	sub.w	d0,d1
-	cmpi.w	#320,d1
+	cmpi.w	#400,d1
 	bge.w	BuildSprites_P1_MultiDraw_NextObj
 	addi.w	#128,d3
 	btst	#4,d4
@@ -28320,6 +28371,7 @@ BuildSprites_P1_MultiDraw:
 -	swap	d0
 	move.w	(a6)+,d3
 	sub.w	(a4),d3
+	addi.w  #40,d3
 	addi.w	#128,d3
 	move.w	(a6)+,d2
 	sub.w	4(a4),d2
@@ -28354,12 +28406,13 @@ BuildSprites_P2_MultiDraw:
 	move.b	mainspr_width(a0),d0
 	move.w	x_pos(a0),d3
 	sub.w	(a4),d3
+	addi.w  #40,d3
 	move.w	d3,d1
 	add.w	d0,d1
 	bmi.w	BuildSprites_P2_MultiDraw_NextObj
 	move.w	d3,d1
 	sub.w	d0,d1
-	cmpi.w	#320,d1
+	cmpi.w	#400,d1
 	bge.w	BuildSprites_P2_MultiDraw_NextObj
 	addi.w	#128,d3
 	btst	#4,d4
@@ -28410,6 +28463,7 @@ BuildSprites_P2_MultiDraw:
 -	swap	d0
 	move.w	(a6)+,d3
 	sub.w	(a4),d3
+	addi.w  #40,d3
 	addi.w	#128,d3
 	move.w	(a6)+,d2
 	sub.w	4(a4),d2
@@ -28742,7 +28796,7 @@ RingsManager_Init:
 	movea.l	(Ring_start_addr_ROM).w,a1
 	lea	(Ring_Positions).w,a2
 	move.w	(Camera_X_pos).w,d4
-	subq.w	#8,d4
+	subi.w	#48,d4
 	bhi.s	+
 	moveq	#1,d4	; no negative values allowed
 	bra.s	+
@@ -28756,7 +28810,7 @@ RingsManager_Init:
 	move.l	a1,(Ring_start_addr_ROM_P2).w
 	move.w	a2,(Ring_start_addr_RAM).w
 	move.w	a2,(Ring_start_addr_RAM_P2).w
-	addi.w	#320+16,d4	; advance by a screen
+	addi.w	#400+16,d4	; advance by a screen
 	bra.s	+
 -
 	addq.w	#4,a1	; load next ring
@@ -28792,7 +28846,7 @@ RingsManager_Main:
 	movea.l	(Ring_start_addr_ROM).w,a1
 	movea.w	(Ring_start_addr_RAM).w,a2
 	move.w	(Camera_X_pos).w,d4
-	subq.w	#8,d4
+	subi.w	#48,d4
 	bhi.s	+
 	moveq	#1,d4
 	bra.s	+
@@ -28816,7 +28870,7 @@ RingsManager_Main:
 	move.w	a2,(Ring_start_addr_RAM_P2).w
 +
 	movea.l	(Ring_end_addr_ROM).w,a2	; set end address
-	addi.w	#320+16,d4	; advance by a screen
+	addi.w	#400+16,d4	; advance by a screen
 	bra.s	+
 -
 	addq.w	#4,a2
@@ -28840,7 +28894,7 @@ RingsManager_Main:
 	movea.l	(Ring_start_addr_ROM_P2).w,a1
 	movea.w	(Ring_start_addr_RAM_P2).w,a2
 	move.w	(Camera_X_pos_P2).w,d4
-	subq.w	#8,d4
+	subi.w	#48,d4
 	bhi.s	+
 	moveq	#1,d4
 	bra.s	+
@@ -28860,7 +28914,7 @@ RingsManager_Main:
 	move.l	a1,(Ring_start_addr_ROM_P2).w	; update start addresses
 	move.w	a2,(Ring_start_addr_RAM_P2).w
 	movea.l	(Ring_end_addr_ROM_P2).w,a2		; set end address
-	addi.w	#320+16,d4	; advance by a screen
+	addi.w	#400+16,d4	; advance by a screen
 	bra.s	+
 -
 	addq.w	#4,a2
@@ -33981,11 +34035,15 @@ Sonic_LevelBound:
 	add.l	d0,d1
 	swap	d1
 	move.w	(Camera_Min_X_pos).w,d0
+	cmpi.w  #0,(Camera_Min_X_pos).w
+	beq.s   +
+	subi.w  #40,d0
++
 	addi.w	#$10,d0
 	cmp.w	d1,d0			; has Sonic touched the left boundary?
 	bhi.s	Sonic_Boundary_Sides	; if yes, branch
 	move.w	(Camera_Max_X_pos).w,d0
-	addi.w	#320-24,d0		; screen width - Sonic's width_pixels
+	addi.w	#320+40-24,d0		; screen width - Sonic's width_pixels
 	tst.b	(Current_Boss_ID).w
 	bne.s	+
 	addi.w	#$40,d0
@@ -36874,11 +36932,15 @@ Tails_LevelBound:
 	add.l	d0,d1
 	swap	d1
 	move.w	(Tails_Min_X_pos).w,d0
+	cmpi.w  #0,(Camera_Min_X_pos).w
+	beq.s   +
+	subi.w  #40,d0
++
 	addi.w	#$10,d0
 	cmp.w	d1,d0			; has Tails touched the left boundary?
 	bhi.s	Tails_Boundary_Sides	; if yes, branch
 	move.w	(Tails_Max_X_pos).w,d0
-	addi.w	#$128,d0
+	addi.w	#$128+40,d0
 	tst.b	(Current_Boss_ID).w
 	bne.s	+
 	addi.w	#$40,d0
@@ -43029,7 +43091,7 @@ Obj_CPZPylon_Init:
 Obj_CPZPylon_Main:
 	move.w	(Camera_X_pos).w,d1
 	andi.w	#$3FF,d1
-	cmpi.w	#$2E0,d1
+	cmpi.w	#$2B0,d1
 	bhs.s	+	; rts
 	asr.w	#1,d1
 	move.w	d1,d0
@@ -58493,7 +58555,7 @@ Obj_CPZBoss_Init:
 	move.w	#make_art_tile(ArtTile_ArtNem_Eggpod_3,1,0),art_tile(a0)
 	ori.b	#4,render_flags(a0)
 	move.b	#$20,width_pixels(a0)
-	move.w	#$2B80,x_pos(a0)
+	move.w	#$2B80+40,x_pos(a0)
 	move.w	#$4B0,y_pos(a0)
 	move.w	#prio(3),priority(a0)
 	move.b	#$F,collision_flags(a0)
@@ -60520,8 +60582,12 @@ return_2F482:
 
 loc_2F484:	; shared routine, checks positions and sets direction
 	move.w	x_pos(a0),d0
+	bset    #2,render_flags(a0)
 	cmpi.w	#$28A0,d0	; beyond left boundary?
 	ble.s	loc_2F494
+	cmpi.w	#$2B08-72,d0
+	blt.s	return_2F4A4	; beyond right boundary?
+	bclr    #2,render_flags(a0)
 	cmpi.w	#$2B08,d0
 	blt.s	return_2F4A4	; beyond right boundary?
 
@@ -60857,6 +60923,7 @@ loc_2F824:	; Obj_EHZBoss_Spike_Sub2:
 	move.w	y_pos(a1),y_pos(a0)
 	move.b	status(a1),status(a0)	; transfer positions
 	move.b	render_flags(a1),render_flags(a0)
+	bset    #2,render_flags(a0)
 	addi.w	#$10,y_pos(a0)	; vertical offset
 	move.w	#-$36,d0
 	btst	#0,status(a0)
@@ -61719,17 +61786,31 @@ Obj_ARZBoss_Init:
 	tst.w	(Player_mode).w			; is player mode anything other than Sonic & Tails?
 	bne.s	Obj_ARZBoss_Init_RaisePillars		; if yes, branch
 	move.w	(MainCharacter+x_pos).w,d0
+<<<<<<< HEAD
+	cmpi.w	#$2A60-40,d0			; is Sonic too close to the left edge?
+	blt.w	Obj89_Init_Standard		; if yes, branch
+	cmpi.w	#$2B60+40,d0			; is Sonic too close to the right edge?
+	bgt.w	Obj89_Init_Standard		; if yes, branch
+=======
 	cmpi.w	#$2A60,d0			; is Sonic too close to the left edge?
 	blt.w	Obj_ARZBoss_Init_Standard		; if yes, branch
 	cmpi.w	#$2B60,d0			; is Sonic too close to the right edge?
 	bgt.w	Obj_ARZBoss_Init_Standard		; if yes, branch
+>>>>>>> amps
 	cmpi.b	#$81,(Sidekick+obj_control).w
 	beq.w	Obj_ARZBoss_Init_RaisePillars		; branch, if Tails is flying
 	move.w	(Sidekick+x_pos).w,d0
+<<<<<<< HEAD
+	cmpi.w	#$2A60-40,d0			; is Tails too close to the left edge?
+	blt.w	Obj89_Init_Standard		; if yes, branch
+	cmpi.w	#$2B60+40,d0			; is Tails too close to the right edge?
+	bgt.w	Obj89_Init_Standard		; if yes, branch
+=======
 	cmpi.w	#$2A60,d0			; is Tails too close to the left edge?
 	blt.w	Obj_ARZBoss_Init_Standard		; if yes, branch
 	cmpi.w	#$2B60,d0			; is Tails too close to the right edge?
 	bgt.w	Obj_ARZBoss_Init_Standard		; if yes, branch
+>>>>>>> amps
 
 ; loc_304D4:
 Obj_ARZBoss_Init_RaisePillars:
@@ -61770,8 +61851,13 @@ Obj_ARZBoss_Init_RaisePillars:
 	ori.b	#4,render_flags(a1)
 	move.w	#make_art_tile(ArtTile_ArtNem_ARZBoss,0,0),art_tile(a1)
 	move.b	#$10,width_pixels(a1)
+<<<<<<< HEAD
+	move.b	#4,priority(a1)
+	move.w	#$2A50-40,x_pos(a1)
+=======
 	move.w	#prio(4),priority(a1)
 	move.w	#$2A50,x_pos(a1)
+>>>>>>> amps
 	move.w	#$510,y_pos(a1)
 	addq.b	#4,boss_subtype(a1)	; => Obj_ARZBoss_Pillar
 	move.l	a0,Obj_ARZBoss_pillar_parent(a1)
@@ -61795,7 +61881,7 @@ Obj_ARZBoss_Init_DuplicatePillar:
     endif
 
 	bset	#0,render_flags(a1)
-	move.w	#$2B70,x_pos(a1)		; move pillar to other side of boss area
+	move.w	#$2B70+40,x_pos(a1)		; move pillar to other side of boss area
 
 ; loc_305F4:
 Obj_ARZBoss_Init_Standard:
@@ -61854,6 +61940,20 @@ Obj_ARZBoss_Main_Sub0_Standard:
 ; loc_3067A:
 Obj_ARZBoss_Main_Sub2:
 	bsr.w	Boss_MoveObject
+<<<<<<< HEAD
+	bsr.w	Obj89_Main_HandleFace
+	bsr.w	Obj89_Main_AlignParts
+	tst.b	obj89_target(a0)		; is boss going left?
+	bne.s	Obj89_Main_Sub2_GoingLeft	; if yes, branch
+	cmpi.w	#$2B10+40,(Boss_X_pos).w		; is boss right in front of the right pillar?
+	blt.s	Obj89_Main_Sub2_Standard	; branch, if still too far away
+	bra.s	Obj89_Main_Sub2_AtTarget
+; ===========================================================================
+; loc_30696:
+Obj89_Main_Sub2_GoingLeft:
+	cmpi.w	#$2AB0-40,(Boss_X_pos).w		; is boss right in front of the left pillar?
+	bgt.s	Obj89_Main_Sub2_Standard	; branch, if still too far away
+=======
 	bsr.w	Obj_ARZBoss_Main_HandleFace
 	bsr.w	Obj_ARZBoss_Main_AlignParts
 	tst.b	Obj_ARZBoss_target(a0)		; is boss going left?
@@ -61866,6 +61966,7 @@ Obj_ARZBoss_Main_Sub2:
 Obj_ARZBoss_Main_Sub2_GoingLeft:
 	cmpi.w	#$2AB0,(Boss_X_pos).w		; is boss right in front of the left pillar?
 	bgt.s	Obj_ARZBoss_Main_Sub2_Standard	; branch, if still too far away
+>>>>>>> amps
 
 ; loc_3069E:
 Obj_ARZBoss_Main_Sub2_AtTarget:
@@ -61890,9 +61991,16 @@ Obj_ARZBoss_Main_Sub4:
 	ori.b	#3,2*2(a1)			; reset hammer animation timer
 	addq.b	#2,boss_routine(a0)	; => Obj_ARZBoss_Main_Sub6
 	btst	#0,render_flags(a0)
+<<<<<<< HEAD
+	sne	obj89_target(a0)		; target opposite side
+	move.w	#$1F,(Boss_Countdown).w
+	move.b	#SndID_Hammer,d0
+	jsrto	(PlaySound).l, JmpTo8_PlaySound
+=======
 	sne	Obj_ARZBoss_target(a0)		; target opposite side
 	move.w	#$1E,(Boss_Countdown).w
 	sfx	sfx_Stomp
+>>>>>>> amps
 
 ; loc_306F8:
 Obj_ARZBoss_Main_Sub4_Standard:
@@ -62224,11 +62332,16 @@ Obj_ARZBoss_Pillar_ChkShake:
 	move.w	#0,Obj_ARZBoss_pillar_shake_time(a0)	; clear timer
 	tst.b	Obj_ARZBoss_target(a3)		; is boss targeting the left?
 	bne.s	+				; if yes, branch
+<<<<<<< HEAD
+	move.w	#$2A50-40,x_pos(a0)		; reset x position of left pillar
+	bra.s	Obj89_Pillar_Sub2_End
+=======
 	move.w	#$2A50,x_pos(a0)		; reset x position of left pillar
 	bra.s	Obj_ARZBoss_Pillar_Sub2_End
+>>>>>>> amps
 ; ===========================================================================
 +
-	move.w	#$2B70,x_pos(a0)		; reset x position of right pillar
+	move.w	#$2B70+40,x_pos(a0)		; reset x position of right pillar
 
 ; loc_30A7A:
 Obj_ARZBoss_Pillar_Sub2_End:
@@ -62236,11 +62349,17 @@ Obj_ARZBoss_Pillar_Sub2_End:
 	bra.s	return_30AAE
 ; ===========================================================================
 ; loc_30A82:
+<<<<<<< HEAD
+Obj89_Pillar_Shake:
+	move.w	#$2A50-40,d1			; load left pillar's default x position
+	tst.b	obj89_target(a3)		; is boss targeting the left
+=======
 Obj_ARZBoss_Pillar_Shake:
 	move.w	#$2A50,d1			; load left pillar's default x position
 	tst.b	Obj_ARZBoss_target(a3)		; is boss targeting the left
+>>>>>>> amps
 	beq.s	+				; if not, branch
-	move.w	#$2B70,d1			; load right pillar's default x position
+	move.w	#$2B70+40,d1			; load right pillar's default x position
 +
 	move.b	(Vint_runcount+3).w,d0
 	andi.w	#1,d0
@@ -62272,11 +62391,16 @@ Obj_ARZBoss_Pillar_Shoot:
 	ori.b	#4,render_flags(a1)
 	moveq	#0,d6
 	move.b	#2,mapping_frame(a1)
+<<<<<<< HEAD
+	move.w	#$2A6A-40,x_pos(a1)		; align with left pillar
+	tst.b	obj89_target(a3)		; is boss targeting the right?
+=======
 	move.w	#$2A6A,x_pos(a1)		; align with left pillar
 	tst.b	Obj_ARZBoss_target(a3)		; is boss targeting the right?
+>>>>>>> amps
 	beq.s	+				; if yes, branch
 	st	d6
-	move.w	#$2B56,x_pos(a1)		; align with right pillar
+	move.w	#$2B56+40,x_pos(a1)		; align with right pillar
 	bset	#0,render_flags(a1)
 +
 	move.w	#$28,Obj_ARZBoss_eyes_timer(a1)
@@ -62395,6 +62519,19 @@ Obj_ARZBoss_Arrow_Sub2:
 	move.w	x_pos(a0),d0			; load x position...
 	add.w	x_vel(a0),d0			; ... and add x velocity
 	tst.w	x_vel(a0)			; is arrow moving right?
+<<<<<<< HEAD
+	bpl.s	Obj89_Arrow_Sub2_GoingRight	; if yes, branch
+	cmpi.w	#$2A77-40,d0
+	bgt.s	Obj89_Arrow_Sub2_Move		; branch, if arrow hasn't reached left pillar
+	move.w	#$2A77-40,d0			; else, make arrow stick to left pillar
+	bra.s	Obj89_Arrow_Sub2_Stop
+; ===========================================================================
+; loc_30C5E:
+Obj89_Arrow_Sub2_GoingRight:
+	cmpi.w	#$2B49+40,d0
+	blt.s	Obj89_Arrow_Sub2_Move		; branch, if arrow hasn't reached right pillar
+	move.w	#$2B49+40,d0			; else, make arrow stick to right pillar
+=======
 	bpl.s	Obj_ARZBoss_Arrow_Sub2_GoingRight	; if yes, branch
 	cmpi.w	#$2A77,d0
 	bgt.s	Obj_ARZBoss_Arrow_Sub2_Move		; branch, if arrow hasn't reached left pillar
@@ -62406,6 +62543,7 @@ Obj_ARZBoss_Arrow_Sub2_GoingRight:
 	cmpi.w	#$2B49,d0
 	blt.s	Obj_ARZBoss_Arrow_Sub2_Move		; branch, if arrow hasn't reached right pillar
 	move.w	#$2B49,d0			; else, make arrow stick to right pillar
+>>>>>>> amps
 
 ; loc_30C68:
 Obj_ARZBoss_Arrow_Sub2_Stop:
@@ -62595,8 +62733,13 @@ Obj_MCZBoss_Init:
 	move.l	#Obj_MCZBoss_MapUnc_316EC,mappings(a0)
 	move.w	#make_art_tile(ArtTile_ArtNem_MCZBoss,0,0),art_tile(a0)
 	ori.b	#4,render_flags(a0)
+<<<<<<< HEAD
+	move.b	#3,priority(a0)	; gets overwritten
+	move.w	#$21A0+40,x_pos(a0)
+=======
 	move.w	#prio(3),priority(a0)	; gets overwritten
 	move.w	#$21A0,x_pos(a0)
+>>>>>>> amps
 	move.w	#$560,y_pos(a0)
 	move.b	#5,mainspr_mapframe(a0)
 	addq.b	#2,boss_subtype(a0)
@@ -62675,11 +62818,11 @@ Obj_MCZBoss_Main_Sub0: ; boss just moving up
 	move.w	(MainCharacter+x_pos).w,d3
 	cmpi.w	#$2190,d3
 	bhs.s	+
-	move.w	#$2200,d3
+	move.w	#$2200+40,d3
 	bra.s	++
 ; ===========================================================================
 +
-	move.w	#$2120,d3
+	move.w	#$2120+40,d3
 +
 	move.w	d3,(Boss_X_pos).w
 	addq.b	#2,boss_routine(a0)	; stuff falling down
@@ -62779,8 +62922,18 @@ Obj_MCZBoss_Main_Sub6: ; digger transition (rotation), moving back and forth
 ; ===========================================================================
 +
 	bsr.w	Boss_MoveObject
-	cmpi.w	#$2120,(Boss_X_pos).w
+	cmpi.w	#$2120+40,(Boss_X_pos).w
 	bgt.s	+
+<<<<<<< HEAD
+	move.w	#$2120+40,(Boss_X_pos).w
+	bra.s	Obj57_Main_Sub6_ReAscend2
+; ===========================================================================
++
+	cmpi.w	#$2200+40,(Boss_X_pos).w
+	blt.s	Obj57_Main_Sub6_Standard
+	move.w	#$2200+40,(Boss_X_pos).w
+	bra.s	Obj57_Main_Sub6_ReAscend2
+=======
 	move.w	#$2120,(Boss_X_pos).w
 	bra.s	Obj_MCZBoss_Main_Sub6_ReAscend2
 ; ===========================================================================
@@ -62789,6 +62942,7 @@ Obj_MCZBoss_Main_Sub6: ; digger transition (rotation), moving back and forth
 	blt.s	Obj_MCZBoss_Main_Sub6_Standard
 	move.w	#$2200,(Boss_X_pos).w
 	bra.s	Obj_MCZBoss_Main_Sub6_ReAscend2
+>>>>>>> amps
 ; ===========================================================================
 ;loc_31298:
 Obj_MCZBoss_Main_Sub6_ReAscend1:	; that's a dumb name for a label
@@ -62891,8 +63045,13 @@ Obj_MCZBoss_LoadStoneSpike:
 	swap	d1
 	andi.w	#$1FF,d1
 	addi.w	#$20F0,d1
+<<<<<<< HEAD
+	cmpi.w	#$2230+80,d1
+	bgt.s	Obj57_LoadStoneSpike
+=======
 	cmpi.w	#$2230,d1
 	bgt.s	Obj_MCZBoss_LoadStoneSpike
+>>>>>>> amps
 	jsrto	(SingleObjLoad).l, JmpTo15_SingleObjLoad
 	bne.s	return_31438
 	move.l	#Obj_MCZBoss,id(a1)	; load Obj_MCZBoss
@@ -74047,6 +74206,7 @@ loc_39B92:
 ; ===========================================================================
 
 loc_39BA4:
+	move.b  #1,(ButtonVine_Trigger).w
 	move.w	#$1000,(Camera_Max_X_pos).w
 	addq.b	#2,(Dynamic_Resize_Routine).w
 	move.w	(Level_Music).w,d0
@@ -74432,10 +74592,16 @@ Obj_SonicOnSegaScreen_Init:
 		addq.w	#1,objoff_32(a0)
 	endif
 	bsr.w	LoadSubObject
+<<<<<<< HEAD
+	move.w	#$1E8+40,x_pixel(a0)
+	move.w	#$F0,y_pixel(a0)
+	move.w	#$D,objoff_2A(a0)
+=======
 	move.b	#$40,width_pixels(a0)
 	move.w	#$1E8 - ((customAMPS == 0) * $80),x_pos(a0)
 	move.w	#$70,y_pos(a0)
 	move.w	#$B,objoff_2A(a0)
+>>>>>>> amps
 	move.w	#2,(SegaScr_VInt_Subrout).w
 	move.b	#5,render_flags(a0)
 	bset	#0,status(a0)
@@ -74561,7 +74727,7 @@ Obj_SonicOnSegaScreen_RunLeft:
 
 loc_3A312:
 	addq.b	#2,routine(a0)
-	move.w	#$C,objoff_2A(a0)
+	move.w	#$11,objoff_2A(a0)
 	move.b	#1,objoff_2C(a0)
 	st	objoff_2D(a0)
 	jmpto	(DisplaySprite).l, JmpTo45_DisplaySprite
@@ -74609,7 +74775,12 @@ loc_3A33A:
 
 loc_3A346:
 	addq.b	#2,routine(a0)
+<<<<<<< HEAD
+	bchg	#0,render_flags(a0)
+	move.w	#$F,objoff_2A(a0)
+=======
 	move.w	#$B,objoff_2A(a0)
+>>>>>>> amps
 	move.w	#4,(SegaScr_VInt_Subrout).w
 
 	if customAMPS
@@ -74624,11 +74795,18 @@ loc_3A346:
 
 	; Initialize streak horizontal offsets for Sonic going right.
 	; 9 full lines (8 pixels) + 7 pixels, 2-byte interleaved entries for PNT A and PNT B
+<<<<<<< HEAD
+	lea	(Horiz_Scroll_Buf + 2 * 2 * (11 * 8 + 7)).w,a1
+	lea	Streak_Horizontal_offsets(pc),a2
+	moveq	#0,d0
+	moveq	#$22,d6	; Number of streaks-1
+=======
 	if customAMPS == 0
 		lea	(Horiz_Scroll_Buf + 2 * 2 * (9 * 8 + 7)).w,a1
 		lea	Streak_Horizontal_offsets(pc),a2
 		moveq	#0,d0
 		moveq	#$22,d6	; Number of streaks-1
+>>>>>>> amps
 
 loc_3A38A:
 		move.b	(a2)+,d0
@@ -74666,7 +74844,7 @@ Obj_SonicOnSegaScreen_RunRight:
 
 loc_3A3B4:
 	addq.b	#2,routine(a0)
-	move.w	#$C,objoff_2A(a0)
+	move.w	#$F,objoff_2A(a0)
 	move.b	#1,objoff_2C(a0)
 	st	objoff_2D(a0)
 	rts
@@ -74932,7 +75110,7 @@ loc_3A6A2:
 
 	lea	Obj_SegaHideTM_Streak_fade_to_right(pc),a1
 	; 9 full lines ($100 bytes each) plus $28 8-pixel cells
-	move.l	#vdpComm(VRAM_SegaScr_Plane_A_Name_Table + planeLocH80($28,9),VRAM,WRITE),d0	; $49500003
+	move.l	#vdpComm(VRAM_SegaScr_Plane_A_Name_Table + planeLocH80($28+5,9),VRAM,WRITE),d0	; $49500003
 	bra.w	loc_3A710
 ; ===========================================================================
 
@@ -74941,7 +75119,7 @@ loc_3A6D4:
 
 	lea	Obj_SegaHideTM_Streak_fade_to_left(pc),a1
 	; $49A00003; 9 full lines ($100 bytes each) plus $50 8-pixel cells
-	move.l	#vdpComm(VRAM_SegaScr_Plane_A_Name_Table + planeLocH80($50,9),VRAM,WRITE),d0
+	move.l	#vdpComm(VRAM_SegaScr_Plane_A_Name_Table + planeLocH80($50-5,9),VRAM,WRITE),d0
 	bra.w	loc_3A710
 loc_3A710:
 	lea	(VDP_data_port).l,a6
@@ -77377,7 +77555,7 @@ Obj_Rivet_Main:
 Obj_Rivet_Bust:
 	cmpi.b	#2,objoff_30(a0)
 	bne.s	+
-	move.w	#$2880,(Camera_Min_X_pos).w
+	move.w	#$2880+40,(Camera_Min_X_pos).w
 	bclr	#p1_standing_bit,status(a0)
 	_move.l	#Obj_Explosion,id(a0) ; load 0bj27 (transform into explosion)
 	move.b	#2,routine(a0)
@@ -83609,7 +83787,7 @@ BuildHUD:
 	bne.s	+
 	addq.w	#2,d1	; set mapping frame for double blink
 +
-	move.w	#128+16,d3	; set X pos
+	move.w	#128+16-40,d3	; set X pos
 	move.w	#128+136,d2	; set Y pos
 	lea	(HUD_MapUnc_40A9A).l,a1
 	movea.w	#make_art_tile(ArtTile_ArtNem_HUD,0,1),a3	; set art tile and flags
@@ -85345,7 +85523,7 @@ LevelArtPointers:
 	levartptrs PLCID_Mcz1,     PLCID_Mcz2,      PalID_MCZ,  ArtKos_MCZ, BM16_MCZ, BM128_MCZ ;  $B ; MCZ  ; MYSTIC CAVE ZONE
 	levartptrs PLCID_Cnz1,     PLCID_Cnz2,      PalID_CNZ,  ArtKos_CNZ, BM16_CNZ, BM128_CNZ ;  $C ; CNZ  ; CASINO NIGHT ZONE
 	levartptrs PLCID_Cpz1,     PLCID_Cpz2,      PalID_CPZ,  ArtKos_CPZ, BM16_CPZ, BM128_CPZ ;  $D ; CPZ  ; CHEMICAL PLANT ZONE
-	levartptrs PLCID_Dez1,     PLCID_Dez2,      PalID_DEZ,  ArtKos_CPZ, BM16_CPZ, BM128_CPZ ;  $E ; DEZ  ; DEATH EGG ZONE
+	levartptrs PLCID_Dez1,     PLCID_Dez2,      PalID_DEZ,  ArtKos_DEZ, BM16_DEZ, BM128_DEZ ;  $E ; DEZ  ; DEATH EGG ZONE
 	levartptrs PLCID_Arz1,     PLCID_Arz2,      PalID_ARZ,  ArtKos_ARZ, BM16_ARZ, BM128_ARZ ;  $F ; ARZ  ; AQUATIC RUIN ZONE
 	levartptrs PLCID_Scz1,     PLCID_Scz2,      PalID_SCZ,  ArtKos_SCZ, BM16_WFZ, BM128_WFZ ; $10 ; SCZ  ; SKY CHASE ZONE
 
@@ -86455,11 +86633,19 @@ ColS_CNZ:	BINCLUDE	"collision/CNZ secondary 16x16 collision index.bin"
 	even
 ;---------------------------------------------------------------------------------------
 ; CPZ and DEZ primary 16x16 collision index (Kosinski compression)
-ColP_CPZDEZ:	BINCLUDE	"collision/CPZ and DEZ primary 16x16 collision index.bin"
+ColP_CPZ:	BINCLUDE	"collision/CPZ primary 16x16 collision index.bin"
+	even
+;---------------------------------------------------------------------------------------
+; CPZ and DEZ primary 16x16 collision index (Kosinski compression)
+ColP_DEZ:	BINCLUDE	"collision/DEZ primary 16x16 collision index.bin"
 	even
 ;---------------------------------------------------------------------------------------
 ; CPZ and DEZ secondary 16x16 collision index (Kosinski compression)
-ColS_CPZDEZ:	BINCLUDE	"collision/CPZ and DEZ secondary 16x16 collision index.bin"
+ColS_CPZ:	BINCLUDE	"collision/CPZ secondary 16x16 collision index.bin"
+	even
+;---------------------------------------------------------------------------------------
+; CPZ and DEZ secondary 16x16 collision index (Kosinski compression)
+ColS_DEZ:	BINCLUDE	"collision/DEZ secondary 16x16 collision index.bin"
 	even
 ;---------------------------------------------------------------------------------------
 ; ARZ primary 16x16 collision index (Kosinski compression)
@@ -87777,14 +87963,24 @@ ArtKos_CNZ:	BINCLUDE	"art/kosinski/CNZ.bin"
 BM128_CNZ:	BINCLUDE	"mappings/128x128/CNZ.bin"
 ;-----------------------------------------------------------------------------------
 ; CPZ/DEZ 16x16 block mappings (Kosinski compression)
-BM16_CPZ:	BINCLUDE	"mappings/16x16/CPZ_DEZ.bin"
+BM16_CPZ:	BINCLUDE	"mappings/16x16/CPZ.bin"
+;-----------------------------------------------------------------------------------
+; CPZ/DEZ 16x16 block mappings (Kosinski compression)
+BM16_DEZ:	BINCLUDE	"mappings/16x16/DEZ.bin"
 ;-----------------------------------------------------------------------------------
 ; CPZ/DEZ main level patterns (Kosinski compression)
 ; ArtKoz_B6174:
-ArtKos_CPZ:	BINCLUDE	"art/kosinski/CPZ_DEZ.bin"
+ArtKos_CPZ:	BINCLUDE	"art/kosinski/CPZ.bin"
+;-----------------------------------------------------------------------------------
+; CPZ/DEZ main level patterns (Kosinski compression)
+; ArtKoz_B6174:
+ArtKos_DEZ:	BINCLUDE	"art/kosinski/DEZ.bin"
 ;-----------------------------------------------------------------------------------
 ; CPZ/DEZ 128x128 block mappings (Kosinski compression)
-BM128_CPZ:	BINCLUDE	"mappings/128x128/CPZ_DEZ.bin"
+BM128_CPZ:	BINCLUDE	"mappings/128x128/CPZ.bin"
+;-----------------------------------------------------------------------------------
+; CPZ/DEZ 128x128 block mappings (Kosinski compression)
+BM128_DEZ:	BINCLUDE	"mappings/128x128/DEZ.bin"
 ;-----------------------------------------------------------------------------------
 ; ARZ 16x16 block mappings (Kosinski compression)
 BM16_ARZ:	BINCLUDE	"mappings/16x16/ARZ.bin"

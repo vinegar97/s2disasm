@@ -50,12 +50,11 @@ bytesToLcnt function n,n>>2-1
 ; that writes n bytes total at 2 bytes per iteration
 bytesToWcnt function n,n>>1-1
 
-; fills a region of 68k RAM with 0
-clearRAM macro startaddr,endaddr
+fillRAM macro value,startaddr,endaddr
     if startaddr>endaddr
-	fatal "Starting address of clearRAM \{startaddr} is after ending address \{endaddr}."
+	fatal "Starting address of fillRAM \{startaddr} is after ending address \{endaddr}."
     elseif startaddr==endaddr
-	warning "clearRAM is clearing zero bytes. Turning this into a nop instead."
+	warning "fillRAM is filling zero bytes. Turning this into a nop instead."
 	exitm
     endif
     if ((startaddr)&$8000)==0
@@ -63,7 +62,7 @@ clearRAM macro startaddr,endaddr
     else
 	lea	(startaddr).w,a1
     endif
-	moveq	#0,d0
+	moveq	value,d0
     if ((startaddr)&1)
 	move.b	d0,(a1)+
     endif
@@ -78,6 +77,53 @@ clearRAM macro startaddr,endaddr
     endif
     endm
 
+<<<<<<< HEAD
+; fills a region of 68k RAM with 0
+clearRAM macro startaddr,endaddr
+	fillRAM  #0,startaddr,endaddr
+	endm
+
+; tells the Z80 to stop, and waits for it to finish stopping (acquire bus)
+stopZ80 macro
+	move.w	#$100,(Z80_Bus_Request).l ; stop the Z80
+.loop:	btst	#0,(Z80_Bus_Request).l
+	bne.s	.loop ; loop until it says it's stopped
+    endm
+
+; tells the Z80 to start again
+startZ80 macro
+	move.w	#0,(Z80_Bus_Request).l    ; start the Z80
+    endm
+
+; function to make a little-endian 16-bit pointer for the Z80 sound driver
+z80_ptr function x,(x)<<8&$FF00|(x)>>8&$7F|$80
+
+; macro to declare a little-endian 16-bit pointer for the Z80 sound driver
+rom_ptr_z80 macro addr
+	dc.w z80_ptr(addr)
+    endm
+
+; aligns the start of a bank, and detects when the bank's contents is too large
+; can also print the amount of free space in a bank with DebugSoundbanks set
+startBank macro {INTLABEL}
+	align	$8000
+__LABEL__ label *
+soundBankStart := __LABEL__
+soundBankName := "__LABEL__"
+    endm
+
+DebugSoundbanks := 0
+
+finishBank macro
+	if * > soundBankStart + $8000
+		fatal "soundBank \{soundBankName} must fit in $8000 bytes but was $\{*-soundBankStart}. Try moving something to the other bank."
+	elseif (DebugSoundbanks<>0)&&(MOMPASS=1)
+		message "soundBank \{soundBankName} has $\{$8000+soundBankStart-*} bytes free at end."
+	endif
+    endm
+
+=======
+>>>>>>> amps
 ; macro to replace the destination with its absolute value
 abs macro destination
 	tst.ATTRIBUTE	destination
