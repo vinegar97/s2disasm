@@ -77,6 +77,7 @@ fillRAM macro value,startaddr,endaddr
     endif
     endm
 
+<<<<<<< HEAD
 ; fills a region of 68k RAM with 0
 clearRAM macro startaddr,endaddr
 	fillRAM  #0,startaddr,endaddr
@@ -121,6 +122,8 @@ finishBank macro
 	endif
     endm
 
+=======
+>>>>>>> amps
 ; macro to replace the destination with its absolute value
 abs macro destination
 	tst.ATTRIBUTE	destination
@@ -230,8 +233,8 @@ zoneTableEnd macro
 ; macro to declare sub-object data
 subObjData macro mappings,vram,renderflags,priority,width,collision
 	dc.l mappings
-	dc.w vram
-	dc.b renderflags,priority,width,collision
+	dc.w vram, prio(priority)
+	dc.b renderflags,width,collision,0
     endm
 
 ; macros for defining animated PLC script lists
@@ -271,3 +274,18 @@ planeLocH40 function col,line,(($80 * line) + (2 * col))
 
 ; function to calculate the location of a tile in plane mappings with a width of 128 cells
 planeLocH80 function col,line,(($100 * line) + (2 * col))
+
+; Macro for playing a command
+command		macro id
+	move.b #id,mQueue.w
+    endm
+
+; Macro for playing music
+music		macro id
+	move.b #id,mQueue+1.w
+    endm
+
+; Macro for playing sound effect
+sfx		macro id
+	move.b #id,mQueue+2.w
+    endm
