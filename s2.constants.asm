@@ -4,7 +4,7 @@
 ; ---------------------------------------------------------------------------
 ; size variables - you'll get an informational error if you need to change these...
 ; they are all in units of bytes
-Size_of_Snd_driver_guess =	$808	; approximate post-compressed size of the Z80 sound driver
+Size_of_Snd_driver_guess =	$80A	; approximate post-compressed size of the Z80 sound driver
 Debug_Lagometer =	0		; set to 1 to enable on-screen lagometer. Seems to have an odd habit of breaking Special Stages....
 
 ; ---------------------------------------------------------------------------
@@ -1246,7 +1246,9 @@ Player_mode:			ds.w 1		; 0 = Sonic and Tails, 1 = Sonic, 2 = Tails
 Player_option:			ds.w 1		; 0 = Sonic and Tails, 1 = Sonic, 2 = Tails
 
 Two_player_items:		ds.w 1
-				ds.b $A		; $FFFFFF76-$FFFFFF7F ; seems unused
+Control_Style:			ds.w 1
+Physics_Style:			ds.w 1
+				ds.b $6		; $FFFFFF76-$FFFFFF7F ; seems unused
 
 LevSel_HoldTimer:		ds.w 1
 Level_select_zone:		ds.w 1

@@ -18,7 +18,7 @@
 ; ASSEMBLY OPTIONS:
 ;
 ; special options for various AMPS related additions
-customAMPS =		1		; set to 1 to enable features
+customAMPS =		0		; set to 1 to enable features
 
     ifndef gameRevision
 gameRevision =		2
@@ -10780,6 +10780,7 @@ MenuScreen:
 
 	clearRAM Sprite_Table_Input,Sprite_Table_Input_End
 	clearRAM Object_RAM,Object_RAM_End
+	fillRAM #-40,Horiz_Scroll_Buf,Horiz_Scroll_Buf_End
 
 	; load background + graphics of font/LevSelPics
 	clr.w	(VDP_Command_Buffer).w
@@ -11103,6 +11104,90 @@ MenuScreenTextToRAM:
 	rts
 ; End of function MenuScreenTextToRAM
 
+	; set the character set for menu text
+	charset '@',"\27\30\31\32\33\34\35\36\37\38\39\40\41\42\43\44\45\46\47\48\49\50\51\52\53\54\55"
+	charset '0',"\16\17\18\19\20\21\22\23\24\25"
+	charset '*',$1A
+	charset ':',$1C
+	charset '.',$1D
+	charset ' ',0
+
+	; options screen menu text
+
+TextOptScr_PlayerSelect:	menutxt	"* PLAYER SELECT *  "	; byte_97CA:
+TextOptScr_SonicAndMiles:	menutxt	"    SONIC AND MILES"	; byte_97DC:
+TextOptScr_SonicAndTails:	menutxt	"    SONIC AND TAILS"	; byte_97EC:
+TextOptScr_SonicAlone:		menutxt	"        SONIC ALONE"	; byte_97FC:
+TextOptScr_MilesAlone:		menutxt	"        MILES ALONE"	; byte_980C:
+TextOptScr_TailsAlone:		menutxt	"        TAILS ALONE"	; byte_981C:
+TextOptScr_KnuxAlone:		menutxt	"     KNUCKLES ALONE"	; byte_981C:
+TextOptScr_KnuxAndMiles:	menutxt	" KNUCKLES AND MILES"	; byte_981C:
+TextOptScr_KnuxAndTails:	menutxt	" KNUCKLES AND TAILS"	; byte_981C:
+
+TextOptScr_ControlStyle:	menutxt	"* CONTROL STYLE *  "
+TextOptScr_PhysicsStyle:	menutxt	"* PHYSICS STYLE *  "
+TextOptScr_S1:				menutxt	"            SONIC 1"
+TextOptScr_S2:				menutxt	"            SONIC 2"
+TextOptScr_SCD:				menutxt	"           SONIC CD"
+TextOptScr_S3K:				menutxt	"           SONIC 3K"
+TextOptScr_Mania:			menutxt	"        SONIC MANIA"
+TextOptScr_ManiaPeelout:	menutxt	"  MANIA AND PEELOUT"
+TextOptScr_3KPeelout:		menutxt	"     3K AND PEELOUT"
+TextOptScr_Megamix:			menutxt	"      SONIC MEGAMIX"
+
+TextOptScr_VsModeItems:		menutxt	"* VS MODE ITEMS *  "	; byte_982C:
+TextOptScr_AllKindsItems:	menutxt	"    ALL KINDS ITEMS"	; byte_983E:
+TextOptScr_TeleportOnly:	menutxt	"      TELEPORT ONLY"	; byte_984E:
+
+TextOptScr_SoundTest:		menutxt	"*  SOUND TEST   *  "	; byte_985E:
+TextOptScr_0:				menutxt	"                 00"	; byte_9870:
+
+;menuitemdata macro type,x,y,txtlabel,otherdataptr
+	;dc.b type ; 0 = separator/label, 1 = choice, 2 = submenu, 3 = sound test
+	;dc.l txtlabel,VRAM_Plane_A_Name_Table+planeLocH40(x,y),otherdataptr
+    ;endm
+;
+;menuitemdata_choice macro count,valueptr,textlistptr
+	;dc.b count
+	;dc.l valueptr,textlistptr
+    ;endm
+;
+;TextOptScr_Options:			menutxt	"BACK"
+;
+;TextOptScr_Options:			menutxt	"OPTIONS"
+;TextOptScr_GameplayOptions:	menutxt	"GAMEPLAY OPTIONS"
+;TextOptScr_StyleOptions:	menutxt	"STYLE OPTIONS"
+;TextOptScr_LevelOptions:	menutxt	"LEVEL OPTIONS"
+;
+;TextOptScr_Controlstyle:	menutxt	"CONTROL STYLE"
+;TextOptScr_Physicsstyle:	menutxt	"PHYSICS STYLE"
+;TextOptScr_Aircurling:		menutxt	"AIR CURLING"
+;TextOptScr_Bugfixes:		menutxt	"BUGFIXES"
+;TextOptScr_Bugfixes:		menutxt	"EXT. CAMERA"
+;
+;TextOptScr_Playersprites:	menutxt	"PLAYER SPRITES"
+;TextOptScr_Itemsprites:		menutxt	"ITEM SPRITES"
+;TextOptScr_Titlecard:		menutxt	"TITLE CARD"
+;TextOptScr_Jumpsound:		menutxt	"JUMP SOUND"
+;
+;TextOptScr_StyleOptions:	menutxt	"LAYOUTS"
+;TextOptScr_StyleOptions:	menutxt	"SHIELDS"
+;
+;OptionsMenu_Main:
+	;menuitemdata #0, #1, #1, TextOptScr_Options, #0
+	;menuitemdata #2, #1, #4, TextOptScr_GameplayOptions, OptionsMenu_Gameplay
+	;menuitemdata #2, #1, #6, TextOptScr_StyleOptions,    OptionsMenu_Style
+	;menuitemdata #2, #1, #8, TextOptScr_LevelOptions,    OptionsMenu_Level
+;
+;OptionsMenu_Gameplay:
+	;menuitemdata #0, #1, #1,  TextOptScr_GameplayOptions, #0
+	;menuitemdata #1, #1, #4,  TextOptScr_Controlstyle, 	  #0
+	;menuitemdata #1, #1, #6,  TextOptScr_Physicsstyle, 	  #0
+	;menuitemdata #1, #1, #8,  TextOptScr_Aircurling, 	  #0
+	;menuitemdata #1, #1, #10, TextOptScr_Bugfixes, 	 	  #0
+
+	charset ; reset character set
+
 ; ===========================================================================
 ; loc_8FCC:
 MenuScreen_Options:
@@ -11115,11 +11200,17 @@ MenuScreen_Options:
 	move.w	#make_art_tile(ArtTile_ArtNem_MenuBox,1,0),d0
 	bsr.w	EniDec
 	clr.b	(Options_menu_box).w
+
 	bsr.w	OptionScreen_DrawSelected
 	addq.b	#1,(Options_menu_box).w
 	bsr.w	OptionScreen_DrawUnselected
 	addq.b	#1,(Options_menu_box).w
 	bsr.w	OptionScreen_DrawUnselected
+	addq.b	#1,(Options_menu_box).w
+	bsr.w	OptionScreen_DrawUnselected
+	addq.b	#1,(Options_menu_box).w
+	bsr.w	OptionScreen_DrawUnselected
+
 	clr.b	(Options_menu_box).w
 	clr.b	(Level_started_flag).w
 	clr.w	(Anim_Counters).w
@@ -11159,24 +11250,22 @@ OptionScreen_Main:
 ; ===========================================================================
 ; loc_909A:
 OptionScreen_Select:
-	move.b	(Options_menu_box).w,d0
-	bne.s	OptionScreen_Select_Not1P
+	cmpi.b  #2,(Options_menu_box).w
+	bgt.s	OptionScreen_Select_Not1P
 	; Start a single player game
-	moveq	#0,d0
-	move.w	d0,(Two_player_mode).w
-	move.w	d0,(Two_player_mode_copy).w
-	move.w	d0,(Current_ZoneAndAct).w	; emerald_hill_zone_act_1
+	move.w	#0,(Two_player_mode).w
+	move.w	#0,(Two_player_mode_copy).w
+	move.w	#0,(Current_ZoneAndAct).w	; emerald_hill_zone_act_1
 	move.b	#GameModeID_Level,(Game_Mode).w ; => Level (Zone play mode)
 	rts
 ; ===========================================================================
 ; loc_90B6:
 OptionScreen_Select_Not1P:
-	subq.b	#1,d0
+	cmpi.b	#3,(Options_menu_box).w
 	bne.s	OptionScreen_Select_Other
 	; Start a 2P VS game
-	moveq	#1,d0
-	move.w	d0,(Two_player_mode).w
-	move.w	d0,(Two_player_mode_copy).w
+	move.w	#1,(Two_player_mode).w
+	move.w	#1,(Two_player_mode_copy).w
 	move.b	#GameModeID_2PLevelSelect,(Game_Mode).w ; => LevelSelectMenu2P
 	move.b	#0,(Current_Zone_2P).w
 	move.w	#0,(Player_mode).w
@@ -11200,13 +11289,13 @@ OptionScreen_Controls:
 	beq.s	+
 	subq.b	#1,d2
 	bcc.s	+
-	move.b	#2,d2
+	move.b	#4,d2
 
 +
 	btst	#button_down,d0
 	beq.s	+
 	addq.b	#1,d2
-	cmpi.b	#3,d2
+	cmpi.b	#5,d2 ; Number of options
 	blo.s	+
 	moveq	#0,d2
 
@@ -11240,7 +11329,7 @@ OptionScreen_Controls:
 
 +
 	move.w	d2,(a1)
-	cmpi.b	#2,(Options_menu_box).w
+	cmpi.b	#4,(Options_menu_box).w
 	bne.s	+	; rts
 	andi.w	#button_B_mask|button_C_mask,d0
 	beq.s	+	; rts
@@ -11259,7 +11348,9 @@ OptionScreen_Controls:
 ; ===========================================================================
 ; word_917A:
 OptionScreen_Choices:
-	dc.l (3-1)<<24|(Player_option&$FFFFFF)
+	dc.l (5-1)<<24|(Player_option&$FFFFFF)
+	dc.l (8-1)<<24|(Control_Style&$FFFFFF)
+	dc.l (5-1)<<24|(Physics_Style&$FFFFFF)
 	dc.l (2-1)<<24|(Two_player_items&$FFFFFF)
 	dc.l (SFXlast-1)<<24|(Sound_test_sound&$FFFFFF)
 
@@ -11275,12 +11366,12 @@ OptionScreen_DrawSelected:
 	lea	(OptScrBoxData).l,a3
 	lea	(a3,d1.w),a3
 	move.w	#palette_line_3,d0
-	lea	(Chunk_Table+$30).l,a2
+	lea	(Chunk_Table+(39*1*2)+(1*2)).l,a2 ; Label location
 	movea.l	(a3)+,a1
 	bsr.w	MenuScreenTextToRAM
-	lea	(Chunk_Table+$B6).l,a2
+	lea	(Chunk_Table+(39*1*2)+(18*2)).l,a2 ; Value location
 	moveq	#0,d1
-	cmpi.b	#2,(Options_menu_box).w
+	cmpi.b	#4,(Options_menu_box).w
 	beq.s	+
 	move.b	(Options_menu_box).w,d1
 	lsl.w	#2,d1
@@ -11291,15 +11382,15 @@ OptionScreen_DrawSelected:
 +
 	movea.l	(a4,d1.w),a1
 	bsr.w	MenuScreenTextToRAM
-	cmpi.b	#2,(Options_menu_box).w
+	cmpi.b	#4,(Options_menu_box).w
 	bne.s	+
-	lea	(Chunk_Table+$C2).l,a2
+	lea	(Chunk_Table+(39*1*2)+(35*2)).l,a2 ; Sound test location
 	bsr.w	OptionScreen_HexDumpSoundTest
 +
 	lea	(Chunk_Table).l,a1
 	move.l	(a3)+,d0
-	moveq	#$15,d1
-	moveq	#7,d2
+	moveq	#38,d1 ; Box width - 1
+	moveq	#3,d2 ; Box height - 1
 	jmpto	(PlaneMapToVRAM_H40).l, JmpTo_PlaneMapToVRAM_H40
 ; ===========================================================================
 
@@ -11312,12 +11403,12 @@ OptionScreen_DrawUnselected:
 	lea	(OptScrBoxData).l,a3
 	lea	(a3,d1.w),a3
 	moveq	#palette_line_0,d0
-	lea	(Chunk_Table+$190).l,a2
+	lea	(Chunk_Table+$160+(39*1*2)+(1*2)).l,a2
 	movea.l	(a3)+,a1
 	bsr.w	MenuScreenTextToRAM
-	lea	(Chunk_Table+$216).l,a2
+	lea	(Chunk_Table+$160+(39*1*2)+(18*2)).l,a2
 	moveq	#0,d1
-	cmpi.b	#2,(Options_menu_box).w
+	cmpi.b	#4,(Options_menu_box).w
 	beq.s	+
 	move.b	(Options_menu_box).w,d1
 	lsl.w	#2,d1
@@ -11329,36 +11420,41 @@ OptionScreen_DrawUnselected:
 +
 	movea.l	(a4,d1.w),a1
 	bsr.w	MenuScreenTextToRAM
-	cmpi.b	#2,(Options_menu_box).w
+	cmpi.b	#4,(Options_menu_box).w
 	bne.s	+
-	lea	(Chunk_Table+$222).l,a2
+	lea	(Chunk_Table+$160+(39*1*2)+(35*2)).l,a2
 	bsr.w	OptionScreen_HexDumpSoundTest
 
 +
 	lea	(Chunk_Table+$160).l,a1
 	move.l	(a3)+,d0
-	moveq	#$15,d1
-	moveq	#7,d2
+	moveq	#38,d1 ; Box width - 1
+	moveq	#3,d2 ; Box height - 1
 	jmpto	(PlaneMapToVRAM_H40).l, JmpTo_PlaneMapToVRAM_H40
 ; ===========================================================================
 
 ;loc_9268
 OptionScreen_SelectTextPtr:
-	lea	(off_92D2).l,a4
+	lea	(OptScrValText_CharacterJ).l,a4
 	tst.b	(Graphics_Flags).w
 	bpl.s	+
-	lea	(off_92DE).l,a4
+	lea	(OptScrValText_CharacterUE).l,a4
 
-+
-	tst.b	(Options_menu_box).w
-	beq.s	+
-	lea	(off_92EA).l,a4
-
+	cmpi.b	#1,(Options_menu_box).w
+	bne.s	+
+	lea	(OptScrValText_ControlStyle).l,a4
 +
 	cmpi.b	#2,(Options_menu_box).w
-	bne.s	+	; rts
-	lea	(off_92F2).l,a4
+	bne.s	+
+	lea	(OptScrValText_PhysicsStyle).l,a4
++
+	cmpi.b	#3,(Options_menu_box).w
+	bne.s	+
+	lea	(OptScrValText_2PItems).l,a4
 
+	cmpi.b	#4,(Options_menu_box).w
+	bne.s	+
+	lea	(OptScrValText_SoundTest).l,a4
 +
 	rts
 ; ===========================================================================
@@ -11391,21 +11487,51 @@ boxData macro txtlabel,vramAddr
 	dc.l txtlabel, vdpComm(vramAddr,VRAM,WRITE)
     endm
 
-	boxData	TextOptScr_PlayerSelect,VRAM_Plane_A_Name_Table+planeLocH40(9,3)
-	boxData	TextOptScr_VsModeItems,VRAM_Plane_A_Name_Table+planeLocH40(9,11)
-	boxData	TextOptScr_SoundTest,VRAM_Plane_A_Name_Table+planeLocH40(9,19)
+	boxData	TextOptScr_PlayerSelect,VRAM_Plane_A_Name_Table+planeLocH40(1,1)
+	boxData	TextOptScr_ControlStyle,VRAM_Plane_A_Name_Table+planeLocH40(1,5)
+	boxData	TextOptScr_PhysicsStyle,VRAM_Plane_A_Name_Table+planeLocH40(1,9)
+	boxData	TextOptScr_VsModeItems,VRAM_Plane_A_Name_Table+planeLocH40(1,13)
+	boxData	TextOptScr_SoundTest,VRAM_Plane_A_Name_Table+planeLocH40(1,17)
 
 off_92D2:
+OptScrValText_CharacterJ:
 	dc.l TextOptScr_SonicAndMiles
 	dc.l TextOptScr_SonicAlone
 	dc.l TextOptScr_MilesAlone
+	dc.l TextOptScr_KnuxAlone
+	dc.l TextOptScr_KnuxAndMiles
+
 off_92DE:
+OptScrValText_CharacterUE:
 	dc.l TextOptScr_SonicAndTails
 	dc.l TextOptScr_SonicAlone
 	dc.l TextOptScr_TailsAlone
+	dc.l TextOptScr_KnuxAlone
+	dc.l TextOptScr_KnuxAndTails
+
+OptScrValText_ControlStyle:
+	dc.l TextOptScr_S2
+	dc.l TextOptScr_S1
+	dc.l TextOptScr_SCD
+	dc.l TextOptScr_S3K
+	dc.l TextOptScr_Mania
+	dc.l TextOptScr_ManiaPeelout
+	dc.l TextOptScr_3KPeelout
+	dc.l TextOptScr_Megamix
+
+OptScrValText_PhysicsStyle:
+	dc.l TextOptScr_S2
+	dc.l TextOptScr_S1
+	dc.l TextOptScr_SCD
+	dc.l TextOptScr_S3K
+	dc.l TextOptScr_Mania
+
+OptScrValText_2PItems:
 off_92EA:
 	dc.l TextOptScr_AllKindsItems
 	dc.l TextOptScr_TeleportOnly
+
+OptScrValText_SoundTest:
 off_92F2:
 	dc.l TextOptScr_0
 ; ===========================================================================
@@ -12058,29 +12184,7 @@ debug_cheat:		dc.b   1,   9,   9,   2,   1,   1,   2,   4,   0	; 24th November 1
 super_sonic_cheat:	dc.b   4,   1,   2,   6,   0	; Book of Genesis, 41:26
 	rev02even
 
-	; set the character set for menu text
-	charset '@',"\27\30\31\32\33\34\35\36\37\38\39\40\41\42\43\44\45\46\47\48\49\50\51\52\53\54\55"
-	charset '0',"\16\17\18\19\20\21\22\23\24\25"
-	charset '*',$1A
-	charset ':',$1C
-	charset '.',$1D
-	charset ' ',0
 
-	; options screen menu text
-
-TextOptScr_PlayerSelect:	menutxt	"* PLAYER SELECT *"	; byte_97CA:
-TextOptScr_SonicAndMiles:	menutxt	"SONIC AND MILES"	; byte_97DC:
-TextOptScr_SonicAndTails:	menutxt	"SONIC AND TAILS"	; byte_97EC:
-TextOptScr_SonicAlone:		menutxt	"SONIC ALONE    "	; byte_97FC:
-TextOptScr_MilesAlone:		menutxt	"MILES ALONE    "	; byte_980C:
-TextOptScr_TailsAlone:		menutxt	"TAILS ALONE    "	; byte_981C:
-TextOptScr_VsModeItems:		menutxt	"* VS MODE ITEMS *"	; byte_982C:
-TextOptScr_AllKindsItems:	menutxt	"ALL KINDS ITEMS"	; byte_983E:
-TextOptScr_TeleportOnly:	menutxt	"TELEPORT ONLY  "	; byte_984E:
-TextOptScr_SoundTest:		menutxt	"*  SOUND TEST   *"	; byte_985E:
-TextOptScr_0:			menutxt	"      00       "	; byte_9870:
-
-	charset ; reset character set
 
 ; level select picture palettes
 ; byte_9880:
@@ -14481,9 +14585,6 @@ SwScrl_EHZ:
 	move.w	d3,(a1)+
 	rts
 
-	; note there is a bug here. the bottom 8 pixels haven't had their hscroll values set. only the EHZ scrolling code has this bug.
-
-	rts
 ; ===========================================================================
 ; horizontal offsets for the water rippling effect
 ; byte_C682:
@@ -25096,7 +25197,7 @@ Obj_TitleCard_BottomPartIn:	; the yellow part at the bottom, coming in
 Obj_TitleCard_LeftPartIn:	; the red part on the left, coming in
 	jsr	Obj_TitleCard_Wait(pc)
 	tst.w	titlecard_location(a0)
-	bmi.w	Obj34_MoveTowardsTargetPosition
+	bmi.w	Obj_TitleCard_MoveTowardsTargetPosition
 	move.w	#VRAM_Plane_A_Name_Table+(2*50)+(2*9),titlecard_vram_dest(a0)
 	tst.w	(Two_player_mode).w
 	beq.s	+
@@ -27692,19 +27793,8 @@ BuildSprites_LevelLoop:
 ; loc_16630:
 BuildSprites_ObjLoop:
 	movea.w	(a4,d6.w),a0 ; a0=object
-
-    ;if gameRevision=0
-	; the additional check prevents a crash triggered by placing an object in debug mode while dead
-	; unfortunately, the code it branches *to* causes a crash of its own
-	tst.b	id(a0)			; is this object slot occupied?
-	beq.w	BuildSprites_NextObj	; if not, branch
-	tst.l	mappings(a0)		; does this object have any mappings?
-	beq.w	BuildSprites_NextObj	; if not, branch
-    ;else
-	; REV01 uses a better branch, but removed the useful check
-	;tst.b	id(a0)			; is this object slot occupied?
-	;beq.w	BuildSprites_NextObj	; if not, check next one
-    ;endif
+	tst.l	id(a0)			; is this object slot occupied?
+	beq.w	BuildSprites_NextObj	; if not, check next one
 
 	andi.b	#$7F,render_flags(a0)	; clear on-screen flag
 	move.b	render_flags(a0),d0
@@ -33220,7 +33310,7 @@ Obj_Sonic_InWater:
 
 	movea.l	a0,a1
 	bsr.w	ResumeMusic
-	command	Mus_ToWater
+	command	Mus_ToWater ; HJW: TODO - Add option to disable this
 	move.l	#Obj_SmallBubbles,(Sonic_BreathingBubbles+id).w ; load Obj_SmallBubbles (sonic's breathing bubbles) at $FFFFD080
 	move.b	#$81,(Sonic_BreathingBubbles+subtype).w
 	move.l	a0,(Sonic_BreathingBubbles+objoff_3C).w
@@ -61786,31 +61876,17 @@ Obj_ARZBoss_Init:
 	tst.w	(Player_mode).w			; is player mode anything other than Sonic & Tails?
 	bne.s	Obj_ARZBoss_Init_RaisePillars		; if yes, branch
 	move.w	(MainCharacter+x_pos).w,d0
-<<<<<<< HEAD
 	cmpi.w	#$2A60-40,d0			; is Sonic too close to the left edge?
-	blt.w	Obj89_Init_Standard		; if yes, branch
-	cmpi.w	#$2B60+40,d0			; is Sonic too close to the right edge?
-	bgt.w	Obj89_Init_Standard		; if yes, branch
-=======
-	cmpi.w	#$2A60,d0			; is Sonic too close to the left edge?
 	blt.w	Obj_ARZBoss_Init_Standard		; if yes, branch
-	cmpi.w	#$2B60,d0			; is Sonic too close to the right edge?
+	cmpi.w	#$2B60+40,d0			; is Sonic too close to the right edge?
 	bgt.w	Obj_ARZBoss_Init_Standard		; if yes, branch
->>>>>>> amps
 	cmpi.b	#$81,(Sidekick+obj_control).w
 	beq.w	Obj_ARZBoss_Init_RaisePillars		; branch, if Tails is flying
 	move.w	(Sidekick+x_pos).w,d0
-<<<<<<< HEAD
 	cmpi.w	#$2A60-40,d0			; is Tails too close to the left edge?
-	blt.w	Obj89_Init_Standard		; if yes, branch
-	cmpi.w	#$2B60+40,d0			; is Tails too close to the right edge?
-	bgt.w	Obj89_Init_Standard		; if yes, branch
-=======
-	cmpi.w	#$2A60,d0			; is Tails too close to the left edge?
 	blt.w	Obj_ARZBoss_Init_Standard		; if yes, branch
-	cmpi.w	#$2B60,d0			; is Tails too close to the right edge?
+	cmpi.w	#$2B60+40,d0			; is Tails too close to the right edge?
 	bgt.w	Obj_ARZBoss_Init_Standard		; if yes, branch
->>>>>>> amps
 
 ; loc_304D4:
 Obj_ARZBoss_Init_RaisePillars:
@@ -61851,13 +61927,8 @@ Obj_ARZBoss_Init_RaisePillars:
 	ori.b	#4,render_flags(a1)
 	move.w	#make_art_tile(ArtTile_ArtNem_ARZBoss,0,0),art_tile(a1)
 	move.b	#$10,width_pixels(a1)
-<<<<<<< HEAD
 	move.b	#4,priority(a1)
 	move.w	#$2A50-40,x_pos(a1)
-=======
-	move.w	#prio(4),priority(a1)
-	move.w	#$2A50,x_pos(a1)
->>>>>>> amps
 	move.w	#$510,y_pos(a1)
 	addq.b	#4,boss_subtype(a1)	; => Obj_ARZBoss_Pillar
 	move.l	a0,Obj_ARZBoss_pillar_parent(a1)
@@ -61940,33 +62011,18 @@ Obj_ARZBoss_Main_Sub0_Standard:
 ; loc_3067A:
 Obj_ARZBoss_Main_Sub2:
 	bsr.w	Boss_MoveObject
-<<<<<<< HEAD
-	bsr.w	Obj89_Main_HandleFace
-	bsr.w	Obj89_Main_AlignParts
-	tst.b	obj89_target(a0)		; is boss going left?
-	bne.s	Obj89_Main_Sub2_GoingLeft	; if yes, branch
-	cmpi.w	#$2B10+40,(Boss_X_pos).w		; is boss right in front of the right pillar?
-	blt.s	Obj89_Main_Sub2_Standard	; branch, if still too far away
-	bra.s	Obj89_Main_Sub2_AtTarget
-; ===========================================================================
-; loc_30696:
-Obj89_Main_Sub2_GoingLeft:
-	cmpi.w	#$2AB0-40,(Boss_X_pos).w		; is boss right in front of the left pillar?
-	bgt.s	Obj89_Main_Sub2_Standard	; branch, if still too far away
-=======
 	bsr.w	Obj_ARZBoss_Main_HandleFace
 	bsr.w	Obj_ARZBoss_Main_AlignParts
 	tst.b	Obj_ARZBoss_target(a0)		; is boss going left?
 	bne.s	Obj_ARZBoss_Main_Sub2_GoingLeft	; if yes, branch
-	cmpi.w	#$2B10,(Boss_X_pos).w		; is boss right in front of the right pillar?
+	cmpi.w	#$2B10+40,(Boss_X_pos).w		; is boss right in front of the right pillar?
 	blt.s	Obj_ARZBoss_Main_Sub2_Standard	; branch, if still too far away
 	bra.s	Obj_ARZBoss_Main_Sub2_AtTarget
 ; ===========================================================================
 ; loc_30696:
 Obj_ARZBoss_Main_Sub2_GoingLeft:
-	cmpi.w	#$2AB0,(Boss_X_pos).w		; is boss right in front of the left pillar?
+	cmpi.w	#$2AB0-40,(Boss_X_pos).w		; is boss right in front of the left pillar?
 	bgt.s	Obj_ARZBoss_Main_Sub2_Standard	; branch, if still too far away
->>>>>>> amps
 
 ; loc_3069E:
 Obj_ARZBoss_Main_Sub2_AtTarget:
@@ -61991,16 +62047,9 @@ Obj_ARZBoss_Main_Sub4:
 	ori.b	#3,2*2(a1)			; reset hammer animation timer
 	addq.b	#2,boss_routine(a0)	; => Obj_ARZBoss_Main_Sub6
 	btst	#0,render_flags(a0)
-<<<<<<< HEAD
-	sne	obj89_target(a0)		; target opposite side
-	move.w	#$1F,(Boss_Countdown).w
-	move.b	#SndID_Hammer,d0
-	jsrto	(PlaySound).l, JmpTo8_PlaySound
-=======
 	sne	Obj_ARZBoss_target(a0)		; target opposite side
-	move.w	#$1E,(Boss_Countdown).w
+	move.w	#$1F,(Boss_Countdown).w
 	sfx	sfx_Stomp
->>>>>>> amps
 
 ; loc_306F8:
 Obj_ARZBoss_Main_Sub4_Standard:
@@ -62332,13 +62381,8 @@ Obj_ARZBoss_Pillar_ChkShake:
 	move.w	#0,Obj_ARZBoss_pillar_shake_time(a0)	; clear timer
 	tst.b	Obj_ARZBoss_target(a3)		; is boss targeting the left?
 	bne.s	+				; if yes, branch
-<<<<<<< HEAD
 	move.w	#$2A50-40,x_pos(a0)		; reset x position of left pillar
-	bra.s	Obj89_Pillar_Sub2_End
-=======
-	move.w	#$2A50,x_pos(a0)		; reset x position of left pillar
 	bra.s	Obj_ARZBoss_Pillar_Sub2_End
->>>>>>> amps
 ; ===========================================================================
 +
 	move.w	#$2B70+40,x_pos(a0)		; reset x position of right pillar
@@ -62349,15 +62393,9 @@ Obj_ARZBoss_Pillar_Sub2_End:
 	bra.s	return_30AAE
 ; ===========================================================================
 ; loc_30A82:
-<<<<<<< HEAD
-Obj89_Pillar_Shake:
-	move.w	#$2A50-40,d1			; load left pillar's default x position
-	tst.b	obj89_target(a3)		; is boss targeting the left
-=======
 Obj_ARZBoss_Pillar_Shake:
-	move.w	#$2A50,d1			; load left pillar's default x position
+	move.w	#$2A50-40,d1			; load left pillar's default x position
 	tst.b	Obj_ARZBoss_target(a3)		; is boss targeting the left
->>>>>>> amps
 	beq.s	+				; if not, branch
 	move.w	#$2B70+40,d1			; load right pillar's default x position
 +
@@ -62391,13 +62429,8 @@ Obj_ARZBoss_Pillar_Shoot:
 	ori.b	#4,render_flags(a1)
 	moveq	#0,d6
 	move.b	#2,mapping_frame(a1)
-<<<<<<< HEAD
 	move.w	#$2A6A-40,x_pos(a1)		; align with left pillar
-	tst.b	obj89_target(a3)		; is boss targeting the right?
-=======
-	move.w	#$2A6A,x_pos(a1)		; align with left pillar
 	tst.b	Obj_ARZBoss_target(a3)		; is boss targeting the right?
->>>>>>> amps
 	beq.s	+				; if yes, branch
 	st	d6
 	move.w	#$2B56+40,x_pos(a1)		; align with right pillar
@@ -62519,31 +62552,17 @@ Obj_ARZBoss_Arrow_Sub2:
 	move.w	x_pos(a0),d0			; load x position...
 	add.w	x_vel(a0),d0			; ... and add x velocity
 	tst.w	x_vel(a0)			; is arrow moving right?
-<<<<<<< HEAD
-	bpl.s	Obj89_Arrow_Sub2_GoingRight	; if yes, branch
-	cmpi.w	#$2A77-40,d0
-	bgt.s	Obj89_Arrow_Sub2_Move		; branch, if arrow hasn't reached left pillar
-	move.w	#$2A77-40,d0			; else, make arrow stick to left pillar
-	bra.s	Obj89_Arrow_Sub2_Stop
-; ===========================================================================
-; loc_30C5E:
-Obj89_Arrow_Sub2_GoingRight:
-	cmpi.w	#$2B49+40,d0
-	blt.s	Obj89_Arrow_Sub2_Move		; branch, if arrow hasn't reached right pillar
-	move.w	#$2B49+40,d0			; else, make arrow stick to right pillar
-=======
 	bpl.s	Obj_ARZBoss_Arrow_Sub2_GoingRight	; if yes, branch
-	cmpi.w	#$2A77,d0
+	cmpi.w	#$2A77-40,d0
 	bgt.s	Obj_ARZBoss_Arrow_Sub2_Move		; branch, if arrow hasn't reached left pillar
-	move.w	#$2A77,d0			; else, make arrow stick to left pillar
+	move.w	#$2A77-40,d0			; else, make arrow stick to left pillar
 	bra.s	Obj_ARZBoss_Arrow_Sub2_Stop
 ; ===========================================================================
 ; loc_30C5E:
 Obj_ARZBoss_Arrow_Sub2_GoingRight:
-	cmpi.w	#$2B49,d0
+	cmpi.w	#$2B49+40,d0
 	blt.s	Obj_ARZBoss_Arrow_Sub2_Move		; branch, if arrow hasn't reached right pillar
-	move.w	#$2B49,d0			; else, make arrow stick to right pillar
->>>>>>> amps
+	move.w	#$2B49+40,d0			; else, make arrow stick to right pillar
 
 ; loc_30C68:
 Obj_ARZBoss_Arrow_Sub2_Stop:
@@ -62733,13 +62752,8 @@ Obj_MCZBoss_Init:
 	move.l	#Obj_MCZBoss_MapUnc_316EC,mappings(a0)
 	move.w	#make_art_tile(ArtTile_ArtNem_MCZBoss,0,0),art_tile(a0)
 	ori.b	#4,render_flags(a0)
-<<<<<<< HEAD
 	move.b	#3,priority(a0)	; gets overwritten
 	move.w	#$21A0+40,x_pos(a0)
-=======
-	move.w	#prio(3),priority(a0)	; gets overwritten
-	move.w	#$21A0,x_pos(a0)
->>>>>>> amps
 	move.w	#$560,y_pos(a0)
 	move.b	#5,mainspr_mapframe(a0)
 	addq.b	#2,boss_subtype(a0)
@@ -62924,25 +62938,14 @@ Obj_MCZBoss_Main_Sub6: ; digger transition (rotation), moving back and forth
 	bsr.w	Boss_MoveObject
 	cmpi.w	#$2120+40,(Boss_X_pos).w
 	bgt.s	+
-<<<<<<< HEAD
 	move.w	#$2120+40,(Boss_X_pos).w
-	bra.s	Obj57_Main_Sub6_ReAscend2
+	bra.s	Obj_MCZBoss_Main_Sub6_ReAscend2
 ; ===========================================================================
 +
 	cmpi.w	#$2200+40,(Boss_X_pos).w
-	blt.s	Obj57_Main_Sub6_Standard
-	move.w	#$2200+40,(Boss_X_pos).w
-	bra.s	Obj57_Main_Sub6_ReAscend2
-=======
-	move.w	#$2120,(Boss_X_pos).w
-	bra.s	Obj_MCZBoss_Main_Sub6_ReAscend2
-; ===========================================================================
-+
-	cmpi.w	#$2200,(Boss_X_pos).w
 	blt.s	Obj_MCZBoss_Main_Sub6_Standard
-	move.w	#$2200,(Boss_X_pos).w
+	move.w	#$2200+40,(Boss_X_pos).w
 	bra.s	Obj_MCZBoss_Main_Sub6_ReAscend2
->>>>>>> amps
 ; ===========================================================================
 ;loc_31298:
 Obj_MCZBoss_Main_Sub6_ReAscend1:	; that's a dumb name for a label
@@ -63045,13 +63048,8 @@ Obj_MCZBoss_LoadStoneSpike:
 	swap	d1
 	andi.w	#$1FF,d1
 	addi.w	#$20F0,d1
-<<<<<<< HEAD
 	cmpi.w	#$2230+80,d1
-	bgt.s	Obj57_LoadStoneSpike
-=======
-	cmpi.w	#$2230,d1
 	bgt.s	Obj_MCZBoss_LoadStoneSpike
->>>>>>> amps
 	jsrto	(SingleObjLoad).l, JmpTo15_SingleObjLoad
 	bne.s	return_31438
 	move.l	#Obj_MCZBoss,id(a1)	; load Obj_MCZBoss
@@ -74592,16 +74590,10 @@ Obj_SonicOnSegaScreen_Init:
 		addq.w	#1,objoff_32(a0)
 	endif
 	bsr.w	LoadSubObject
-<<<<<<< HEAD
-	move.w	#$1E8+40,x_pixel(a0)
-	move.w	#$F0,y_pixel(a0)
-	move.w	#$D,objoff_2A(a0)
-=======
 	move.b	#$40,width_pixels(a0)
 	move.w	#$1E8 - ((customAMPS == 0) * $80),x_pos(a0)
 	move.w	#$70,y_pos(a0)
 	move.w	#$B,objoff_2A(a0)
->>>>>>> amps
 	move.w	#2,(SegaScr_VInt_Subrout).w
 	move.b	#5,render_flags(a0)
 	bset	#0,status(a0)
@@ -74775,12 +74767,7 @@ loc_3A33A:
 
 loc_3A346:
 	addq.b	#2,routine(a0)
-<<<<<<< HEAD
-	bchg	#0,render_flags(a0)
-	move.w	#$F,objoff_2A(a0)
-=======
 	move.w	#$B,objoff_2A(a0)
->>>>>>> amps
 	move.w	#4,(SegaScr_VInt_Subrout).w
 
 	if customAMPS
@@ -74795,18 +74782,11 @@ loc_3A346:
 
 	; Initialize streak horizontal offsets for Sonic going right.
 	; 9 full lines (8 pixels) + 7 pixels, 2-byte interleaved entries for PNT A and PNT B
-<<<<<<< HEAD
-	lea	(Horiz_Scroll_Buf + 2 * 2 * (11 * 8 + 7)).w,a1
-	lea	Streak_Horizontal_offsets(pc),a2
-	moveq	#0,d0
-	moveq	#$22,d6	; Number of streaks-1
-=======
 	if customAMPS == 0
 		lea	(Horiz_Scroll_Buf + 2 * 2 * (9 * 8 + 7)).w,a1
 		lea	Streak_Horizontal_offsets(pc),a2
 		moveq	#0,d0
 		moveq	#$22,d6	; Number of streaks-1
->>>>>>> amps
 
 loc_3A38A:
 		move.b	(a2)+,d0
