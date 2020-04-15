@@ -2612,6 +2612,8 @@ CyclingPal_WFZ2:
 
 ; sub_213E:
 PalCycle_SuperSonic:
+	cmpi.w	#3,(Player_mode).w	; are we Knuckles?
+	beq.w	PalCycle_SuperKnuckles	; if we are, run the Super Knuckles cycle instead
 	move.b	(Super_Sonic_palette).w,d0
 	beq.s	++	; rts	; return, if Sonic isn't super
 	bmi.w	PalCycle_SuperSonic_normal	; branch, if fade-in is done
@@ -2720,6 +2722,62 @@ CyclingPal_CPZUWTransformation:
 ; Pal_2346:
 CyclingPal_ARZUWTransformation:
 	BINCLUDE	"art/palettes/ARZWater SS transformation.bin"
+
+PalCycle_SuperKnuckles:				  ; ...
+		move.b	(Super_Sonic_palette).w,d0
+		beq.s	return_301E74
+		bmi.w	PalCycle_SuperKnuckles_normal
+		subq.b	#1,d0
+		bne.s	PalCycle_SuperKnuckles_revert
+		subq.b	#1,(Palette_timer).w
+		bpl.s	return_301E74
+		move.b	#3,(Palette_timer).w
+		move.b	#-$1,(Super_Sonic_palette).w
+		move.w	#0,(Palette_frame).w
+		move.b	#0,(MainCharacter+obj_control).w
+
+return_301E74:					  ; ...
+		rts
+; ---------------------------------------------------------------------------
+
+PalCycle_SuperKnuckles_revert:					  ; ...
+		moveq	#0,d0
+		move.w	d0,(Palette_frame).w
+		move.b	d0,(Super_Sonic_palette).w
+		lea	(Pal_KnucklesReds).l,a0
+		bra.w	loc_301EBA
+; ---------------------------------------------------------------------------
+
+PalCycle_SuperKnuckles_normal:					  ; ...
+		subq.b	#1,(Palette_timer).w
+		bpl.w	return_301E74
+		move.b	#2,(Palette_timer).w
+		lea	(Pal_SuperKnuckles).l,a0
+		move.w	(Palette_frame).w,d0
+		addq.w	#6,(Palette_frame).w
+		cmp.w	#$3C,(Palette_frame).w
+		bcs.s	loc_301EBA
+		move.w	#0,(Palette_frame).w
+		move.b	#$E,(Palette_timer).w
+
+loc_301EBA:					  ; ...
+		lea	(Normal_palette+4).w,a1
+		move.l	(a0,d0.w),(a1)+
+		move.w	4(a0,d0.w),2(a1)
+		tst.b	(Water_flag).w
+		beq.w	return_301E74
+		lea	(Underwater_palette+4).w,a1
+		move.l	(a0,d0.w),(a1)+
+		move.w	4(a0,d0.w),2(a1)
+		rts
+; End of function PalCycle_SuperKnuckles
+
+; ---------------------------------------------------------------------------
+Pal_SuperKnuckles:dc.w	$428, $64E, $A6E, $64A,	$86E, $C8E, $86C, $A8E,	$EAE; 0	; ...
+		dc.w  $A8E, $CAE, $ECE,	$CAE, $ECE, $EEE, $A8E,	$CAE, $ECE; 9
+		dc.w  $86C, $A8E, $EAE,	$64A, $86E, $C8E, $428,	$64E, $A6E; 18
+		dc.w  $206, $40C, $84E		  ; 27
+Pal_KnucklesReds:dc.w  $206, $20C, $64E		   ; 0 ; ...
 
 ; ---------------------------------------------------------------------------
 ; Subroutine to fade in from black
@@ -3223,6 +3281,9 @@ PalPtr_SS3_2p:	palptr Pal_SS3_2p,3
 PalPtr_OOZ_B:	palptr Pal_OOZ_B, 1
 PalPtr_Menu:	palptr Pal_Menu,  0
 PalPtr_Result:	palptr Pal_Result,0
+PalPtr_Knux:	palptr Pal_Knux,  0
+PalPtr_CPZ_K_U:	palptr Pal_CPZ_K_U, 0
+PalPtr_ARZ_K_U:	palptr Pal_ARZ_K_U, 0
 
 ; ----------------------------------------------------------------------------
 ; This macro defines Pal_ABC and Pal_ABC_End, so palptr can compute the size of
@@ -3273,6 +3334,9 @@ Pal_SS1_2p:palette Special Stage 1 2p.bin ; Special Stage 1 2p palette
 Pal_SS2_2p:palette Special Stage 2 2p.bin ; Special Stage 2 2p palette
 Pal_SS3_2p:palette Special Stage 3 2p.bin ; Special Stage 3 2p palette
 Pal_Result:palette Special Stage Results Screen.bin ; Special Stage Results Screen palette
+Pal_Knux:  palette Knuckles.bin,SonicAndTails2.bin ; "Sonic and Miles" background palette (also usually the primary palette line)
+Pal_CPZ_K_U: palette CPZ Knux underwater.bin ; Chemical Plant Zone underwater palette
+Pal_ARZ_K_U: palette ARZ Knux underwater.bin ; Aquatic Ruin Zone underwater palette
 ; ===========================================================================
 
     if gameRevision<2
@@ -4003,20 +4067,29 @@ Level:
 	beq.s	+
 	bsr.w	LoadPLC
 +
-	moveq	#PLCID_Std2,d0
-	bsr.w	LoadPLC
 	bsr.w	Level_SetPlayerMode
+	moveq	#PLCID_Std2,d0
+	cmpi.w	#3,(Player_mode).w	; are we Knuckles?
+	bne.s	+	; if not, branch
+	moveq	#PLCID_Std2Knuckles,d0	; load Knuckles' standard art
++	bsr.w	LoadPLC
 	moveq	#PLCID_Miles1up,d0
 	tst.w	(Two_player_mode).w
 	bne.s	+
 	cmpi.w	#2,(Player_mode).w
-	bne.s	Level_ClrRam
+	bne.s	Level_NoTails
 	addq.w	#PLCID_MilesLife-PLCID_Miles1up,d0
 +
 	tst.b	(Graphics_Flags).w
 	bpl.s	+
 	addq.w	#PLCID_Tails1up-PLCID_Miles1up,d0
 +
+	bsr.w	LoadPLC
+
+Level_NoTails:
+	cmpi.w	#3,(Player_mode).w
+	bne.s	Level_ClrRam
+	moveq	#PLCID_KnucklesLife,d0
 	bsr.w	LoadPLC
 ; loc_3F48:
 Level_ClrRam:
@@ -4089,7 +4162,10 @@ Level_InitWater:
 ; loc_407C:
 Level_LoadPal:
 	moveq	#PalID_BGND,d0
-	bsr.w	PalLoad_Now	; load Sonic's palette line
+	cmpi.w	#3,(Player_mode).w	; are you playing as Knuckles?
+	blt.s	+	; if not, branch
+	moveq	#PalID_Knux,d0	; load Knuckles' palette index
++	bsr.w	PalLoad_Now	; load Sonic's palette line
 	tst.b	(Water_flag).w	; does level have water?
 	beq.s	Level_GetBgm	; if not, branch
 	moveq	#PalID_HPZ_U,d0	; palette number $15
@@ -4097,8 +4173,16 @@ Level_LoadPal:
 	beq.s	Level_WaterPal ; branch if level is HPZ
 	moveq	#PalID_CPZ_U,d0	; palette number $16
 	cmpi.b	#chemical_plant_zone,(Current_Zone).w
-	beq.s	Level_WaterPal ; branch if level is CPZ
+	bne.s	Level_PalNotCPZ ; branch if level is not CPZ
+	cmpi.w	#3,(Player_mode).w	; are you playing as Knuckles?
+	blt.s	Level_WaterPal	; if not, branch
+	moveq	#PalID_CPZ_K_U,d0
+	bra.s	Level_WaterPal	; branch
+Level_PalNotCPZ:
 	moveq	#PalID_ARZ_U,d0	; palette number $17
+	cmpi.w	#3,(Player_mode).w	; are you playing as Knuckles?
+	blt.s	Level_WaterPal	; if not, branch
+	moveq	#PalID_ARZ_K_U,d0
 ; loc_409E:
 Level_WaterPal:
 	bsr.w	PalLoad_Water_Now	; load underwater palette (with d0)
@@ -4402,8 +4486,11 @@ InitPlayers:
 ; ===========================================================================
 ; loc_44BE:
 InitPlayers_Alone: ; either Sonic or Tails but not both
-	subq.w	#1,d0
-	bne.s	InitPlayers_TailsAlone ; branch if this is a Tails alone game
+	cmpi.w	#2,d0
+	beq.s	InitPlayers_TailsAlone ; branch if this is a Tails alone game
+	
+	cmpi.w	#3,d0
+	beq.s	InitPlayers_KnucklesAlone ; branch if this is a Knux alone game
 
 	move.l	#Obj_Sonic,(MainCharacter+id).w ; load Obj_Sonic Sonic object at $FFFFB000
 	move.l	#Obj_SpindashDust,(Sonic_Dust+id).w ; load Obj_Splash Sonic's spindash dust/splash object at $FFFFD100
@@ -4414,6 +4501,11 @@ InitPlayers_TailsAlone:
 	move.l	#Obj_Tails,(MainCharacter+id).w ; load Obj_Tails Tails object at $FFFFB000
 	move.l	#Obj_SpindashDust,(Tails_Dust+id).w ; load Obj_Splash Tails' spindash dust/splash object at $FFFFD100
 	addi_.w	#4,(MainCharacter+y_pos).w
+	rts
+
+InitPlayers_KnucklesAlone:
+	move.l	#Obj_Knuckles,(MainCharacter+id).w ; load ObjXX Knuckles object at $FFFFB000
+	move.l	#Obj_SpindashDust,(Sonic_Dust+id).w ; load Obj08 Knuckles' spindash dust/splash object at $FFFFD100
 	rts
 ; End of function InitPlayers
 
@@ -5278,6 +5370,9 @@ CheckLoadSignpostArt:
 	tst.w	(Two_player_mode).w
 	bne.s	+	; rts
 	moveq	#PLCID_Signpost,d0 ; <== PLC_1F
+	cmpi.w	#3,(Player_mode).w
+	bne.w	LoadPLC2		; load signpost art
+	moveq	#PLCID_SignpostKnuckles,d0
 	bra.w	LoadPLC2		; load signpost art
 ; ---------------------------------------------------------------------------
 ; loc_4C80:
@@ -30631,7 +30726,7 @@ ObjPtr_LauncherBall:	dc.l Obj_LauncherBall		; $48 ; Round ball thing from OOZ th
 ObjPtr_EHZWaterfall:	dc.l Obj_EHZWaterfall		; $49 ; Waterfall from EHZ
 ObjPtr_Octus:		dc.l Obj_Octus			; $4A ; Octus (octopus badnik) from OOZ
 ObjPtr_Buzzer:		dc.l Obj_Buzzer			; $4B ; Buzzer (Buzz bomber) from EHZ
-			dc.l ObjNull			; $4C ; Obj4C
+ObjPtr_Knuckles:	dc.l Obj_Knuckles		; $4C ; Knuckles
 			dc.l ObjNull			; $4D ; Obj4D
 			dc.l ObjNull			; $4E ; Obj4E
 			dc.l ObjNull			; $4F ; Obj4F
@@ -31968,6 +32063,10 @@ Load_EndOfAct:
 	cmpi.w	#2,(Player_mode).w
 	bne.s	+
 	moveq	#PLCID_ResultsTails,d0
++
+	cmpi.w	#3,(Player_mode).w
+	bne.s	+
+	moveq	#PLCID_ResultsKnuckles,d0
 +
 	jsr	(LoadPLC2).l
 	move.b	#1,(Update_Bonus_score).w
@@ -33395,7 +33494,7 @@ Obj_Sonic_MdNormal_Checks:
 ; loc_1A2B8:
 Obj_Sonic_MdNormal:
 	bsr.w	Sonic_CheckSpindash
-	bsr.w	Sonic_Jump
+	bsr.w	Knuckles_Jump
 	bsr.w	Sonic_SlopeResist
 	bsr.w	Sonic_Move
 	bsr.w	Sonic_Roll
@@ -41070,8 +41169,9 @@ ObjCheckLeftWallDist:
 +
 	rts
 
+; ===========================================================================
 
-
+	include "knuckles/ObjKnuckles.asm"
 
 ; ===========================================================================
 ; ----------------------------------------------------------------------------
@@ -41340,7 +41440,7 @@ Obj_Starpost_MakeSpecialStars:
 	moveq	#4-1,d1 ; execute the loop 4 times (1 for each star)
 	moveq	#0,d2
 
--	bsr.w	SingleObjLoad2
+-	jsr		SingleObjLoad2
 	bne.s	+	; rts
 	_move.l	id(a0),id(a1) ; load Obj_Starpost
 	move.l	#Obj_Starpost_MapUnc_1F4A0,mappings(a1)
@@ -41658,7 +41758,7 @@ Obj_RoundBumper_BumpCharacter:
 	moveq	#1,d0
 	movea.w	a1,a3
 	jsr	(AddPoints2).l
-	bsr.w	SingleObjLoad
+	jsr		SingleObjLoad
 	bne.s	return_1F83C
 	_move.l	#Obj_Points,id(a1) ; load Obj_Points
 	move.w	x_pos(a0),x_pos(a1)
@@ -41858,7 +41958,7 @@ loc_1FA2A:
 	jsr	(RandomNumber).l
 	andi.w	#$1F,d0
 	move.w	d0,objoff_38(a0)
-	bsr.w	SingleObjLoad
+	jsr		SingleObjLoad
 	bne.s	loc_1FAA6
 	_move.l	id(a0),id(a1) ; load Obj_ARZBubbles
 	move.w	x_pos(a0),x_pos(a1)
@@ -42451,7 +42551,7 @@ loc_2013C:
 	move.b	width_pixels(a0),d1
 	moveq	#$11,d3
 	move.w	x_pos(a0),d4
-	bsr.w	PlatformObject
+	jsr		PlatformObject
 	jmpto	(MarkObjGone).l, JmpTo3_MarkObjGone
 ; ---------------------------------------------------------------------------
 +
@@ -42588,7 +42688,7 @@ loc_202E6:
 	move.b	width_pixels(a0),d1
 	moveq	#9,d3
 	move.w	x_pos(a0),d4
-	bsr.w	PlatformObject
+	jsr		PlatformObject
 	jmpto	(MarkObjGone).l, JmpTo4_MarkObjGone
 ; ===========================================================================
 ; ----------------------------------------------------------------------------
@@ -42646,7 +42746,7 @@ Obj_HPZEmerald_Main:
 	move.w	#$10,d2
 	move.w	#$10,d3
 	move.w	x_pos(a0),d4
-	bsr.w	SolidObject
+	jsr		SolidObject
 	move.w	x_pos(a0),d0
 	andi.w	#$FF80,d0
 	sub.w	(Camera_X_pos_coarse).w,d0
@@ -43126,7 +43226,7 @@ Obj_InvisibleBlock_Main:
 	move.w	d2,d3
 	addq.w	#1,d3
 	move.w	x_pos(a0),d4
-	bsr.w	SolidObject_Always
+	jsr		SolidObject_Always
 	tst.w	(Two_player_mode).w
 	bne.s	+
 	move.w	x_pos(a0),d0
@@ -43696,7 +43796,7 @@ loc_21562:
 	bhs.s	return_215BE
 	tst.b	obj_control(a1)
 	bne.s	return_215BE
-	bsr.w	RideObject_SetRide
+	jsr		RideObject_SetRide
 	rts
 ; ---------------------------------------------------------------------------
 
@@ -43724,7 +43824,7 @@ loc_215A8:
 	subi.w	#$10,d1
 	cmpi.w	#$30,d1
 	bhs.s	return_215BE
-	bsr.w	RideObject_SetRide
+	jsr		RideObject_SetRide
 
 return_215BE:
 	rts
@@ -43890,7 +43990,7 @@ Obj_Spiral_Cylinder:
 	addq.w	#3,d2
 	move.w	d2,y_pos(a1)
 	move.b	#1,flip_turned(a1) ; face the other way
-	bsr.w	RideObject_SetRide
+	jsr		RideObject_SetRide
 	move.w	#AniIDSonAni_Run,anim(a1)
 	move.b	#0,(a2)
 	tst.w	inertia(a1)
@@ -44095,7 +44195,7 @@ Obj_Seesaw_UpdateMappingAndCollision:
 	move.b	width_pixels(a0),d1
 	moveq	#8,d3
 	move.w	(sp)+,d4
-	bra.w	SlopedPlatform
+	jmp		SlopedPlatform
 ; ===========================================================================
 
 return_21A74:
@@ -48273,7 +48373,7 @@ Obj_ArrowShooter_Arrow:
 	btst	#0,status(a0)
 	bne.s	loc_257DE
 	moveq	#-8,d3
-	bsr.w	ObjCheckLeftWallDist
+	jsr		ObjCheckLeftWallDist
 	tst.w	d1
 	bmi.w	BranchTo_JmpTo27_DeleteObject
 	jmpto	(MarkObjGone).l, JmpTo15_MarkObjGone
@@ -48285,7 +48385,7 @@ BranchTo_JmpTo27_DeleteObject
 
 loc_257DE:
 	moveq	#8,d3
-	bsr.w	ObjCheckRightWallDist
+	jsr		ObjCheckRightWallDist
 	tst.w	d1
 	bmi.w	BranchTo_JmpTo27_DeleteObject
 	jmpto	(MarkObjGone).l, JmpTo15_MarkObjGone
@@ -48453,7 +48553,7 @@ byte_259B0:
 loc_259B8:
 	jsrto	(ObjectMove).l, JmpTo12_ObjectMove
 	addi.w	#$38,y_vel(a0)
-	bsr.w	ObjCheckFloorDist
+	jsr		ObjCheckFloorDist
 	tst.w	d1
 	bpl.w	+
 	add.w	d1,y_pos(a0)
@@ -83770,6 +83870,10 @@ BuildHUD:
 	move.w	#128+16-40,d3	; set X pos
 	move.w	#128+136,d2	; set Y pos
 	lea	(HUD_MapUnc_40A9A).l,a1
+	cmpi.w	#3,(Player_mode).w
+	bne.s	+
+	lea	(HUD_MapUnc_Knuckles).l,a1
++
 	movea.w	#make_art_tile(ArtTile_ArtNem_HUD,0,1),a3	; set art tile and flags
 	add.w	d1,d1
 	adda.w	(a1,d1.w),a1
@@ -84042,6 +84146,8 @@ HUD_MapUnc_40BEA:	BINCLUDE "mappings/sprite/hud_b.bin"
 
 
 HUD_MapUnc_40C82:	BINCLUDE "mappings/sprite/hud_c.bin"
+
+HUD_MapUnc_Knuckles:	BINCLUDE "mappings/sprite/hud_k.bin"
 
 ; ---------------------------------------------------------------------------
 ; Add points subroutine
@@ -85617,6 +85723,10 @@ PLCptr_Tornado:		offsetTableEntry.w PlrList_Tornado		; 63
 PLCptr_Capsule:		offsetTableEntry.w PlrList_Capsule		; 64
 PLCptr_Explosion:	offsetTableEntry.w PlrList_Explosion		; 65
 PLCptr_ResultsTails:	offsetTableEntry.w PlrList_ResultsTails		; 66
+PLCptr_KnucklesLife:	offsetTableEntry.w PlrList_KnucklesLife
+PLCptr_Std2Knuckles:	offsetTableEntry.w PlrList_Std2Knuckles
+PLCptr_ResultsKnuckles:	offsetTableEntry.w PlrList_ResultsKnuckles
+PLCptr_SignpostKnuckles:	offsetTableEntry.w PlrList_SignpostKnuckles
 
 ; macro for a pattern load request list header
 ; must be on the same line as a label that has a corresponding _End label later
@@ -86259,8 +86369,41 @@ PlrList_ResultsTails: plrlistheader
 	plreq ArtTile_ArtNem_Perfect, ArtNem_Perfect
 PlrList_ResultsTails_End
 
-
-
+;---------------------------------------------------------------------------------------
+; Pattern load queue
+; Knuckles life counter
+;---------------------------------------------------------------------------------------
+PlrList_KnucklesLife: plrlistheader
+	plreq ArtTile_ArtNem_life_counter, ArtNem_KTELife
+PlrList_KnucklesLife_End
+;---------------------------------------------------------------------------------------
+; PATTERN LOAD REQUEST LIST
+; Standard 2 - loaded for every level
+;---------------------------------------------------------------------------------------
+PlrList_Std2Knuckles: plrlistheader
+	plreq ArtTile_ArtNem_Checkpoint, ArtNem_Checkpoint
+	plreq ArtTile_ArtNem_Powerups, ArtNem_Powerups
+	plreq ArtTile_ArtNem_Powerups+$2C, ArtNem_MonitorIconsMod
+	plreq ArtTile_ArtNem_Shield, ArtNem_InvincibilityShield
+PlrList_Std2Knuckles_End
+;---------------------------------------------------------------------------------------
+; Pattern load queue
+; Knuckles end of level results screen
+;---------------------------------------------------------------------------------------
+PlrList_ResultsKnuckles: plrlistheader
+	plreq ArtTile_ArtNem_TitleCard, ArtNem_TitleCard
+	plreq ArtTile_ArtNem_ResultsText, ArtNem_ResultsText
+	plreq ArtTile_ArtNem_MiniCharacter, ArtNem_MiniKnuckles
+	plreq ArtTile_ArtNem_Perfect, ArtNem_Perfect
+PlrList_ResultsKnuckles_End
+;---------------------------------------------------------------------------------------
+; Pattern load queue
+; End of level signpost
+;---------------------------------------------------------------------------------------
+PlrList_SignpostKnuckles: plrlistheader
+	plreq ArtTile_ArtNem_Signpost, ArtNem_Signpost
+	plreq ArtTile_ArtNem_Signpost+$22, ArtNem_Signpost_KnucklesPatch
+PlrList_SignpostKnuckles_End
 
 ;---------------------------------------------------------------------------------------
 ; Weird revision-specific duplicates of portions of the PLR lists (unused)
@@ -86857,6 +87000,13 @@ ArtUnc_Waterfall3:	BINCLUDE	"art/uncompressed/ARZ waterfall patterns - 3.bin"
 ArtUnc_Sonic:	BINCLUDE	"art/uncompressed/Sonic's art.bin"
 ;---------------------------------------------------------------------------------------
 ; Uncompressed art
+; Patterns for Knuckles
+;---------------------------------------------------------------------------------------
+	align $20
+SK_ArtUnc_Knux:
+ArtUnc_Knuckles:	BINCLUDE	"knuckles/art.bin"
+;---------------------------------------------------------------------------------------
+; Uncompressed art
 ; Patterns for Tails  ; ArtUnc_64320:
 ;---------------------------------------------------------------------------------------
 	align $20
@@ -86867,12 +87017,24 @@ ArtUnc_Tails:	BINCLUDE	"art/uncompressed/Tails's art.bin"
 ;--------------------------------------------------------------------------------------
 Mapunc_Sonic:	BINCLUDE	"mappings/sprite/Sonic.bin"
 ;--------------------------------------------------------------------------------------
+; Sprite Mappings
+; Knuckles
+;--------------------------------------------------------------------------------------
+SK_Map_Knuckles:
+Mapunc_Knuckles:	include	"knuckles/Mappings.asm"
+;--------------------------------------------------------------------------------------
 ; Sprite Dynamic Pattern Reloading
 ; Sonic DPLCs   		; MapRUnc_714E0:
 ;--------------------------------------------------------------------------------------
 ; WARNING: the build script needs editing if you rename this label
 ;          or if you move Sonic's running frame to somewhere else than frame $2D
 MapRUnc_Sonic:	BINCLUDE	"mappings/spriteDPLC/Sonic.bin"
+;--------------------------------------------------------------------------------------
+; Sprite Dynamic Pattern Reloading
+; Knuckles DPLCs
+;--------------------------------------------------------------------------------------
+SK_PLC_Knuckles:
+MapRUnc_Knuckles:	include	"knuckles/DPLC.asm"
 ;--------------------------------------------------------------------------------------
 ; Nemesis compressed art (32 blocks)
 ; Shield			; ArtNem_71D8E:
@@ -87078,6 +87240,9 @@ ArtNem_TailsLife:	BINCLUDE	"art/nemesis/Tails life counter.bin"
 ; Tails extra continue icon	; ArtNem_7C2F2:
 	even
 ArtNem_MiniTails:	BINCLUDE	"art/nemesis/Tails continue.bin"
+
+	include "knuckles/art.asm"
+
 ;---------------------------------------------------------------------------------------
 ; Nemesis compressed art (88 blocks)
 ; Standard font		; ArtNem_7C43A:

@@ -4,7 +4,7 @@
 ; ---------------------------------------------------------------------------
 ; size variables - you'll get an informational error if you need to change these...
 ; they are all in units of bytes
-Size_of_Snd_driver_guess =	$80A	; approximate post-compressed size of the Z80 sound driver
+Size_of_Snd_driver_guess =	$80E	; approximate post-compressed size of the Z80 sound driver
 Debug_Lagometer =	0		; set to 1 to enable on-screen lagometer. Seems to have an odd habit of breaking Special Stages....
 
 ; ---------------------------------------------------------------------------
@@ -43,7 +43,8 @@ x_radius		ds.b 1		; object's width / 2, often used for floor/wall collision
 flip_turned =		*		; 0 for normal, 1 to invert flipping (it's a 180 degree rotation about the axis of Sonic's spine, so he stays in the same position but looks turned around)
 objoff_40 =		*
 objoff_41 =		*
-			ds.w 1		; this space is not used (aside from a couple of objects, due to lack of object RAM)
+glidemode		ds.b 1			; this space is not used (aside from a couple of objects, due to lack of object RAM)
+glideflags		ds.b 1
 boss_sine_count =	*		;
 mapping_frame		ds.b 1		; the frame the object is currently intending to display
 anim_frame		ds.b 1		; offset into animation script. Yes, it has nothing to do with frames as such.
@@ -111,6 +112,7 @@ objoff_3D =		*+1
 jumping			ds.w 1		; set when Sonic is jumping... This should REALLY be a byte...
 objoff_3E =		*
 objoff_3F =		*+1
+glideunk =		*+1
 parent			ds.w 1		; address of object that owns or spawned this one, if applicable
 
 priority 		ds.w 1		; address for object's target priority layer. CAN NOT BE INVALID ADDRESS, IF SPRITE IS DISPLAYED!
@@ -437,6 +439,9 @@ PalID_SS3_2p =	id(PalPtr_SS3_2p) ; 24
 PalID_OOZ_B =	id(PalPtr_OOZ_B) ; 25
 PalID_Menu =	id(PalPtr_Menu) ; 26
 PalID_Result =	id(PalPtr_Result) ; 27
+PalID_Knux =	id(PalPtr_Knux) ; 28
+PalID_CPZ_K_U =	id(PalPtr_CPZ_K_U) ; 29
+PalID_ARZ_K_U =	id(PalPtr_ARZ_K_U) ; 30
 
 ; PLC IDs
 offset :=	ArtLoadCues
@@ -510,6 +515,10 @@ PLCID_Tornado =		id(PLCptr_Tornado) ; 3F
 PLCID_Capsule =		id(PLCptr_Capsule) ; 40
 PLCID_Explosion =	id(PLCptr_Explosion) ; 41
 PLCID_ResultsTails =	id(PLCptr_ResultsTails) ; 42
+PLCID_KnucklesLife =	id(PLCptr_KnucklesLife)
+PLCID_Std2Knuckles =	id(PLCptr_Std2Knuckles)
+PLCID_ResultsKnuckles =	id(PLCptr_ResultsKnuckles)
+PLCID_SignpostKnuckles =	id(PLCptr_SignpostKnuckles)
 
 ; 2P VS results screens
 offset := TwoPlayerResultsPointers
@@ -883,7 +892,8 @@ PalCycle_Frame:			ds.w 1		; ColorID loaded in PalCycle
 PalCycle_Timer:			ds.w 1		; number of frames until next PalCycle call
 RNG_seed:			ds.l 1		; used for random number generation
 Game_paused:			ds.w 1
-				ds.b 4		; $FFFFF63C-$FFFFF63F ; seems unused
+Knuckles_GlideSomething:	ds.b	1
+				ds.b 3		; $FFFFF63C-$FFFFF63F ; seems unused
 DMA_data_thunk:			ds.w 1		; Used as a RAM holder for the final DMA command word. Data will NOT be preserved across V-INTs, so consider this space reserved.
 				ds.w 1		; $FFFFF642-$FFFFF643 ; seems unused
 Hint_flag:			ds.w 1		; unless this is 1, H-int won't run
@@ -1246,9 +1256,10 @@ Player_mode:			ds.w 1		; 0 = Sonic and Tails, 1 = Sonic, 2 = Tails
 Player_option:			ds.w 1		; 0 = Sonic and Tails, 1 = Sonic, 2 = Tails
 
 Two_player_items:		ds.w 1
-Control_Style:			ds.w 1
-Physics_Style:			ds.w 1
+Control_Style:			
+Physics_Style:			
 				ds.b $6		; $FFFFFF76-$FFFFFF7F ; seems unused
+				ds.b $A		; $FFFFFF76-$FFFFFF7F ; seems unused
 
 LevSel_HoldTimer:		ds.w 1
 Level_select_zone:		ds.w 1
