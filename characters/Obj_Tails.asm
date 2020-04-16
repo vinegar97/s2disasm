@@ -739,6 +739,9 @@ Obj_Tails_MdNormal:
 ; Called if Tails is airborne, but not in a ball (thus, probably not jumping)
 ; loc_1C032: Obj_Tails_MdJump
 Obj_Tails_MdAir:
+	tst.b	double_jump_flag(a0)
+	bne.s	Tails_FlyingSwimming
+
 	bsr.w	Tails_JumpHeight
 	bsr.w	Tails_ChgJumpDir
 	bsr.w	Tails_LevelBound
@@ -747,9 +750,157 @@ Obj_Tails_MdAir:
 	beq.s	+		; if not, branch
 	subi.w	#$28,y_vel(a0)	; reduce gravity by $28 ($38-$28=$10)
 +
-	bsr.w	Tails_JumpAngle
+	bsr.w	Sonic_JumpAngle
 	bra.w	Tails_DoLevelCollision
 ; End of subroutine Obj_Tails_MdAir
+
+Tails_FlyingSwimming:
+	bsr.w	Tails_Move_FlySwim
+	bsr.w	Tails_ChgJumpDir
+	bsr.w	Tails_LevelBound
+	jsr	(ObjectMove).l
+	bsr.w	Sonic_JumpAngle
+	movem.l	a4-a6,-(sp)
+	bsr.w	Tails_DoLevelCollision
+	movem.l	(sp)+,a4-a6
+	tst.w	(Player_mode).w
+	bne.s	locret_14820
+	lea	(Flying_carrying_Sonic_flag).w,a2
+	lea	(MainCharacter).w,a1
+	move.w	(Ctrl_1).w,d0
+	;bsr.w	Tails_Carry_Sonic
+
+locret_14820:
+		rts
+
+; =============== S U B R O U T I N E =======================================
+
+
+Tails_Move_FlySwim:
+		move.b	(Timer_frames+1).w,d0
+		andi.b	#1,d0
+		beq.s	loc_14836
+		tst.b	double_jump_property(a0)
+		beq.s	loc_14836
+		subq.b	#1,double_jump_property(a0)
+
+loc_14836:
+		cmpi.b	#1,double_jump_flag(a0)
+		beq.s	loc_14860
+		cmpi.w	#-$100,y_vel(a0)
+		blt.s	loc_14858
+		subi.w	#$20,y_vel(a0)
+		addq.b	#1,double_jump_flag(a0)
+		cmpi.b	#$20,double_jump_flag(a0)
+		bne.s	loc_14892
+
+loc_14858:
+		move.b	#1,double_jump_flag(a0)
+		bra.s	loc_14892
+; ---------------------------------------------------------------------------
+
+loc_14860:
+		move.b	(Ctrl_2_Press_Logical).w,d0
+		andi.b	#$70,d0
+		beq.s	loc_1488C
+		cmpi.w	#-$100,y_vel(a0)
+		blt.s	loc_1488C
+		tst.b	double_jump_property(a0)
+		beq.s	loc_1488C
+		btst	#6,status(a0)
+		beq.s	loc_14886
+		tst.b	(Flying_carrying_Sonic_flag).w
+		bne.s	loc_1488C
+
+loc_14886:
+		move.b	#2,double_jump_flag(a0)
+
+loc_1488C:
+		addi.w	#8,y_vel(a0)
+
+loc_14892:
+		move.w	(Camera_min_Y_pos).w,d0
+		addi.w	#$10,d0
+		cmp.w	y_pos(a0),d0
+		blt.s	Tails_Set_Flying_Animation
+		tst.w	y_vel(a0)
+		bpl.s	Tails_Set_Flying_Animation
+		move.w	#0,y_vel(a0)
+; End of function Tails_Move_FlySwim
+
+
+; =============== S U B R O U T I N E =======================================
+
+
+Tails_Set_Flying_Animation:
+		btst	#6,status(a0)
+		bne.s	loc_14914
+		moveq	#$20,d0
+		;tst.w	(Competition_mode).w
+		;bne.s	loc_148F4
+		tst.w	y_vel(a0)
+		bpl.s	loc_148C4
+		;moveq	#$21,d0
+
+loc_148C4:
+		tst.b	(Flying_carrying_Sonic_flag).w
+		beq.s	loc_148CC
+		addq.b	#2,d0
+
+loc_148CC:
+		tst.b	double_jump_property(a0)
+		bne.s	loc_148F4
+		;moveq	#$24,d0
+		;move.b	d0,anim(a0)
+		tst.b	4(a0)
+		bpl.s	locret_148F2
+		move.b	(Timer_frames+1).w,d0
+		addq.b	#8,d0
+		andi.b	#$F,d0
+		bne.s	locret_148F2
+		moveq	#$BB,d0
+		;jsr	(Play_Sound_2).l
+
+locret_148F2:
+		rts
+; ---------------------------------------------------------------------------
+
+loc_148F4:
+		move.b	d0,anim(a0)
+		tst.b	4(a0)
+		bpl.s	locret_14912
+		move.b	(Timer_frames+1).w,d0
+		addq.b	#8,d0
+		andi.b	#$F,d0
+		bne.s	locret_14912
+		moveq	#$BA,d0
+		;jsr	(Play_Sound_2).l
+
+locret_14912:
+		rts
+; ---------------------------------------------------------------------------
+
+loc_14914:
+		;moveq	#$25,d0
+		tst.w	y_vel(a0)
+		bpl.s	loc_1491E
+		moveq	#$26,d0
+
+loc_1491E:
+		tst.b	(Flying_carrying_Sonic_flag).w
+		beq.s	loc_14926
+		;moveq	#$27,d0
+
+loc_14926:
+		tst.b	double_jump_property(a0)
+		bne.s	loc_1492E
+		;moveq	#$28,d0
+
+loc_1492E:
+		move.b	d0,anim(a0)
+		rts
+; End of function Tails_Set_Flying_Animation
+
 ; ===========================================================================
 ; Start of subroutine Obj_Tails_MdRoll
 ; Called if Tails is in a ball, but not airborne (thus, probably rolling)
@@ -782,7 +933,7 @@ Obj_Tails_MdJump:
 	beq.s	+		; if not, branch
 	subi.w	#$28,y_vel(a0)	; reduce gravity by $28 ($38-$28=$10)
 +
-	bsr.w	Tails_JumpAngle
+	bsr.w	Sonic_JumpAngle
 	bsr.w	Tails_DoLevelCollision
 	rts
 ; End of subroutine Obj_Tails_MdJump
@@ -1510,7 +1661,7 @@ Tails_JumpHeight:
 	move.w	#-$200,d1
 +
 	cmp.w	y_vel(a0),d1	; is Tails going up faster than d1?
-	ble.s	+		; if not, branch
+	ble.s	Tails_Test_For_Flight		; if not, branch
 	move.b	(Ctrl_2_Held_Logical).w,d0
 	andi.b	#button_B_mask|button_C_mask|button_A_mask,d0 ; is a jump button pressed?
 	bne.s	+		; if yes, branch
@@ -1529,6 +1680,54 @@ Tails_UpVelCap:
 return_1C70C:
 	rts
 ; End of subroutine Tails_JumpHeight
+
+Tails_Test_For_Flight:
+		tst.b	double_jump_flag(a0)
+		bne.w	locret_151A2
+		move.b	(Ctrl_2_Press_Logical).w,d0
+		andi.b	#$70,d0
+		beq.w	locret_151A2
+		cmpi.w	#2,(Player_mode).w
+		bne.s	loc_15156
+		;tst.b	(Super_Tails_flag).w
+		;bne.s	loc_1515C
+		;cmpi.b	#7,(Super_emerald_count).w
+		;blo.s	loc_1515C
+		;cmpi.w	#50,(Ring_count).w
+		;blo.s	loc_1515C
+		;tst.b	(Update_HUD_timer).w
+		;bne.s	Tails_Transform
+		bra.s	loc_1515C
+; ---------------------------------------------------------------------------
+
+loc_15156:
+		tst.w	(Tails_control_counter).w
+		beq.s	locret_151A2
+
+loc_1515C:
+		btst	#2,status(a0)
+		beq.s	loc_1518C
+		bclr	#2,status(a0)
+		move.b	y_radius(a0),d1
+		move.b	#$F,y_radius(a0)
+		move.b	#9,x_radius(a0)
+		sub.b	#$F,d1
+		ext.w	d1
+		;tst.b	(Reverse_gravity_flag).w
+		;beq.s	loc_15188
+		;neg.w	d0
+
+;loc_15188:
+		add.w	d1,y_pos(a0)
+
+loc_1518C:
+		bclr	#4,status(a0)
+		move.b	#1,double_jump_flag(a0)
+		move.b	#-$10,double_jump_property(a0)
+		bsr.w	Tails_Set_Flying_Animation
+
+locret_151A2:
+		rts
 
 ; ---------------------------------------------------------------------------
 ; Subroutine to check for starting to charge a spindash
@@ -1753,81 +1952,6 @@ loc_1C8F4:
 	subq.w	#1,move_lock(a0)
 	rts
 ; End of function Tails_SlopeRepel
-
-; ---------------------------------------------------------------------------
-; Subroutine to return Tails' angle to 0 as he jumps
-; ---------------------------------------------------------------------------
-
-; ||||||||||||||| S U B R O U T I N E |||||||||||||||||||||||||||||||||||||||
-
-; loc_1C8FA:
-Tails_JumpAngle:
-	move.b	angle(a0),d0	; get Tails' angle
-	beq.s	Tails_JumpFlip	; if already 0, branch
-	bpl.s	loc_1C90A	; if higher than 0, branch
-
-	addq.b	#2,d0		; increase angle
-	bcc.s	BranchTo_Tails_JumpAngleSet
-	moveq	#0,d0
-
-BranchTo_Tails_JumpAngleSet
-	bra.s	Tails_JumpAngleSet
-; ===========================================================================
-
-loc_1C90A:
-	subq.b	#2,d0		; decrease angle
-	bcc.s	Tails_JumpAngleSet
-	moveq	#0,d0
-
-; loc_1C910:
-Tails_JumpAngleSet:
-	move.b	d0,angle(a0)
-; End of function Tails_JumpAngle
-	; continue straight to Tails_JumpFlip
-
-; ---------------------------------------------------------------------------
-; Updates Tails' secondary angle if he's tumbling
-; ---------------------------------------------------------------------------
-
-; ||||||||||||||| S U B R O U T I N E |||||||||||||||||||||||||||||||||||||||
-
-; loc_1C914:
-Tails_JumpFlip:
-	move.b	flip_angle(a0),d0
-	beq.s	return_1C958
-	tst.w	inertia(a0)
-	bmi.s	Tails_JumpLeftFlip
-; loc_1C920:
-Tails_JumpRightFlip:
-	move.b	flip_speed(a0),d1
-	add.b	d1,d0
-	bcc.s	BranchTo_Tails_JumpFlipSet
-	subq.b	#1,flips_remaining(a0)
-	bcc.s	BranchTo_Tails_JumpFlipSet
-	move.b	#0,flips_remaining(a0)
-	moveq	#0,d0
-
-BranchTo_Tails_JumpFlipSet
-	bra.s	Tails_JumpFlipSet
-; ===========================================================================
-; loc_1C938:
-Tails_JumpLeftFlip:
-	tst.b	flip_turned(a0)
-	bne.s	Tails_JumpRightFlip
-	move.b	flip_speed(a0),d1
-	sub.b	d1,d0
-	bcc.s	Tails_JumpFlipSet
-	subq.b	#1,flips_remaining(a0)
-	bcc.s	Tails_JumpFlipSet
-	move.b	#0,flips_remaining(a0)
-	moveq	#0,d0
-; loc_1C954:
-Tails_JumpFlipSet:
-	move.b	d0,flip_angle(a0)
-
-return_1C958:
-	rts
-; End of function Tails_JumpFlip
 
 ; ---------------------------------------------------------------------------
 ; Subroutine for Tails to interact with the floor and walls when he's in the air

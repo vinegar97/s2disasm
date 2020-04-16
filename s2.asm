@@ -23515,6 +23515,8 @@ BranchTo2_MarkObjGone
 ; ||||||||||||||| S U B R O U T I N E |||||||||||||||||||||||||||||||||||||||
 ; sub_12756:
 SolidObject_Monitor_Sonic:
+	cmpi.l	#Obj_Knuckles,id(a1)
+	beq.s	SolidObject_Monitor_Knuckles
 	btst	d6,status(a0)			; is Sonic standing on the monitor?
 	bne.s	Obj_Monitor_ChkOverEdge		; if yes, branch
 	cmpi.b	#AniIDSonAni_Roll,anim(a1)		; is Sonic spinning?
@@ -23522,6 +23524,14 @@ SolidObject_Monitor_Sonic:
 	rts
 ; End of function SolidObject_Monitor_Sonic
 
+SolidObject_Monitor_Knuckles:
+	cmp.b	#1,glidemode(a1)
+	beq.s	+
+	cmp.b	#3,glidemode(a1)
+	beq.s	+
+	cmpi.b	#AniIDSonAni_Roll,anim(a1)
+	bne.w	SolidObject_cont
++	rts
 
 ; ||||||||||||||| S U B R O U T I N E |||||||||||||||||||||||||||||||||||||||
 ; sub_12768:
@@ -34165,9 +34175,15 @@ BranchTo16_DeleteObject
 ; loc_1DE4A:
 Obj_Splash_CheckSkid:
 	movea.w	parent(a0),a2 ; a2=character
+	moveq	#$10,d1	; move y offset to d1
 	cmpi.b	#AniIDSonAni_Stop,anim(a2)	; SonAni_Stop
 	beq.s	Obj_Splash_SkidDust
-	move.b	#2,routine(a0)
+	moveq	#6,d1	; move different y offset to d1
+	cmpi.l	#Obj_Knuckles,id(a2)	; playing as Knuckles?
+	bne.s	+
+	cmpi.b	#3,glidemode(a2)	; check for sliding
+	beq.s	Obj_Splash_SkidDust
++	move.b	#2,routine(a0)
 	move.b	#0,objoff_32(a0)
 	rts
 ; ===========================================================================
@@ -34181,7 +34197,7 @@ Obj_Splash_SkidDust:
 	_move.l	id(a0),id(a1) ; load Obj_Splash
 	move.w	x_pos(a2),x_pos(a1)
 	move.w	y_pos(a2),y_pos(a1)
-	addi.w	#$10,y_pos(a1)
+	addi.w	d1,y_pos(a1)
 	tst.b	objoff_34(a0)
 	beq.s	+
 	subi_.w	#4,y_pos(a1)
@@ -36806,8 +36822,11 @@ loc_1FB0C:
 	bclr	#4,status(a1)
 	btst	#2,status(a1)
 	beq.w	loc_1FBB8
+	cmpi.l	#Obj_Knuckles,id(a1)
+	beq.s	+
 	cmpi.b	#1,(a1)
 	bne.s	loc_1FBA8
++
 	bclr	#2,status(a1)
 	move.b	#$13,y_radius(a1)
 	move.b	#9,x_radius(a1)
@@ -49609,9 +49628,9 @@ BranchTo2_JmpTo26_MarkObjGone
 
 loc_2A990:
 	cmpi.b	#4,routine(a1)
-	bhs.s	return_2AA10
+	jhs		return_2AA10
 	tst.b	obj_control(a1)
-	bne.s	return_2AA10
+	jne 	return_2AA10
 	move.w	x_pos(a1),d0
 	sub.w	x_pos(a0),d0
 	addi.w	#$40,d0
@@ -49629,6 +49648,10 @@ loc_2A990:
 	bcs.s	+
 	not.w	d1
 	add.w	d1,d1
++
+	cmpi.l	#Obj_Knuckles,id(a1)
+	bne.s	+
+	clr.b	glidemode(a1)
 +
 	addi.w	#$60,d1
 	neg.w	d1
@@ -70217,6 +70240,7 @@ Obj_Tornado_Main_WFZ_states:	offsetTable
 		offsetTableEntry.w Obj_Tornado_Landed_on_plane	;  $A
 		offsetTableEntry.w Obj_Tornado_Approaching_ship	;  $C
 		offsetTableEntry.w Obj_Tornado_Jump_to_ship	;  $E
+		offsetTableEntry.w Obj_Tornado_Jumping_to_ship
 		offsetTableEntry.w Obj_Tornado_Dock_on_DEZ	; $10
 ; ===========================================================================
 ; loc_3A982:
@@ -70310,7 +70334,7 @@ Obj_Tornado_Jump_to_plane:
 	addq.w	#1,objoff_2A(a0)
 	subq.w	#1,objoff_2E(a0)
 	bmi.s	+
-	move.w	#((button_right_mask|button_A_mask)<<8)|button_right_mask|button_A_mask,(Ctrl_1_Logical).w
+	move.w	#(button_right_mask|button_A_mask)<<8,(Ctrl_1_Logical).w
 + ; loc_3AABC:
 	bsr.w	Obj_Tornado_Align_plane
 	btst	#p1_standing_bit,status(a0)
@@ -70368,6 +70392,13 @@ Obj_Tornado_Jump_to_ship:
 	cmpi.w	#$447,objoff_2A(a0)
 	bhs.s	loc_3AB8A
 	move.w	#(button_A_mask<<8)|button_A_mask,(Ctrl_1_Logical).w
+	addq.b	#2,routine_secondary(a0)
+	bra.s	loc_3AB8A
+
+Obj_Tornado_Jumping_to_ship:
+	cmpi.w	#$447,objoff_2A(a0)
+	bcc.s	loc_3AB8A
+	move.w	#button_A_mask<<8,(Ctrl_1_Logical).w
 
 loc_3AB8A:
 	cmpi.w	#$460,objoff_2A(a0)
@@ -70456,6 +70487,10 @@ Obj_Tornado_Deactivate_level:
 Obj_Tornado_Waiting_animation:
 	lea	(MainCharacter).w,a1 ; a1=character
 	move.l	#(1<<24)|(0<<16)|(AniIDSonAni_Wait<<8)|AniIDSonAni_Wait,mapping_frame(a1)
+	cmpi.l	#Obj_Knuckles,id(a1)
+	bne.s	+
+	move.l	#($56<<24)|(0<<16)|(AniIDSonAni_Wait<<8)|AniIDSonAni_Wait,mapping_frame(a1)
++
 	move.b	#1,anim_frame_duration(a1)
 	rts
 ; ===========================================================================
@@ -71043,7 +71078,7 @@ Obj_HPropeller_Animate:
 ; loc_3B456:
 Obj_HPropeller_CheckPlayers:
 	cmpi.b	#4,anim(a0)
-	bne.s	++	; rts
+	jne		++	; rts
 	lea	(MainCharacter).w,a1 ; a1=character
 	bsr.w	Obj_HPropeller_CheckPlayer
 	lea	(Sidekick).w,a1 ; a1=character
@@ -71067,6 +71102,11 @@ Obj_HPropeller_CheckPlayer:
 	not.w	d1
 	add.w	d1,d1
 +
+	cmpi.l	#Obj_Knuckles,id(a1)
+	bne.s	Obj_HPropeller_NotKnuckles
+	clr.b	glidemode(a1)
+
+Obj_HPropeller_NotKnuckles:
 	addi.w	#$60,d1
 	neg.w	d1
 	asr.w	#4,d1
@@ -76569,16 +76609,38 @@ loc_3F768:
 	beq.s	return_3F78A
 +
 	cmpi.b	#AniIDSonAni_Roll,anim(a0)
+	beq.s	Break_Monitor
+	cmpi.l	#Obj_Knuckles,id(a0)
 	bne.s	return_3F78A
+	cmp.b	#1,glidemode(a0)
+	beq.s	Break_Monitor
+	cmp.b	#3,glidemode(a0)
+	bne.s	return_3F78A
+
+Break_Monitor:
 	neg.w	y_vel(a0)	; reverse Sonic's y-motion
 	move.b	#4,routine(a1)
 	move.w	a0,parent(a1)
+
+	;cmpi.b	#AniIDSonAni_Roll,anim(a0)
+	;bne.s	return_3F78A
+	;neg.w	y_vel(a0)	; reverse Sonic's y-motion
+	;move.b	#4,routine(a1)
+	;move.w	a0,parent(a1)
 
 return_3F78A:
 	rts
 ; ===========================================================================
 ; loc_3F78C:
 Touch_Enemy:
+	cmpi.l	#Obj_Knuckles,id(a0)
+	bne.s	Touch_NotKnuckles
+	cmp.b	#1,glidemode(a0)
+	beq.s	+
+	cmp.b	#3,glidemode(a0)
+	beq.s	+
+
+Touch_NotKnuckles:
 	btst	#status_sec_isInvincible,status_secondary(a0)	; is Sonic invincible?
 	bne.s	+			; if yes, branch
 	cmpi.b	#AniIDSonAni_Spindash,anim(a0)
@@ -76602,6 +76664,13 @@ return_3F7C6:
 Touch_Enemy_Part2:
 	tst.b	collision_property(a1)
 	beq.s	Touch_KillEnemy
+	cmpi.l	#Obj_Knuckles,id(a0)
+	bne.s	+
+	cmp.b	#1,glidemode(a0)
+	bne.s	+
+	move.b	#2,glidemode(a0)
+	move.b	#$21,anim(a0)
++
 	neg.w	x_vel(a0)
 	neg.w	y_vel(a0)
 	move.b	#0,collision_flags(a1)

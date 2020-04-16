@@ -1859,8 +1859,11 @@ Sonic_ResetOnFloor:
 Sonic_ResetOnFloor_Part2:
 	; some routines outside of Tails' code can call Sonic_ResetOnFloor_Part2
 	; when they mean to call Tails_ResetOnFloor_Part2, so fix that here
-	_cmpi.l	#Obj_Sonic,id(a0)	; is this object ID Sonic (Obj_Sonic)?
-	bne.w	Tails_ResetOnFloor_Part2	; if not, branch to the Tails version of this code
+    cmpi.l	#Obj_Knuckles,id(a0)	; is this object ID Knuckles?
+	beq.w	Knuckles_ResetOnFloor_Part2	; if it is, branch to the Knuckles version of this code
+
+	cmpi.l	#Obj_Tails,id(a0)	; is this object ID Sonic (Obj_Sonic)?
+	beq.w	Tails_ResetOnFloor_Part2	; if not, branch to the Tails version of this code
 
 	btst	#2,status(a0)
 	beq.s	Sonic_ResetOnFloor_Part3

@@ -44,6 +44,7 @@ flip_turned =		*		; 0 for normal, 1 to invert flipping (it's a 180 degree rotati
 objoff_40 =		*
 objoff_41 =		*
 glidemode		ds.b 1			; this space is not used (aside from a couple of objects, due to lack of object RAM)
+double_jump_flag = *
 glideflags		ds.b 1
 boss_sine_count =	*		;
 mapping_frame		ds.b 1		; the frame the object is currently intending to display
@@ -112,6 +113,7 @@ objoff_3D =		*+1
 jumping			ds.w 1		; set when Sonic is jumping... This should REALLY be a byte...
 objoff_3E =		*
 objoff_3F =		*+1
+double_jump_property =		*+1
 glideunk =		*+1
 parent			ds.w 1		; address of object that owns or spawned this one, if applicable
 
@@ -987,9 +989,9 @@ CNZ_Visible_bumpers_end_P2:	ds.l 1
 Screen_redraw_flag:		ds.b 1		; if whole screen needs to redraw, such as when you destroy that piston before the boss in WFZ
 CPZ_UnkScroll_Timer:		ds.b 1		; Used only in unused CPZ scrolling function
 WFZ_SCZ_Fire_Toggle:		ds.b 1
-				ds.b 1		; $FFFFF72F ; seems unused
+Flying_carrying_Sonic_flag:				ds.b 1
+Flying_picking_Sonic_timer:				ds.b 1
 Water_flag:			ds.b 1		; if the level has water or oil
-				ds.b 1		; $FFFFF731 ; seems unused
 Demo_button_index_2P:		ds.w 1		; index into button press demo data, for player 2
 Demo_press_counter_2P:		ds.w 1		; frames remaining until next button press, for player 2
 Tornado_Velocity_X:		ds.w 1		; speed of tails' plane in scz ($FFFFF736)
@@ -1257,10 +1259,10 @@ Player_mode:			ds.w 1		; 0 = Sonic and Tails, 1 = Sonic, 2 = Tails
 Player_option:			ds.w 1		; 0 = Sonic and Tails, 1 = Sonic, 2 = Tails
 
 Two_player_items:		ds.w 1
-Control_Style:			
-Physics_Style:			
+Control_Style:			ds.w 1
+Physics_Style:			ds.w 1
 				ds.b $6		; $FFFFFF76-$FFFFFF7F ; seems unused
-				ds.b $A		; $FFFFFF76-$FFFFFF7F ; seems unused
+;				ds.b $A		; $FFFFFF76-$FFFFFF7F ; seems unused
 
 LevSel_HoldTimer:		ds.w 1
 Level_select_zone:		ds.w 1
