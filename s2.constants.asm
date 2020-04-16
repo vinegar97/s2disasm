@@ -1250,8 +1250,9 @@ SlotMachine_Slot3Pos:		ds.w 1
 SlotMachine_Slot3Speed:		ds.b 1
 SlotMachine_Slot3Rout:		ds.b 1
 
-				ds.b $10	; $FFFFFF60-$FFFFFF6F ; seems unused
-
+				ds.b $8	
+Player_MainChar:		ds.b 1
+Player_PartnerChar:		ds.b 1
 Player_mode:			ds.w 1		; 0 = Sonic and Tails, 1 = Sonic, 2 = Tails
 Player_option:			ds.w 1		; 0 = Sonic and Tails, 1 = Sonic, 2 = Tails
 
