@@ -203,6 +203,40 @@ Sonic_RecordPos:
 	rts
 ; End of subroutine Sonic_RecordPos
 
+; =============== S U B R O U T I N E =======================================
+
+
+Reset_Player_Position_Array:
+		cmpa.w	#MainCharacter,a0			; is object player 1?
+		bne.s	Reset_Player_Position_ArrayP2	; if not, branc
+		lea	(Pos_table).w,a1
+		lea	(Stat_table).w,a2
+		move.w	#$3F,d0
+
+loc_10DEC:
+		move.w	x_pos(a0),(a1)+			; write location to pos_table
+		move.w	y_pos(a0),(a1)+
+		move.l	#0,(a2)+
+		dbf	d0,loc_10DEC
+		move.w	#0,(Pos_table_index).w
+
+Reset_Player_Position_ArrayP2:
+		;tst.w	(Competition_mode).w	; are we in Competition mode?
+		;beq.s	locret_10E24		; if not, branch
+		;lea	(Stat_table).w,a1
+		;move.w	#$3F,d0
+
+;loc_10E12:
+;		move.w	x_pos(a0),(a1)+
+;		move.w	y_pos(a0),(a1)+
+;		dbf	d0,loc_10E12
+;		move.w	#0,(Pos_table_index_P2).w
+
+locret_10E24:
+		rts
+; End of function Reset_Player_Position_Array
+
+
 ; ---------------------------------------------------------------------------
 ; Subroutine for Sonic when he's underwater
 ; ---------------------------------------------------------------------------
@@ -1214,14 +1248,14 @@ Sonic_JumpHeight:
 	move.w	#-$200,d1
 +
 	cmp.w	y_vel(a0),d1	; is Sonic going up faster than d1?
-	ble.s	+		; if not, branch
+	ble.s	Sonic_InstaAndShieldMoves		; if not, branch
 	move.b	(Ctrl_1_Held_Logical).w,d0
 	andi.b	#button_B_mask|button_C_mask|button_A_mask,d0 ; is a jump button pressed?
 	bne.s	+		; if yes, branch
 	move.w	d1,y_vel(a0)	; immediately reduce Sonic's upward speed to d1
 +
-	tst.b	y_vel(a0)		; is Sonic exactly at the height of his jump?
-	beq.s	Sonic_CheckGoSuper	; if yes, test for turning into Super Sonic
+	;tst.b	y_vel(a0)		; is Sonic exactly at the height of his jump?
+	;beq.s	Sonic_CheckGoSuper	; if yes, test for turning into Super Sonic
 	rts
 ; ---------------------------------------------------------------------------
 ; loc_1AB22:
@@ -1236,6 +1270,69 @@ return_1AB36:
 	rts
 ; End of subroutine Sonic_JumpHeight
 
+
+Sonic_InstaAndShieldMoves:
+	tst.b	double_jump_flag(a0)		; is Sonic currently performing a double jump?
+	bne.w	locret_11A14			; if yes, branch
+	move.b	(Ctrl_1_Press_logical).w,d0
+	andi.b	#$70,d0				; are buttons A, B, or C being pressed?
+	beq.w	locret_11A14			; if not, branch
+	bclr	#Status_RollJump,status(a0)
+	tst.b	(Super_Sonic_flag).w	; check Super-state
+	beq.s	Sonic_FireShield		; if not in a super-state, branch
+	;bmi.w	Sonic_HyperDash			; if Hyper, branch
+	move.b	#1,double_jump_flag(a0)
+	rts
+; ---------------------------------------------------------------------------
+
+Sonic_FireShield:
+	btst	#Status_Invincible,status_secondary(a0)	; first, does Sonic have invincibility?
+	bne.w	locret_11A14				; if yes, branch
+	btst	#Status_FireShield,status_secondary(a0)	; does Sonic have a Fire Shield?
+	beq.s	Sonic_LightningShield			; if not, branch
+	move.b	#1,(Shield+anim).w
+	move.b	#1,double_jump_flag(a0)
+	move.w	#$800,d0
+	btst	#Status_Facing,status(a0)		; is Sonic facing left?
+	beq.s	loc_11958				; if not, branch
+	neg.w	d0					; reverse speed value, moving Sonic left
+
+loc_11958:
+	move.w	d0,x_vel(a0)		; apply velocity...
+	move.w	d0,ground_vel(a0)	; ...both ground and air
+	move.w	#0,y_vel(a0)		; kill y-velocity
+	move.w	#$2000,(Horiz_scroll_delay_val).w
+	bsr.w	Reset_Player_Position_Array
+	;move.w	#$43,d0			; play Fire Shield attack sound
+	;jmp	(Play_Sound_2).l
+	rts
+; ---------------------------------------------------------------------------
+
+Sonic_LightningShield:
+	btst	#Status_LtngShield,status_secondary(a0)	; does Sonic have a Lightning Shield?
+	beq.s	Sonic_BubbleShield			; if not, branch
+	move.b	#1,(Shield+anim).w
+	move.b	#1,double_jump_flag(a0)
+	move.w	#-$580,y_vel(a0)	; bounce Sonic up, creating the double jump effect
+	clr.b	jumping(a0)
+	;move.w	#$45,d0			; play Lightning Shield attack sound
+	;jmp	(Play_Sound_2).l
+	rts
+; ---------------------------------------------------------------------------
+
+Sonic_BubbleShield:
+	;btst	#Status_BublShield,status_secondary(a0)	; does Sonic have a Bubble Shield
+	;beq.s	Sonic_CheckGoSuper			; if not, branch
+	move.b	#1,(Shield+anim).w
+	move.b	#1,double_jump_flag(a0)
+	move.w	#0,x_vel(a0)		; halt horizontal speed...
+	move.w	#0,ground_vel(a0)	; ...both ground and air
+	move.w	#$800,y_vel(a0)		; force Sonic down
+	;move.w	#$44,d0			; play Bubble Shield attack sound
+	;jmp	(Play_Sound_2).l
+	rts
+
+
 ; ---------------------------------------------------------------------------
 ; Subroutine called at the peak of a jump that transforms Sonic into Super Sonic
 ; if he has enough rings and emeralds
@@ -1245,18 +1342,31 @@ return_1AB36:
 
 ; loc_1AB38: test_set_SS:
 Sonic_CheckGoSuper:
-	tst.b	(Super_Sonic_flag).w	; is Sonic already Super?
-	bne.s	return_1ABA4		; if yes, branch
 	cmpi.b	#7,(Emerald_count).w	; does Sonic have exactly 7 emeralds?
 	bne.s	return_1ABA4		; if not, branch
-	cmpi.w	#50,(Ring_count).w	; does Sonic have at least 50 rings?
-	blo.s	return_1ABA4		; if not, branch
-    if gameRevision=2
-	; fixes a bug where the player can get stuck if transforming at the end of a level
 	tst.b	(Update_HUD_timer).w	; has Sonic reached the end of the act?
-	beq.s	return_1ABA4		; if yes, branch
-    endif
+	beq.s	Sonic_InstaShield		; if yes, branch
 
+loc_119E8:
+	cmpi.w	#50,(Ring_count).w	; does Sonic have at least 50 rings?
+	blo.s	Sonic_InstaShield	; if not, perform Insta-Shield
+	tst.b	(Update_HUD_timer).w
+	bne.s	Sonic_Transform
+
+Sonic_InstaShield:
+	btst	#Status_Shield,status_secondary(a0)	; does Sonic have an S2 shield (The Elementals were already filtered out at this point)?
+	bne.s	locret_11A14				; if yes, branch
+	;move.b	#1,(Shield+anim).w
+	move.b	#1,double_jump_flag(a0)
+	;move.w	#$42,d0			; play Insta-Shield sound
+	;jmp	(Play_Sound_2).l
+; ---------------------------------------------------------------------------
+
+locret_11A14:
+		rts
+; ---------------------------------------------------------------------------
+
+Sonic_Transform:
 	move.b	#1,(Super_Sonic_palette).w
 	move.b	#$F,(Palette_timer).w
 	move.b	#1,(Super_Sonic_flag).w
@@ -1690,7 +1800,6 @@ Sonic_DoLevelCollision:
 +
 	add.w	d1,y_pos(a0)
 	move.b	d3,angle(a0)
-	bsr.w	Sonic_ResetOnFloor
 	move.b	d3,d0
 	addi.b	#$20,d0
 	andi.b	#$40,d0
@@ -1706,6 +1815,7 @@ Sonic_DoLevelCollision:
 loc_1AF5A:
 	move.w	#0,y_vel(a0)
 	move.w	x_vel(a0),inertia(a0)
+	bsr.w	Sonic_ResetOnFloor
 	rts
 ; ===========================================================================
 
@@ -1716,6 +1826,7 @@ loc_1AF68:
 	move.w	#$FC0,y_vel(a0)
 
 loc_1AF7C:
+	bsr.w	Sonic_ResetOnFloor
 	move.w	y_vel(a0),inertia(a0)
 	tst.b	d3
 	bpl.s	return_1AF8A
@@ -1756,9 +1867,9 @@ Sonic_HitFloor:
 	bpl.s	return_1AFE6
 	add.w	d1,y_pos(a0)
 	move.b	d3,angle(a0)
-	bsr.w	Sonic_ResetOnFloor
 	move.w	#0,y_vel(a0)
 	move.w	x_vel(a0),inertia(a0)
+	bsr.w	Sonic_ResetOnFloor
 
 return_1AFE6:
 	rts
@@ -1791,8 +1902,8 @@ Sonic_HitCeilingAndWalls:
 
 loc_1B02C:
 	move.b	d3,angle(a0)
-	bsr.w	Sonic_ResetOnFloor
 	move.w	y_vel(a0),inertia(a0)
+	bsr.w	Sonic_ResetOnFloor
 	tst.b	d3
 	bpl.s	return_1B042
 	neg.w	inertia(a0)
@@ -1834,9 +1945,9 @@ Sonic_HitFloor2:
 	bpl.s	return_1B09E
 	add.w	d1,y_pos(a0)
 	move.b	d3,angle(a0)
-	bsr.w	Sonic_ResetOnFloor
 	move.w	#0,y_vel(a0)
 	move.w	x_vel(a0),inertia(a0)
+	bsr.w	Sonic_ResetOnFloor
 
 return_1B09E:
 	rts
@@ -1859,11 +1970,12 @@ Sonic_ResetOnFloor:
 Sonic_ResetOnFloor_Part2:
 	; some routines outside of Tails' code can call Sonic_ResetOnFloor_Part2
 	; when they mean to call Tails_ResetOnFloor_Part2, so fix that here
+	cmpi.l	#Obj_Tails,id(a0)	; is this object ID Sonic (Obj_Sonic)?
+	beq.w	Tails_ResetOnFloor_Part2	; if not, branch to the Tails version of this code
+
     cmpi.l	#Obj_Knuckles,id(a0)	; is this object ID Knuckles?
 	beq.w	Knuckles_ResetOnFloor_Part2	; if it is, branch to the Knuckles version of this code
 
-	cmpi.l	#Obj_Tails,id(a0)	; is this object ID Sonic (Obj_Sonic)?
-	beq.w	Tails_ResetOnFloor_Part2	; if not, branch to the Tails version of this code
 
 	btst	#2,status(a0)
 	beq.s	Sonic_ResetOnFloor_Part3
@@ -1883,12 +1995,65 @@ Sonic_ResetOnFloor_Part3:
 	move.b	#0,flip_turned(a0)
 	move.b	#0,flips_remaining(a0)
 	move.w	#0,(Sonic_Look_delay_counter).w
-	cmpi.b	#AniIDSonAni_Hang2,anim(a0)
-	bne.s	return_1B11E
-	move.b	#AniIDSonAni_Walk,anim(a0)
+
+	tst.b	double_jump_flag(a0)
+	beq.s	return_1B11E
+	cmpi.l  #Obj_Sonic,id(a0)
+	bne.s	loc_1222A
+	tst.b	(Super_Sonic_flag).w
+	bne.s	loc_1222A
+	bsr.s	BubbleShield_Bounce
+
+loc_1222A:
+	move.b	#0,double_jump_flag(a0)
 
 return_1B11E:
 	rts
+
+; =============== S U B R O U T I N E =======================================
+
+
+BubbleShield_Bounce:
+		movem.l	d1-d2,-(sp)
+		move.w	#$780,d2
+		btst	#Status_Underwater,status(a0)
+		beq.s	loc_12246
+		move.w	#$400,d2
+
+loc_12246:
+		moveq	#0,d0
+		move.b	angle(a0),d0
+		subi.b	#$40,d0
+		jsr	(CalcSine).l
+		muls.w	d2,d1
+		asr.l	#8,d1
+		add.w	d1,x_vel(a0)
+		muls.w	d2,d0
+		asr.l	#8,d0
+		add.w	d0,y_vel(a0)
+		movem.l	(sp)+,d1-d2
+		bset	#1,status(a0)
+		bclr	#5,status(a0)
+		move.b	#1,jumping(a0)
+		clr.b	stick_to_convex(a0)
+		move.b	#$E,y_radius(a0)
+		move.b	#7,x_radius(a0)
+		move.b	#2,anim(a0)
+		bset	#2,status(a0)
+		move.b	y_radius(a0),d0
+		subi.b	#$13,d0 ; make variable to support tails/different sized chars (default_y_radius)
+		ext.w	d0
+		;tst.b	(Reverse_gravity_flag).w
+		;beq.s	loc_122AA
+		;neg.w	d0
+
+loc_122AA:
+		sub.w	d0,y_pos(a0)
+		move.b	#2,(Shield+anim).w
+		;move.w	#$44,d0
+		;jmp	(Play_Sound_2).l
+		rts
+; End of function BubbleShield_Bounce
 
 ; ===========================================================================
 ; ---------------------------------------------------------------------------

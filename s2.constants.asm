@@ -37,6 +37,7 @@ y_vel			ds.w 1		; vertical velocity
 objoff_14 =		*		; objects can use this space for anything
 boss_invulnerable_time = *		; BYTE	; the amount of time boss is invulnerable for
 inertia			ds.w 1		; Sonic&Tails - directionless representation of speed... not updated in the air
+ground_vel = *-2
 
 y_radius		ds.b 1		; object's height / 2, often used for floor/wall collision
 x_radius		ds.b 1		; object's width / 2, often used for floor/wall collision
@@ -265,10 +266,26 @@ bumper_y            = 4
 next_bumper         = 6
 prev_bumper_x       = bumper_x-next_bumper
 
+Status_Facing:       EQU 0
+Status_InAir:        EQU 1
+Status_Roll:         EQU 2
+Status_OnObj:        EQU 3
+Status_RollJump:     EQU 4
+Status_Push:         EQU 5
+Status_Underwater:   EQU 6
+
 ; ---------------------------------------------------------------------------
 ; status_secondary bitfield variables
 ;
 ; status_secondary variable bit numbers
+Status_Shield:       EQU 0
+Status_Invincible:   EQU 1
+Status_SpeedShoes:   EQU 2
+
+Status_FireShield:   EQU 4
+Status_LtngShield:   EQU 5
+Status_BublShield:   EQU 6
+
 status_sec_hasShield:		EQU	0
 status_sec_isInvincible:	EQU	1
 status_sec_hasSpeedShoes:	EQU	2
@@ -709,6 +726,7 @@ Tails_Dust:			; Tails' spin dash dust
 				ds.b object_size
 Sonic_Shield:
 				ds.b object_size
+Shield = *
 Tails_Shield:
 				ds.b object_size
 Sonic_InvincibilityStars:
@@ -735,7 +753,9 @@ VDP_Command_Buffer_Slot:	ds.l 1		; stores the address of the next open slot for 
 
 Horiz_Scroll_Buf:		ds.b $400
 Horiz_Scroll_Buf_End:
+Stat_table:
 Sonic_Stat_Record_Buf:		ds.b $100
+Pos_table:
 Sonic_Pos_Record_Buf:		ds.b $100
 Tails_Pos_Record_Buf:		ds.b $100
 CNZ_saucer_data:		ds.b $40	; the number of saucer bumpers in a group which have been destroyed. Used to decide when to give 500 points instead of 10
@@ -814,9 +834,12 @@ Camera_Min_X_pos:		ds.w 1
 Camera_Max_X_pos:		ds.w 1
 Camera_Min_Y_pos:		ds.w 1
 Camera_Max_Y_pos_now:		ds.w 1		; was "Camera_max_scroll_spd"...
+H_scroll_frame_offset:
 Horiz_scroll_delay_val:		ds.w 1		; if its value is a, where a != 0, X scrolling will be based on the player's X position a-1 frames ago
+Pos_table_index:
 Sonic_Pos_Record_Index:		ds.w 1		; into Sonic_Pos_Record_Buf and Sonic_Stat_Record_Buf
 Horiz_scroll_delay_val_P2:	ds.w 1
+Pos_table_index_P2:
 Tails_Pos_Record_Index:		ds.w 1		; into Tails_Pos_Record_Buf
 Camera_Y_pos_bias:		ds.w 1		; added to y position for lookup/lookdown, $60 is center
 Camera_Y_pos_bias_P2:		ds.w 1		; for Tails

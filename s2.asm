@@ -4491,6 +4491,7 @@ InitPlayers:
 	
 	move.l	#Obj_Sonic,(MainCharacter+id).w ; load Obj_Sonic Sonic object at $FFFFB000
 	move.l	#Obj_SpindashDust,(Sonic_Dust+id).w ; load Obj_Splash Sonic's spindash dust/splash object at $FFFFD100
+	;move.l	#Obj_Insta_Shield,(Sonic_Shield).w
 
 	cmpi.b	#3,(Player_MainChar).w
 	bne.s	+ ; branch if this isnt a Knux alone game
@@ -23719,6 +23720,10 @@ Obj_MonitorContents_Types:	offsetTable
 		offsetTableEntry.w invincible_monitor	; 7 - Invincibility
 		offsetTableEntry.w teleport_monitor	; 8 - Teleport
 		offsetTableEntry.w qmark_monitor	; 9 - Question mark
+		offsetTableEntry.w fireshield_monitor
+		offsetTableEntry.w lightningshield_monitor
+		offsetTableEntry.w bubbleshield_monitor
+		offsetTableEntry.w super_monitor
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
 ; Robotnik Monitor
@@ -24049,6 +24054,45 @@ teleport_swap_table_end:
 qmark_monitor:
 	addq.w	#1,(a2)
 	rts
+
+fireshield_monitor:
+	addq.w	#1,(a2)
+	bset	#status_sec_hasShield,status_secondary(a1)	; give shield status
+	bset	#Status_FireShield,status_secondary(a1)
+	;sfx	sfx_FireShield
+	tst.b	parent+1(a0)
+	bne.s	+
+	;move.l	#Obj_Fire_Shield,(Sonic_Shield+id).w ; load Obj_Shield (shield) at $FFFFD180
+	;move.w	a1,(Sonic_Shield+parent).w
++	rts
+; ---------------------------------------------------------------------------
+
+lightningshield_monitor:
+	addq.w	#1,(a2)
+	bset	#status_sec_hasShield,status_secondary(a1)	; give shield status
+	bset	#Status_LtngShield,status_secondary(a1)
+	;sfx	sfx_LtngShield
+	tst.b	parent+1(a0)
+	bne.s	+
+	;move.l	#Obj_Lightning_Shield,(Sonic_Shield+id).w ; load Obj_Shield (shield) at $FFFFD180
+	;move.w	a1,(Sonic_Shield+parent).w
++	rts
+
+bubbleshield_monitor:
+	addq.w	#1,(a2)
+	bset	#status_sec_hasShield,status_secondary(a1)	; give shield status
+	bset	#Status_BublShield,status_secondary(a1)
+	;sfx	sfx_BubblShield
+	tst.b	parent+1(a0)
+	bne.s	+
+	;move.l	#Obj_Bubble_Shield,(Sonic_Shield+id).w ; load Obj_Shield (shield) at $FFFFD180
+	;move.w	a1,(Sonic_Shield+parent).w
++	rts
+
+super_monitor:
+	addi.w	#50,(Ring_count).w
+	jmp Sonic_Transform
+
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
 ; Holds icon in place for a while, then destroys it
@@ -33096,8 +33140,12 @@ loc_19E30:
 	move.b	#0,angle(a1)
 	move.w	#0,y_vel(a1)
 	move.w	x_vel(a1),inertia(a1)
-	btst	#1,status(a1)
-	beq.s	loc_19E7E
+
+	bset	#3,status(a1)
+	bset	d6,status(a0)
+	bclr	#1,status(a1)
+	beq.s	return_19E8E
+	
 	move.l	a0,-(sp)
 	movea.l	a1,a0
 	move.w	a0,d1
@@ -33116,9 +33164,6 @@ loc_19E7C:
 	movea.l	(sp)+,a0 ; a0=character
 
 loc_19E7E:
-	bset	#3,status(a1)
-	bclr	#1,status(a1)
-	bset	d6,status(a0)
 
 return_19E8E:
 	rts
@@ -34170,7 +34215,7 @@ Obj_Splash_ResetDisplayMode:
 ; ===========================================================================
 
 BranchTo16_DeleteObject
-	bra.w	DeleteObject
+	jmp	DeleteObject
 ; ===========================================================================
 ; loc_1DE4A:
 Obj_Splash_CheckSkid:
