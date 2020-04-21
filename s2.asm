@@ -23191,6 +23191,112 @@ Obj_LostRings_Sparkle:
 Obj_LostRings_Delete:
 	bra.w	DeleteObject
 
+; ----------------------------------------------------------------------------
+; Object - Attracted ring (ported from Sonic and Knuckles)
+; ----------------------------------------------------------------------------
+Obj_Attracted_Ring:
+	moveq	#0,d0
+	move.b	routine(a0),d0
+	move.w	Obj_Attracted_Ring_subtbl(pc,d0.w),d1
+	jmp	Obj_Attracted_Ring_subtbl(pc,d1.w)
+; ===========================================================================
+Obj_Attracted_Ring_subtbl: offsetTable
+	offsetTableEntry.w Obj_Attracted_Ring_sub_0; 0
+	offsetTableEntry.w Obj_Attracted_Ring_sub_2; 2
+	offsetTableEntry.w Obj_Attracted_Ring_sub_4; 4
+	offsetTableEntry.w Obj_Attracted_Ring_sub_6; 6
+	offsetTableEntry.w Obj_Attracted_Ring_sub_8; 8
+; ===========================================================================
+
+Obj_Attracted_Ring_sub_0:
+	addq.b	#2,routine(a0)
+	move.w	x_pos(a0),objoff_32(a0)
+	move.l	#Obj_Ring_MapUnc_12382,mappings(a0)
+	move.w	#make_art_tile(ArtTile_ArtNem_Ring,1,0),art_tile(a0)
+	bsr.w	Adjust2PArtPointer
+	move.b	#4,render_flags(a0)
+	move.w	#prio(2),priority(a0)
+	move.b	#$47,collision_flags(a0)
+	move.b	#8,width_pixels(a0)
+
+Obj_Attracted_Ring_sub_2:
+	bsr.w	Obj_Attracted_Ring_Move
+	movea.w	parent(a0),a1
+	btst	#0,status_secondary(a1)	; Change the #0 to #5 if you've ported the actual lightning shield
+	bne.s	+
+	_move.l	#Obj_LostRings,id(a0)
+	move.b	#2,routine(a0)
+	move.b	#-1,(Ring_spill_anim_counter).w
++
+	move.b	(Rings_anim_frame).w,mapping_frame(a0)
+	;move.w	objoff_32(a0),d0
+	bra.w	DisplaySprite
+; ===========================================================================
+
+Obj_Attracted_Ring_sub_4:
+	addq.b	#2,routine(a0)
+	move.b	#0,collision_flags(a0)
+	move.b	#1,priority(a0)
+	subq.w	#1,(Perfect_rings_left).w
+	bsr.w	CollectRing
+
+Obj_Attracted_Ring_sub_6:
+	lea	(Ani_Ring).l,a1
+	bsr.w	AnimateSprite
+	bra.w	DisplaySprite
+; ===========================================================================
+
+Obj_Attracted_Ring_sub_8:
+	bra.w	DeleteObject
+
+; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
+
+
+Obj_Attracted_Ring_Move:
+	movea.w	parent(a0),a1
+	move.w	#$30,d1
+	move.w	x_pos(a1),d0
+	cmp.w	x_pos(a0),d0
+	bcc.s	loc_1A954
+	neg.w	d1
+	tst.w	x_vel(a0)
+	bmi.s	loc_1A95E
+	add.w	d1,d1
+	add.w	d1,d1
+	bra.s	loc_1A95E
+; ===========================================================================
+
+loc_1A954:
+	tst.w	x_vel(a0)
+	bpl.s	loc_1A95E
+	add.w	d1,d1
+	add.w	d1,d1
+
+loc_1A95E:
+	add.w	d1,x_vel(a0)
+	move.w	#$30,d1
+	move.w	y_pos(a1),d0
+	cmp.w	y_pos(a0),d0
+	bcc.s	loc_1A97E
+	neg.w	d1
+	tst.w	y_vel(a0)
+	bmi.s	loc_1A988
+	add.w	d1,d1
+	add.w	d1,d1
+	bra.s	loc_1A988
+; ===========================================================================
+
+loc_1A97E:
+	tst.w	y_vel(a0)
+	bpl.s	loc_1A988
+	add.w	d1,d1
+	add.w	d1,d1
+
+loc_1A988:
+	add.w	d1,y_vel(a0)
+	jmp	(ObjectMove).l
+
+; ===========================================================================
 ; Unused - dead code/data S1 big ring:
 ; ===========================================================================
 ; BigRing:
@@ -29024,7 +29130,8 @@ JmpTo_BuildHUD_P2
 	jmp	(BuildHUD_P2).l
 
 	align 4
-    endif; ===========================================================================
+    endif
+; ===========================================================================
 ; ----------------------------------------------------------------------------
 ; Pseudo-object that manages where rings are placed onscreen
 ; as you move through the level, and otherwise updates them.
@@ -29208,7 +29315,7 @@ Touch_Rings:
 +
 	cmpi.w	#$5A,invulnerable_time(a0)
 	bcc.w	Touch_Rings_Done
-	btst	#5,status_secondary(a0)	; does character have a lightning shield?
+	btst	#0,status_secondary(a0)	; does character have a lightning shield?
 	beq.s	Touch_Rings_NoAttraction	; if not, branch
 	move.w	x_pos(a0),d2
 	move.w	y_pos(a0),d3
@@ -29264,7 +29371,7 @@ Touch_Rings_Loop:
 	cmp.w	d5,d0		; has character crossed the ring?
 	bhi.w	Touch_NextRing	; if they have, branch
 +
-	btst	#5,status_secondary(a0)	; does character have a lightning shield?
+	btst	#0,status_secondary(a0)	; does character have a lightning shield?
 	bne.s	AttractRing			; if so, attract the ring towards the player
 -
 	move.w	#$604,(a4)		; set frame and destruction timer
@@ -29296,7 +29403,7 @@ AttractRing:
 	movea.l	a1,a3
 	jsr	SingleObjLoad
 	bne.w	AttractRing_NoFreeSlot
-	move.b	#$4C,(a1)
+	_move.l	#Obj_Attracted_Ring,id(a1)
 	move.w	(a3),x_pos(a1)
 	move.w	2(a3),y_pos(a1)
 	move.w	a0,parent(a1)
