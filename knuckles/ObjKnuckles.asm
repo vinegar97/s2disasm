@@ -290,8 +290,8 @@ loc_315804:			  ; ...
 	move.b	#0,anim_frame(a0)
 	move.b	#3,glideunk(a0)
 	move.w	x_pos(a0),2+x_pos(a0)
-	;move.w	#SndID_Grab,d0
-	jmp	PlaySound
+	sfx		sfx_S3K_4A
+	rts
 ; ---------------------------------------------------------------------------
 
 Knuckles_FallFromGlide:		  ; ...
@@ -360,8 +360,7 @@ loc_3158F0:			  ; ...
 	bsr.w	Knuckles_ResetOnFloor_Part2
 	move.w	#$F,move_lock(a0)
 	move.b	#$23,anim(a0)
-	;move.w	#SndID_Land,d0
-	jmp	PlaySound
+	sfx		sfx_S3K_4C
 
 return_315900:			  ; ...
 	rts
@@ -414,8 +413,7 @@ loc_315958:			  ; ...
 	move.b	(Timer_frames+1).w,d0
 	andi.b	#7,d0
 	bne.s	+
-	;moveq	#SndID_Slide,d0
-	jmp	PlaySound
+	sfx		sfx_S3K_7E
 +	rts
 ; ---------------------------------------------------------------------------
 
@@ -917,53 +915,6 @@ loc_316372:					  ; ...
 return_316376:					  ; ...
 		rts
 ; End of function Knuckles_ChgJumpDir
-
-
-; =============== S U B	R O U T	I N E =======================================
-
-
-Knuckles_Roll:					  ; ...
-		tst.b	$2B(a0)
-		bmi.s	Obj_Knuckles_NoRoll
-		move.w	inertia(a0),d0
-		bpl.s	loc_3163E6
-		neg.w	d0
-
-loc_3163E6:					  ; ...
-		cmp.w	#$80,d0
-		bcs.s	Obj_Knuckles_NoRoll
-		move.b	(Ctrl_1_Held_Logical).w,d0
-		and.b	#$C,d0
-		bne.s	Obj_Knuckles_NoRoll
-		btst	#1,(Ctrl_1_Held_Logical).w
-		bne.s	Obj_Knuckles_ChkRoll
-
-Obj_Knuckles_NoRoll:					  ; ...
-		rts
-; ---------------------------------------------------------------------------
-
-Obj_Knuckles_ChkRoll:					  ; ...
-		btst	#2,status(a0)
-		beq.s	Obj_Knuckles_DoRoll
-		rts
-; ---------------------------------------------------------------------------
-
-Obj_Knuckles_DoRoll:					  ; ...
-		bset	#2,status(a0)
-		move.b	#$E,y_radius(a0)
-		move.b	#7,x_radius(a0)
-		move.b	#2,anim(a0)
-		addq.w	#5,y_pos(a0)
-		move.w	#$BE,d0
-		jsr	PlaySound
-		tst.w	inertia(a0)
-		bne.s	return_31643C
-		move.w	#$200,inertia(a0)
-
-return_31643C:					  ; ...
-		rts
-; End of function Knuckles_Roll
-
 
 ; =============== S U B	R O U T	I N E =======================================
 
@@ -1896,11 +1847,3 @@ loc_3193D2:					  ; ...
 		move.b	#$40,d2
 		bra.w	loc_318FE8
 ; END OF FUNCTION CHUNK	FOR sub_315C22
-
-PlayMusic:
-	;move.b d0,mQueue+1.w
-    rts
-
-PlaySound:
-	;move.b d0,mQueue+2.w
-    rts

@@ -1,0 +1,9 @@
+	sHeaderInitSFX						; Z80 offset is $E206
+	sHeaderPrio	$80
+	sHeaderCh	$01
+	sHeaderSFX	$80, ctFM5, .FM5, $05, $00
+
+.FM5:
+	sVoice	pS3K_4A_1
+	dc.b nE2, $06
+	sStop

@@ -452,6 +452,38 @@ __sfx :=	__sfx+1
 		dc.l ((0)<<24)|_sfx_Unk52
 
 
+	
+sfx_S3K_42 =	__sfx
+__sfx :=	__sfx+1
+		dc.l ((0)<<24)|_sfx_S3K_42
+sfx_S3K_43 =	__sfx
+__sfx :=	__sfx+1
+		dc.l ((0)<<24)|_sfx_S3K_43
+sfx_S3K_44 =	__sfx
+__sfx :=	__sfx+1
+		dc.l ((0)<<24)|_sfx_S3K_44
+sfx_S3K_45 =	__sfx
+__sfx :=	__sfx+1
+		dc.l ((0)<<24)|_sfx_S3K_45
+sfx_S3K_4A =	__sfx
+__sfx :=	__sfx+1
+		dc.l ((0)<<24)|_sfx_S3K_4A
+
+	
+sfx_S3K_4C =	__sfx
+__sfx :=	__sfx+1
+		dc.l ((0)<<24)|_sfx_S3K_4C
+sfx_S3K_7E =	__sfx
+__sfx :=	__sfx+1
+		dc.l ((0)<<24)|_sfx_S3K_7E
+sfx_S3K_BA =	__sfx
+__sfx :=	__sfx+1
+		dc.l ((0)<<24)|_sfx_S3K_BA
+sfx_S3K_BB =	__sfx
+__sfx :=	__sfx+1
+		dc.l ((0)<<24)|_sfx_S3K_BB
+
+
 SFXcount =	__sfx-SFXoff		; number of intalled sound effects
 SFXlast =	__sfx
 ; ===========================================================================
@@ -494,7 +526,7 @@ __venv :=	$01
 
 VolEnvs:
 	volenv 01, 02, 03, 04, 05, 06, 07, 08
-	volenv 09, 0A, 0B, 0C, 0D
+	volenv 09, 0A, 0B, 0C, 0D, 17
 VolEnvs_End:
 ; ---------------------------------------------------------------------------
 
@@ -569,6 +601,11 @@ vd0C:		dc.b $20, $20, $18, $18, $10, $10, $08, $08
 
 vd0D:		dc.b $70, $68, $60, $58, $50, $48, $40, $38
 		dc.b $30, $28, $20, $18, $10, $08, $00, eHold
+
+
+vd17:	dc.b $01, $00, $00, $00, $00, $01, $01, $01
+		dc.b $02, $02, $02, $03, $03, $03, $03, $04
+		dc.b $04, $04, $05, $05, eHold
 		even
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
@@ -756,6 +793,24 @@ _sfx_Unk38:	include "AMPS/sfx/Unk38.s2a"
 _sfx_Unk51:	include "AMPS/sfx/Unk51.s2a"
 		align 2
 _sfx_Unk52:	include "AMPS/sfx/Unk52.s2a"
+		align 2
+_sfx_S3K_42:	include "AMPS/sfx/S3K_42.s2a"
+		align 2
+_sfx_S3K_43:	include "AMPS/sfx/S3K_43.s2a"
+		align 2
+_sfx_S3K_44:	include "AMPS/sfx/S3K_44.s2a"
+		align 2
+_sfx_S3K_45:	include "AMPS/sfx/S3K_45.s2a"
+		align 2
+_sfx_S3K_4A:	include "AMPS/sfx/S3K_4A.s2a"
+		align 2
+_sfx_S3K_4C:	include "AMPS/sfx/S3K_4C.s2a"
+		align 2
+_sfx_S3K_7E:	include "AMPS/sfx/S3K_7E.s2a"
+		align 2
+_sfx_S3K_BA:	include "AMPS/sfx/S3K_BA.s2a"
+		align 2
+_sfx_S3K_BB:	include "AMPS/sfx/S3K_BB.s2a"
 
 musaddr:	
 		align 2

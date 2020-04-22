@@ -347,7 +347,7 @@ Obj_Sonic_MdNormal_Checks:
 ; loc_1A2B8:
 Obj_Sonic_MdNormal:
 	bsr.w	Sonic_CheckSpindash
-	bsr.w	Knuckles_Jump
+	bsr.w	Sonic_Jump
 	bsr.w	Sonic_SlopeResist
 	bsr.w	Sonic_Move
 	bsr.w	Sonic_Roll
@@ -1303,8 +1303,7 @@ loc_11958:
 	move.w	#0,y_vel(a0)		; kill y-velocity
 	move.w	#$2000,(Horiz_scroll_delay_val).w
 	bsr.w	Reset_Player_Position_Array
-	;move.w	#$43,d0			; play Fire Shield attack sound
-	;jmp	(Play_Sound_2).l
+	sfx		sfx_S3K_43			; play Fire Shield attack sound
 	rts
 ; ---------------------------------------------------------------------------
 
@@ -1315,21 +1314,19 @@ Sonic_LightningShield:
 	move.b	#1,double_jump_flag(a0)
 	move.w	#-$580,y_vel(a0)	; bounce Sonic up, creating the double jump effect
 	clr.b	jumping(a0)
-	;move.w	#$45,d0			; play Lightning Shield attack sound
-	;jmp	(Play_Sound_2).l
+	sfx		sfx_S3K_45			; play Lightning Shield attack sound
 	rts
 ; ---------------------------------------------------------------------------
 
 Sonic_BubbleShield:
-	;btst	#Status_BublShield,status_secondary(a0)	; does Sonic have a Bubble Shield
-	;beq.s	Sonic_CheckGoSuper			; if not, branch
+	btst	#Status_BublShield,status_secondary(a0)	; does Sonic have a Bubble Shield
+	beq.s	Sonic_CheckGoSuper			; if not, branch
 	move.b	#1,(Shield+anim).w
 	move.b	#1,double_jump_flag(a0)
 	move.w	#0,x_vel(a0)		; halt horizontal speed...
 	move.w	#0,ground_vel(a0)	; ...both ground and air
 	move.w	#$800,y_vel(a0)		; force Sonic down
-	;move.w	#$44,d0			; play Bubble Shield attack sound
-	;jmp	(Play_Sound_2).l
+	sfx		sfx_S3K_44			; play Bubble Shield attack sound
 	rts
 
 
@@ -1343,7 +1340,7 @@ Sonic_BubbleShield:
 ; loc_1AB38: test_set_SS:
 Sonic_CheckGoSuper:
 	cmpi.b	#7,(Emerald_count).w	; does Sonic have exactly 7 emeralds?
-	bne.s	return_1ABA4		; if not, branch
+	bne.s	Sonic_InstaShield		; if not, branch
 	tst.b	(Update_HUD_timer).w	; has Sonic reached the end of the act?
 	beq.s	Sonic_InstaShield		; if yes, branch
 
@@ -1358,8 +1355,7 @@ Sonic_InstaShield:
 	bne.s	locret_11A14				; if yes, branch
 	;move.b	#1,(Shield+anim).w
 	move.b	#1,double_jump_flag(a0)
-	;move.w	#$42,d0			; play Insta-Shield sound
-	;jmp	(Play_Sound_2).l
+	sfx		sfx_S3K_42			; play Insta-Shield sound
 ; ---------------------------------------------------------------------------
 
 locret_11A14:
@@ -2050,8 +2046,7 @@ loc_12246:
 loc_122AA:
 		sub.w	d0,y_pos(a0)
 		move.b	#2,(Shield+anim).w
-		;move.w	#$44,d0
-		;jmp	(Play_Sound_2).l
+		sfx		sfx_S3K_44
 		rts
 ; End of function BubbleShield_Bounce
 

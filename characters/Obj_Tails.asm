@@ -854,14 +854,13 @@ loc_148CC:
 		bne.s	loc_148F4
 		;moveq	#$24,d0
 		;move.b	d0,anim(a0)
-		tst.b	4(a0)
+		tst.b	render_flags(a0)
 		bpl.s	locret_148F2
 		move.b	(Timer_frames+1).w,d0
 		addq.b	#8,d0
 		andi.b	#$F,d0
 		bne.s	locret_148F2
-		moveq	#$BB,d0
-		;jsr	(Play_Sound_2).l
+		sfx		sfx_S3K_BB
 
 locret_148F2:
 		rts
@@ -869,14 +868,13 @@ locret_148F2:
 
 loc_148F4:
 		move.b	d0,anim(a0)
-		tst.b	4(a0)
+		tst.b	render_flags(a0)
 		bpl.s	locret_14912
 		move.b	(Timer_frames+1).w,d0
 		addq.b	#8,d0
 		andi.b	#$F,d0
 		bne.s	locret_14912
-		moveq	#$BA,d0
-		;jsr	(Play_Sound_2).l
+		sfx		sfx_S3K_BA
 
 locret_14912:
 		rts

@@ -1197,4 +1197,95 @@ sPatNum := 0
 	spSSGEG		$00, $00, $00, $00
 	spTotalLv	$08, $06, $07, $00
 
+	; $3C
+	; $00, $01, $01, $00,	$1F, $12, $1A, $1F
+	; $10, $00, $1F, $00,	$09, $13, $0A, $12
+	; $FF, $0F, $FF, $0F,	$00, $80, $00, $80
+	spAlgorithm	$04, S3K_4A_1
+	spFeedback	$07
+	spDetune	$00, $00, $00, $00
+	spMultiple	$00, $01, $01, $00
+	spRateScale	$00, $00, $00, $00
+	spAttackRt	$1F, $1A, $12, $1F
+	spAmpMod	$00, $00, $00, $00
+	spSustainRt	$10, $1F, $00, $00
+	spSustainLv	$0F, $0F, $00, $00
+	spDecayRt	$09, $0A, $13, $12
+	spReleaseRt	$0F, $0F, $0F, $0F
+	spSSGEG		$00, $00, $00, $00
+	spTotalLv	$00, $00, $00, $00
+
+	; Patch $00
+	; $3C
+	; $00, $0A, $00, $00,	$1F, $1F, $1F, $0F
+	; $00, $16, $15, $0F,	$00, $00, $00, $00
+	; $0F, $AF, $FF, $FF,	$00, $80, $04, $80
+	spAlgorithm	$04, S3K_4C_1
+	spFeedback	$07
+	spDetune	$00, $00, $00, $00
+	spMultiple	$00, $00, $0A, $00
+	spRateScale	$00, $00, $00, $00
+	spAttackRt	$1F, $1F, $1F, $0F
+	spAmpMod	$00, $00, $00, $00
+	spSustainRt	$00, $15, $16, $0F
+	spSustainLv	$00, $0F, $0A, $0F
+	spDecayRt	$00, $00, $00, $00
+	spReleaseRt	$0F, $0F, $0F, $0F
+	spSSGEG		$00, $00, $00, $00
+	spTotalLv	$00, $04, $00, $00
+
+	; $04
+	; $02, $01, $22, $21,	$1F, $1F, $1F, $1F
+	; $0B, $00, $0B, $00,	$00, $0E, $00, $0E
+	; $FF, $0F, $FF, $0F,	$14, $80, $14, $80
+	spAlgorithm	$04, S3K_44_1
+	spFeedback	$00
+	spDetune	$00, $02, $00, $02
+	spMultiple	$02, $02, $01, $01
+	spRateScale	$00, $00, $00, $00
+	spAttackRt	$1F, $1F, $1F, $1F
+	spAmpMod	$00, $00, $00, $00
+	spSustainRt	$0B, $0B, $00, $00
+	spSustainLv	$0F, $0F, $00, $00
+	spDecayRt	$00, $00, $0E, $0E
+	spReleaseRt	$0F, $0F, $0F, $0F
+	spSSGEG		$00, $00, $00, $00
+	spTotalLv	$14, $14, $00, $00
+
+	; $03
+	; $32, $04, $70, $03,	$1F, $1F, $1F, $1F
+	; $00, $00, $00, $00,	$00, $0D, $0C, $0B
+	; $0F, $0F, $0F, $0F,	$08, $0D, $10, $80
+	spAlgorithm	$03, S3K_45_1
+	spFeedback	$00
+	spDetune	$03, $07, $00, $00
+	spMultiple	$02, $00, $04, $03
+	spRateScale	$00, $00, $00, $00
+	spAttackRt	$1F, $1F, $1F, $1F
+	spAmpMod	$00, $00, $00, $00
+	spSustainRt	$00, $00, $00, $00
+	spSustainLv	$00, $00, $00, $00
+	spDecayRt	$00, $0C, $0D, $0B
+	spReleaseRt	$0F, $0F, $0F, $0F
+	spSSGEG		$00, $00, $00, $00
+	spTotalLv	$08, $10, $0D, $00
+
+	; $3C
+	; $00, $01, $00, $01,	$1F, $0D, $12, $14
+	; $10, $00, $1F, $00,	$09, $13, $0A, $12
+	; $FF, $0F, $FF, $0F,	$00, $A0, $00, $80
+	spAlgorithm	$04, S3K_BA_1
+	spFeedback	$07
+	spDetune	$00, $00, $00, $00
+	spMultiple	$00, $00, $01, $01
+	spRateScale	$00, $00, $00, $00
+	spAttackRt	$1F, $12, $0D, $14
+	spAmpMod	$00, $00, $00, $00
+	spSustainRt	$10, $1F, $00, $00
+	spSustainLv	$0F, $0F, $00, $00
+	spDecayRt	$09, $0A, $13, $12
+	spReleaseRt	$0F, $0F, $0F, $0F
+	spSSGEG		$00, $00, $00, $00
+	spTotalLv	$00, $00, $20, $00
+
 	listing	on			; do not list this voice bank, it'd be huge!
