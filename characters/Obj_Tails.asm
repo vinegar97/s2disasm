@@ -1500,7 +1500,7 @@ Tails_LevelBound:
 	add.l	d0,d1
 	swap	d1
 	move.w	(Tails_Min_X_pos).w,d0
-	cmpi.w  #0,(Camera_Min_X_pos).w
+	cmpi.w  #0,d0
 	beq.s   +
 	subi.w  #40,d0
 +
@@ -1508,7 +1508,7 @@ Tails_LevelBound:
 	cmp.w	d1,d0			; has Tails touched the left boundary?
 	bhi.s	Tails_Boundary_Sides	; if yes, branch
 	move.w	(Tails_Max_X_pos).w,d0
-	addi.w	#$128+40,d0
+	addi.w	#320+40-24,d0		; screen width - Sonic's width_pixels
 	tst.b	(Current_Boss_ID).w
 	bne.s	+
 	addi.w	#$40,d0

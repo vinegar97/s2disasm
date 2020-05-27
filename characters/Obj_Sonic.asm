@@ -1077,7 +1077,7 @@ Sonic_LevelBound:
 	add.l	d0,d1
 	swap	d1
 	move.w	(Camera_Min_X_pos).w,d0
-	cmpi.w  #0,(Camera_Min_X_pos).w
+	cmpi.w  #0,d0
 	beq.s   +
 	subi.w  #40,d0
 +

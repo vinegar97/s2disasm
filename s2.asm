@@ -28083,11 +28083,13 @@ BuildSprites_ObjLoop:
 	add.w	d0,d1	; is the object right edge to the left of the screen?
 	bmi.w	BuildSprites_NextObj	; if it is, branch
 	subi.w  #40,d3
+	subi.w  #40,d3
 
 	move.w	d3,d1
 	sub.w	d0,d1
-	cmpi.w	#400,d1	; is the object left edge to the right of the screen?
+	cmpi.w	#320,d1	; is the object left edge to the right of the screen?
 	bge.w	BuildSprites_NextObj	; if it is, branch
+	addi.w  #40,d3
 	addi.w	#128,d3
 	btst	#4,d4		; is the accurate Y check flag set?
 	beq.s	BuildSprites_ApproxYCheck	; if not, branch
@@ -28171,11 +28173,13 @@ BuildSprites_MultiDraw:
 	move.w	d3,d1
 	add.w	d0,d1
 	bmi.w	BuildSprites_MultiDraw_NextObj
+	subi.w  #40,d3
+	subi.w  #40,d3
 	move.w	d3,d1
 	sub.w	d0,d1
-	cmpi.w	#400,d1
+	cmpi.w	#320,d1
 	bge.w	BuildSprites_MultiDraw_NextObj
-	subi.w  #40,d3
+	addi.w  #40,d3
 	addi.w	#128,d3
 
 	; check if object is within Y bounds
@@ -28260,6 +28264,8 @@ BuildSprites_MultiDraw_NextObj:
 ChkDrawSprite:
 	cmpi.w  #0,d3 ; hack to prevent underflows for widescreen
 	ble.s   +
+	cmpi.w  #512,d3 ; hack to prevent overflows for widescreen
+	bge.s   +
 	cmpi.b	#80,d5		; has the sprite limit been reached?
 	blo.s	DrawSprite_Cont	; if it hasn't, branch
 +
@@ -28472,13 +28478,17 @@ BuildSprites_P1_ObjLoop:
 	move.b	width_pixels(a0),d0
 	move.w	x_pos(a0),d3
 	sub.w	(a1),d3
+	addi.w  #40,d3
 	move.w	d3,d1
 	add.w	d0,d1
 	bmi.w	BuildSprites_P1_NextObj
+	subi.w  #40,d3
+	subi.w  #40,d3
 	move.w	d3,d1
 	sub.w	d0,d1
-	cmpi.w	#400,d1
-	bge.s	BuildSprites_P1_NextObj
+	cmpi.w	#320,d1
+	jge     BuildSprites_P1_NextObj
+	addi.w  #40,d3
 	addi.w	#128,d3
 	btst	#4,d4
 	beq.s	BuildSprites_P1_ApproxYCheck
@@ -28585,13 +28595,17 @@ BuildSprites_P2_ObjLoop:
 	move.b	width_pixels(a0),d0
 	move.w	x_pos(a0),d3
 	sub.w	(a1),d3
+	addi.w  #40,d3
 	move.w	d3,d1
 	add.w	d0,d1
 	bmi.w	BuildSprites_P2_NextObj
+	subi.w  #40,d3
+	subi.w  #40,d3
 	move.w	d3,d1
 	sub.w	d0,d1
-	cmpi.w	#400,d1
-	bge.s	BuildSprites_P2_NextObj
+	cmpi.w	#320,d1
+	jge 	BuildSprites_P2_NextObj
+	addi.w  #40,d3
 	addi.w	#128,d3
 	btst	#4,d4
 	beq.s	BuildSprites_P2_ApproxYCheck
@@ -28678,10 +28692,13 @@ BuildSprites_P1_MultiDraw:
 	move.w	d3,d1
 	add.w	d0,d1
 	bmi.w	BuildSprites_P1_MultiDraw_NextObj
+	subi.w  #40,d3
+	subi.w  #40,d3
 	move.w	d3,d1
 	sub.w	d0,d1
-	cmpi.w	#400,d1
+	cmpi.w	#320,d1
 	bge.w	BuildSprites_P1_MultiDraw_NextObj
+	addi.w  #40,d3
 	addi.w	#128,d3
 	btst	#4,d4
 	beq.s	+
@@ -28731,7 +28748,7 @@ BuildSprites_P1_MultiDraw:
 -	swap	d0
 	move.w	(a6)+,d3
 	sub.w	(a4),d3
-	addi.w  #40,d3
+	;addi.w  #40,d3
 	addi.w	#128,d3
 	move.w	(a6)+,d2
 	sub.w	4(a4),d2
@@ -28770,10 +28787,13 @@ BuildSprites_P2_MultiDraw:
 	move.w	d3,d1
 	add.w	d0,d1
 	bmi.w	BuildSprites_P2_MultiDraw_NextObj
+	subi.w  #40,d3
+	subi.w  #40,d3
 	move.w	d3,d1
 	sub.w	d0,d1
-	cmpi.w	#400,d1
+	cmpi.w	#320,d1
 	bge.w	BuildSprites_P2_MultiDraw_NextObj
+	addi.w  #40,d3
 	addi.w	#128,d3
 	btst	#4,d4
 	beq.s	+
@@ -28823,7 +28843,7 @@ BuildSprites_P2_MultiDraw:
 -	swap	d0
 	move.w	(a6)+,d3
 	sub.w	(a4),d3
-	addi.w  #40,d3
+	;addi.w  #40,d3
 	addi.w	#128,d3
 	move.w	(a6)+,d2
 	sub.w	4(a4),d2
@@ -28886,8 +28906,13 @@ Adjust2PArtPointer2:
 
 ; sub_16DA6:
 ChkDrawSprite_2P:
+	cmpi.w  #0,d3 ; hack to prevent underflows for widescreen
+	ble.s   +
+	cmpi.w  #512,d3 ; hack to prevent overflows for widescreen
+	bge.s   +
 	cmpi.b	#80,d5
-	blo.s	DrawSprite_2P_Loop
+	blo.s	DrawSprite_2P_Cont
++
 	rts
 ; End of function ChkDrawSprite_2P
 
@@ -28899,8 +28924,9 @@ ChkDrawSprite_2P:
 ; sub_16DAE:
 DrawSprite_2P:
 	movea.w	art_tile(a0),a3
-	cmpi.b	#80,d5
-	bhs.s	DrawSprite_2P_Done
+	bra.s   ChkDrawSprite_2P
+
+DrawSprite_2P_Cont:
 	btst	#0,d4
 	bne.s	DrawSprite_2P_FlipX
 	btst	#1,d4
@@ -55681,12 +55707,9 @@ return_2F482:
 
 loc_2F484:	; shared routine, checks positions and sets direction
 	move.w	x_pos(a0),d0
-	bset    #2,render_flags(a0)
 	cmpi.w	#$28A0,d0	; beyond left boundary?
 	ble.s	loc_2F494
 	cmpi.w	#$2B08-72,d0
-	blt.s	return_2F4A4	; beyond right boundary?
-	bclr    #2,render_flags(a0)
 	cmpi.w	#$2B08,d0
 	blt.s	return_2F4A4	; beyond right boundary?
 
@@ -78865,7 +78888,7 @@ BuildHUD_P1_NoRings:
 	addq.w	#2,d1	; make TIME flash
 ; loc_4088C:
 BuildHUD_P1_Continued:
-	move.w	#$90,d3
+	move.w	#$90-40,d3
 	move.w	#$188,d2
 	lea	(HUD_MapUnc_40BEA).l,a1
 	movea.w	#make_art_tile_2p(ArtTile_Art_HUD_Text_2P,0,1),a3
@@ -78874,7 +78897,7 @@ BuildHUD_P1_Continued:
 	move.w	(a1)+,d1
 	subq.w	#1,d1
 	jsrto	(DrawSprite_2P_Loop).l, JmpTo_DrawSprite_2P_Loop
-	move.w	#$B8,d3
+	move.w	#$B8-40,d3
 	move.w	#$108,d2
 	movea.w	#make_art_tile_2p(ArtTile_Art_HUD_Numbers_2P,0,1),a3
 	moveq	#0,d7
@@ -78884,7 +78907,7 @@ BuildHUD_P1_Continued:
 	moveq	#0,d7
 	move.b	(Timer_second).w,d7
 	bsr.w	loc_40938
-	move.w	#$C0,d3
+	move.w	#$C0-40,d3
 	move.w	#$118,d2
 	movea.w	#make_art_tile_2p(ArtTile_Art_HUD_Numbers_2P,0,1),a3
 	moveq	#0,d7
@@ -78894,7 +78917,7 @@ BuildHUD_P1_Continued:
 	bne.s	+
 	tst.b	(Update_HUD_timer).w
 	beq.s	+
-	move.w	#$110,d3
+	move.w	#$110-40,d3
 	move.w	#$1B8,d2
 	movea.w	#make_art_tile_2p(ArtTile_Art_HUD_Numbers_2P,0,1),a3
 	moveq	#0,d7
@@ -78902,7 +78925,7 @@ BuildHUD_P1_Continued:
 	bsr.w	loc_40938
 +
 	moveq	#4,d1
-	move.w	#$90,d3
+	move.w	#$90-40,d3
 	move.w	#$188,d2
 	lea	(HUD_MapUnc_40BEA).l,a1
 	movea.w	#make_art_tile_2p(ArtTile_Art_HUD_Text_2P,0,1),a3
@@ -79042,7 +79065,7 @@ BuildHUD_P2_NoRings:
 	addq.w	#2,d1
 ; loc_409F8:
 BuildHUD_P2_Continued:
-	move.w	#$90,d3
+	move.w	#$90-40,d3
 	move.w	#$268,d2
 	lea	(HUD_MapUnc_40BEA).l,a1
 	movea.w	#make_art_tile_2p(ArtTile_Art_HUD_Text_2P,0,1),a3
@@ -79051,7 +79074,7 @@ BuildHUD_P2_Continued:
 	move.w	(a1)+,d1
 	subq.w	#1,d1
 	jsrto	(DrawSprite_2P_Loop).l, JmpTo_DrawSprite_2P_Loop
-	move.w	#$B8,d3
+	move.w	#$B8-40,d3
 	move.w	#$1E8,d2
 	movea.w	#make_art_tile_2p(ArtTile_Art_HUD_Numbers_2P,0,1),a3
 	moveq	#0,d7
@@ -79061,7 +79084,7 @@ BuildHUD_P2_Continued:
 	moveq	#0,d7
 	move.b	(Timer_second_2P).w,d7
 	bsr.w	loc_40938
-	move.w	#$C0,d3
+	move.w	#$C0-40,d3
 	move.w	#$1F8,d2
 	movea.w	#make_art_tile_2p(ArtTile_Art_HUD_Numbers_2P,0,1),a3
 	moveq	#0,d7
@@ -79079,7 +79102,7 @@ BuildHUD_P2_Continued:
 	bsr.w	loc_40938
 +
 	moveq	#5,d1
-	move.w	#$90,d3
+	move.w	#$90-40,d3
 	move.w	#$268,d2
 	lea	(HUD_MapUnc_40BEA).l,a1
 	movea.w	#make_art_tile_2p(ArtTile_ArtNem_Powerups,0,1),a3
