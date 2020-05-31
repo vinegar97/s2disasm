@@ -840,8 +840,8 @@ Tails_Set_Flying_Animation:
 		moveq	#$20,d0
 		;tst.w	(Competition_mode).w
 		;bne.s	loc_148F4
-		tst.w	y_vel(a0)
-		bpl.s	loc_148C4
+		;tst.w	y_vel(a0)
+		;bpl.s	loc_148C4
 		;moveq	#$21,d0
 
 loc_148C4:
@@ -889,11 +889,13 @@ loc_14914:
 loc_1491E:
 		tst.b	(Flying_carrying_Sonic_flag).w
 		beq.s	loc_14926
+		nop ; remove
 		;moveq	#$27,d0
 
 loc_14926:
 		tst.b	double_jump_property(a0)
 		bne.s	loc_1492E
+		nop
 		;moveq	#$28,d0
 
 loc_1492E:

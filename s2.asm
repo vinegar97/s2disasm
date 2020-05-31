@@ -151,13 +151,7 @@ Header:
 	dc.b "(C)SEGA 1992.SEP" ; Copyright holder and release date (generally year)
 	dc.b "Sonic The             Hedgehog 2                " ; Domestic name
 	dc.b "Sonic The             Hedgehog 2                " ; International name
-    if gameRevision=0
-	dc.b "GM 00001051-00"   ; Version (REV00)
-    elseif gameRevision=1
-	dc.b "GM 00001051-01"   ; Version (REV01)
-    elseif gameRevision=2
-	dc.b "GM 00001051-02"   ; Version (REV02)
-    endif
+	dc.b "GM 00001051-WS" 
 ; word_18E
 Checksum:
 	dc.w $D951		; Checksum (patched later if incorrect)
@@ -495,7 +489,7 @@ Vint_CtrlDMA_ptr:	offsetTableEntry.w Vint_CtrlDMA		; $1A
 ; ===========================================================================
 ;VintSub0
 Vint_Lag:
-	addq.w	#1,LagFrames.w				; NAT: Increase lag frame counter
+	addq.b	#1,LagFrames.w				; NAT: Increase lag frame counter
 	cmpi.b	#GameModeID_TitleCard|GameModeID_Demo,(Game_Mode).w	; pre-level Demo Mode?
 	beq.s	loc_4C4
 	cmpi.b	#GameModeID_TitleCard|GameModeID_Level,(Game_Mode).w	; pre-level Zone play mode?
@@ -10909,7 +10903,7 @@ MenuScreen:
 	move.w	#make_art_tile(ArtTile_VRAM_Start,3,0),d0
 	bsr.w	EniDec
 	lea	(Chunk_Table).l,a1
-	move.l	#vdpComm(VRAM_Plane_B_Name_Table-10,VRAM,WRITE),d0
+	move.l	#vdpComm(VRAM_Plane_B_Name_Table,VRAM,WRITE),d0
 	moveq	#$27+10,d1
 	moveq	#$1B,d2
 	jsrto	(PlaneMapToVRAM_H40).l, JmpTo_PlaneMapToVRAM_H40	; fullscreen background
@@ -13439,9 +13433,11 @@ loc_AA76:
 loc_AA8A:
 	jsrto	(ObjectMove).l, JmpTo2_ObjectMove
 	tst.b	(CutScene+objoff_34).w
-	beq.s	+
+	beq.s	++
 	cmpi.w	#-$20-40,x_pos(a0)
-	blt.w	JmpTo3_DeleteObject
+	bge.w	+
+	move.w	#$150+40+16,x_pos(a0)
++
 	jmpto	(DisplaySprite).l, JmpTo5_DisplaySprite
 ; ===========================================================================
 +
@@ -13474,7 +13470,7 @@ Obj_EndingBird_Init:
 	move.l	d0,(RNG_seed).w
 	move.l	d0,d1
 	andi.w	#$7F,d0
-	move.w	#-$A0,d2
+	move.w	#-$A0-40,d2
 	add.w	d0,d2
 	move.w	d2,x_pos(a0)
 	ror.l	#3,d1
@@ -16108,6 +16104,7 @@ SwScrl_DEZ:
 	bsr.w	SetHorizVertiScrollFlagsBG
 	move.w	(Camera_BG_Y_pos).w,(Vscroll_Factor_BG).w
 	move.w	(Camera_X_pos).w,d4
+	addi.w	#40,d4
 	lea	(TempArray_LayerDef).w,a2
 	move.w	d4,(a2)+
 
@@ -17040,7 +17037,7 @@ LoadTilesAsYouMove:
 
 	move.b	#0,(Screen_redraw_flag).w
 	moveq	#-$30,d4
-	moveq	#$F,d6
+	moveq	#$11,d6
 ; loc_DACE:
 Draw_All:
 	movem.l	d4-d6,-(sp)	; This whole routine basically redraws the whole
@@ -19606,6 +19603,7 @@ LevEvents_CNZ2_Routine1:
 	move.w	#$62E,(Camera_Max_Y_pos).w
 	move.w	#$62E,(Tails_Max_Y_pos).w
 	move.b	#$F9,(Level_Layout+$C54).w
+	move.b	#1,(Screen_redraw_flag).w
 	addq.b	#2,(Dynamic_Resize_Routine).w
 +
 	rts
@@ -19617,13 +19615,13 @@ LevEvents_CNZ2_Routine1:
 ; ===========================================================================
 ; loc_F2CE:
 LevEvents_CNZ2_Routine2:
-	cmpi.w	#$28A0,(Camera_X_pos).w
+	cmpi.w	#$2890,(Camera_X_pos).w
 	blo.s	+	; rts
 	move.b	#$F9,(Level_Layout+$C50).w
-	move.w	#$28A0,(Camera_Min_X_pos).w
-	move.w	#$28A0,(Camera_Max_X_pos).w
-	move.w	#$28A0,(Tails_Min_X_pos).w
-	move.w	#$28A0,(Tails_Max_X_pos).w
+	move.w	#$2860,(Camera_Min_X_pos).w
+	move.w	#$28E0,(Camera_Max_X_pos).w
+	move.w	#$2860,(Tails_Min_X_pos).w
+	move.w	#$28E0,(Tails_Max_X_pos).w
 	addq.b	#2,(Dynamic_Resize_Routine).w
 	command	Mus_FadeOut
 	clr.b	(ScreenShift).w
@@ -19794,12 +19792,12 @@ LevEvents_DEZ_Routine3:
 ; loc_F4AC:
 LevEvents_DEZ_Routine4:
 	move.w	(Camera_X_pos).w,(Camera_Min_X_pos).w
-	move.w	#$680,d0
+	move.w	#$680+40,d0
 	cmp.w	(Camera_X_pos).w,d0
 	bhi.s	+	; rts
 	addq.b	#2,(Dynamic_Resize_Routine).w
 	move.w	d0,(Camera_Min_X_pos).w
-	addi.w	#$C0,d0
+	addi.w	#$C0-80,d0
 	move.w	d0,(Camera_Max_X_pos).w
 +
 	rts
@@ -22212,6 +22210,8 @@ Obj_Barrier_Init:
 	move.l	#Obj_Barrier_MapUnc_11822,mappings(a0)
 	move.w	#make_art_tile(ArtTile_ArtNem_HtzValveBarrier,1,0),art_tile(a0)
 	move.b	#8,width_pixels(a0)
+	move.b	subtype(a0),mapping_frame(a0)
+	andi.b  #%0011,mapping_frame(a0)
 	cmpi.b	#metropolis_zone,(Current_Zone).w
 	beq.s	+
 	cmpi.b	#metropolis_zone_2,(Current_Zone).w
@@ -22224,12 +22224,15 @@ Obj_Barrier_Init:
 	bne.s	+
 	move.w	#make_art_tile(ArtTile_ArtNem_ConstructionStripes_2,1,0),art_tile(a0)
 	move.b	#8,width_pixels(a0)
+	move.b	#2,mapping_frame(a0)
 +
 	cmpi.b	#death_egg_zone,(Current_Zone).w
 	bne.s	+
 	move.w	#make_art_tile(ArtTile_ArtNem_ConstructionStripes_1,1,0),art_tile(a0)
 	move.b	#8,width_pixels(a0)
+	move.b	#2,mapping_frame(a0)
 +
+	; i think this is unused???
 	cmpi.b	#aquatic_ruin_zone,(Current_Zone).w
 	bne.s	+
 	move.w	#make_art_tile(ArtTile_ArtNem_ARZBarrierThing,1,0),art_tile(a0)
@@ -22239,8 +22242,6 @@ Obj_Barrier_Init:
 	ori.b	#4,render_flags(a0)
 	move.w	#prio(4),priority(a0)
 	move.w	y_pos(a0),objoff_32(a0)
-	move.b	subtype(a0),mapping_frame(a0)
-	andi.b  #%0011,mapping_frame(a0)
 	move.w	x_pos(a0),d2
 	move.w	d2,d3
 	subi.w	#$200,d2
@@ -24166,8 +24167,8 @@ fireshield_monitor:
 	bset	#status_sec_hasShield,status_secondary(a1)	; give shield status
 	bset	#Status_FireShield,status_secondary(a1)
 	;sfx	sfx_FireShield
-	tst.b	parent+1(a0)
-	bne.s	+
+	;tst.b	parent+1(a0)
+	;bne.s	+
 	;move.l	#Obj_Fire_Shield,(Sonic_Shield+id).w ; load Obj_Shield (shield) at $FFFFD180
 	;move.w	a1,(Sonic_Shield+parent).w
 +	rts
@@ -24178,8 +24179,8 @@ lightningshield_monitor:
 	bset	#status_sec_hasShield,status_secondary(a1)	; give shield status
 	bset	#Status_LtngShield,status_secondary(a1)
 	;sfx	sfx_LtngShield
-	tst.b	parent+1(a0)
-	bne.s	+
+	;tst.b	parent+1(a0)
+	;bne.s	+
 	;move.l	#Obj_Lightning_Shield,(Sonic_Shield+id).w ; load Obj_Shield (shield) at $FFFFD180
 	;move.w	a1,(Sonic_Shield+parent).w
 +	rts
@@ -24189,8 +24190,8 @@ bubbleshield_monitor:
 	bset	#status_sec_hasShield,status_secondary(a1)	; give shield status
 	bset	#Status_BublShield,status_secondary(a1)
 	;sfx	sfx_BubblShield
-	tst.b	parent+1(a0)
-	bne.s	+
+	;tst.b	parent+1(a0)
+	;bne.s	+
 	;move.l	#Obj_Bubble_Shield,(Sonic_Shield+id).w ; load Obj_Shield (shield) at $FFFFD180
 	;move.w	a1,(Sonic_Shield+parent).w
 +	rts
@@ -28262,13 +28263,8 @@ BuildSprites_MultiDraw_NextObj:
 
 ; sub_1680A:
 ChkDrawSprite:
-	cmpi.w  #0,d3 ; hack to prevent underflows for widescreen
-	ble.s   +
-	cmpi.w  #512,d3 ; hack to prevent overflows for widescreen
-	bge.s   +
 	cmpi.b	#80,d5		; has the sprite limit been reached?
 	blo.s	DrawSprite_Cont	; if it hasn't, branch
-+
 	rts
 ; End of function ChkDrawSprite
 
@@ -28300,7 +28296,6 @@ DrawSprite_Loop:
 	addq.w	#2,a1
 	move.w	(a1)+,d0
 	add.w	d3,d0
-	andi.w	#$1FF,d0
 	bne.s	+
 	addq.w	#1,d0	; avoid activating sprite masking
 +
@@ -28333,7 +28328,6 @@ DrawSprite_FlipX:
 	move.b	CellOffsets_XFlip(pc,d4.w),d4
 	sub.w	d4,d0	; subtract sprite size
 	add.w	d3,d0
-	andi.w	#$1FF,d0
 	bne.s	+
 	addq.w	#1,d0
 +
@@ -28375,7 +28369,6 @@ DrawSprite_FlipY:
 	addq.w	#2,a1
 	move.w	(a1)+,d0
 	add.w	d3,d0
-	andi.w	#$1FF,d0
 	bne.s	+
 	addq.w	#1,d0
 +
@@ -28414,7 +28407,6 @@ DrawSprite_FlipXY:
 	move.b	CellOffsets_XFlip2(pc,d4.w),d4
 	sub.w	d4,d0
 	add.w	d3,d0
-	andi.w	#$1FF,d0
 	bne.s	+
 	addq.w	#1,d0
 +
@@ -28947,7 +28939,6 @@ DrawSprite_2P_Loop:
 	move.w	d0,(a2)+
 	move.w	(a1)+,d0
 	add.w	d3,d0
-	andi.w	#$1FF,d0
 	bne.s	+
 	addq.w	#1,d0
 +
@@ -28993,7 +28984,6 @@ DrawSprite_2P_FlipX:
 	move.b	byte_16E46(pc,d4.w),d4
 	sub.w	d4,d0
 	add.w	d3,d0
-	andi.w	#$1FF,d0
 	bne.s	+
 	addq.w	#1,d0
 +
@@ -29036,7 +29026,6 @@ DrawSprite_2P_FlipY:
 	move.w	d0,(a2)+
 	move.w	(a1)+,d0
 	add.w	d3,d0
-	andi.w	#$1FF,d0
 	bne.s	+
 	addq.w	#1,d0
 +
@@ -29087,7 +29076,6 @@ DrawSprite_2P_FlipXY:
 	move.b	byte_16F06(pc,d4.w),d4
 	sub.w	d4,d0
 	add.w	d3,d0
-	andi.w	#$1FF,d0
 	bne.s	+
 	addq.w	#1,d0
 +
@@ -29341,7 +29329,7 @@ Touch_Rings:
 +
 	cmpi.w	#$5A,invulnerable_time(a0)
 	bcc.w	Touch_Rings_Done
-	btst	#0,status_secondary(a0)	; does character have a lightning shield?
+	btst	#Status_LtngShield,status_secondary(a0)	; does character have a lightning shield?
 	beq.s	Touch_Rings_NoAttraction	; if not, branch
 	move.w	x_pos(a0),d2
 	move.w	y_pos(a0),d3
@@ -29397,7 +29385,7 @@ Touch_Rings_Loop:
 	cmp.w	d5,d0		; has character crossed the ring?
 	bhi.w	Touch_NextRing	; if they have, branch
 +
-	btst	#0,status_secondary(a0)	; does character have a lightning shield?
+	btst	#Status_LtngShield,status_secondary(a0)	; does character have a lightning shield?
 	bne.s	AttractRing			; if so, attract the ring towards the player
 -
 	move.w	#$604,(a4)		; set frame and destruction timer
@@ -38219,6 +38207,7 @@ Obj_CPZPylon_Main:
 	asr.w	#1,d1
 	add.w	d1,d0
 	neg.w	d0
+	andi.w	#$1FF,d0
 	move.w	d0,x_pixel(a0)
 	move.w	(Camera_Y_pos).w,d1
 	asr.w	#1,d1
@@ -57784,7 +57773,7 @@ Obj_MCZBoss_Init:
 	move.l	#Obj_MCZBoss_MapUnc_316EC,mappings(a0)
 	move.w	#make_art_tile(ArtTile_ArtNem_MCZBoss,0,0),art_tile(a0)
 	ori.b	#4,render_flags(a0)
-	move.b	#3,priority(a0)	; gets overwritten
+	move.w	#prio(3),priority(a0)	; gets overwritten
 	move.w	#$21A0+40,x_pos(a0)
 	move.w	#$560,y_pos(a0)
 	move.b	#5,mainspr_mapframe(a0)
@@ -75182,7 +75171,7 @@ loc_3DFBA:
 ;loc_3DFF8
 Obj_Eggrobo_CheckHit:
 	tst.b	collision_property(a0)
-	beq.s	Obj_Eggrobo_Beaten
+	bra.s	Obj_Eggrobo_Beaten
 	tst.b	objoff_2A(a0)
 	bne.s	Obj_Eggrobo_Flashing
 	tst.b	collision_flags(a0)
@@ -79306,8 +79295,8 @@ loc_40EAA:
 	move.l	#vdpComm(tiles_to_bytes(ArtTile_HUD_Rings),VRAM,WRITE),d0
 
 	moveq	#0,d1
-	move.w	(LagFrames).w,d1
-	clr.w	LagFrames.w			; clear lag frame counter
+	move.b	(LagFrames).w,d1
+	clr.b	LagFrames.w			; clear lag frame counter
 	bsr.w	Hud_Rings
 
 loc_40EBE:
@@ -83803,7 +83792,7 @@ DualPCM_sz:
 		message "ROM size is $\{*} bytes (\{*/1024.0} kb)."
 	endif
 	; share these symbols externally (WARNING: don't rename, move or remove these labels!)
-	shared word_728C_user,Obj_EndingController_MapUnc_7240,off_3A294,MapRUnc_Sonic
+	shared word_728C_user,Obj_EndingController_MapUnc_7240,off_3A294,MapRUnc_Sonic,mQueue,mFlags,Current_Zone,Current_Act
 
 ; --------------------------------------------------------------------
 	include	"ErrorDebugger/ErrorHandler.asm"

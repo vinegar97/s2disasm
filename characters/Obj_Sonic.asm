@@ -1351,6 +1351,7 @@ loc_119E8:
 	bne.s	Sonic_Transform
 
 Sonic_InstaShield:
+	rts
 	btst	#Status_Shield,status_secondary(a0)	; does Sonic have an S2 shield (The Elementals were already filtered out at this point)?
 	bne.s	locret_11A14				; if yes, branch
 	;move.b	#1,(Shield+anim).w
@@ -1998,7 +1999,8 @@ Sonic_ResetOnFloor_Part3:
 	bne.s	loc_1222A
 	tst.b	(Super_Sonic_flag).w
 	bne.s	loc_1222A
-	bsr.s	BubbleShield_Bounce
+	btst	#Status_BublShield,status_secondary(a0)	; does character have a bubble shield?
+	bne.s	BubbleShield_Bounce	; if so, branch
 
 loc_1222A:
 	move.b	#0,double_jump_flag(a0)

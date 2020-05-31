@@ -1337,7 +1337,8 @@ unk_FFDF:			ds.b 1		; Written to near loc_175EA, never read from
 Demo_mode_flag:			ds.w 1		; 1 if a demo is playing (2 bytes)
 Demo_number:			ds.w 1		; which demo will play next (2 bytes)
 Ending_demo_number:		ds.w 1		; zone for the ending demos (2 bytes, unused)
-LagFrames:			ds.w 1
+LagFrames:			ds.b 1
+			ds.b 1
 ConsoleRegion:
 Graphics_Flags:			ds.w 1		; misc. bitfield
 Debug_mode_flag:		ds.w 1		; (2 bytes)
