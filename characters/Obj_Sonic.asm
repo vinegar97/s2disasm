@@ -300,10 +300,10 @@ Obj_Sonic_OutWater:
 	move.w	#$30,(Sonic_acceleration).w
 	move.w	#$100,(Sonic_deceleration).w
 +
-	cmpi.b	#4,routine(a0)	; is Sonic falling back from getting hurt?
-	beq.s	+		; if yes, branch
+	;cmpi.b	#4,routine(a0)	; is Sonic falling back from getting hurt?
+	;beq.s	+		; if yes, branch
 	asl	y_vel(a0)
-+
+;+
 	tst.w	y_vel(a0)
 	beq.w	return_1A18C
 	move.w	#$100,(Sonic_Dust+anim).w	; splash animation
@@ -1010,6 +1010,10 @@ Sonic_ChgJumpDir:
 	neg.w	d1
 	cmp.w	d1,d0	; compare new speed with top speed
 	bgt.s	+	; if new speed is less than the maximum, branch
+	; TODO: Air speed cap toggle
+	add.w	d5,d0	; +++ remove this frame's acceleration change
+	cmp.w	d1,d0	; +++ compare speed with top speed
+	ble.s	+	; +++ if speed was already greater than the maximum, branch
 	move.w	d1,d0	; limit speed in air going left, even if Sonic was already going faster (speed limit/cap)
 +
 	btst	#button_right,(Ctrl_1_Held_Logical).w
@@ -1019,6 +1023,10 @@ Sonic_ChgJumpDir:
 	add.w	d5,d0	; accelerate right in the air
 	cmp.w	d6,d0	; compare new speed with top speed
 	blt.s	+	; if new speed is less than the maximum, branch
+	; TODO: Air speed cap toggle
+	sub.w	d5,d0	; +++ remove this frame's acceleration change
+	cmp.w	d6,d0	; +++ compare speed with top speed
+	bge.s	+	; +++ if speed was already greater than the maximum, branch
 	move.w	d6,d0	; limit speed in air going right, even if Sonic was already going faster (speed limit/cap)
 ; Obj_Sonic_JumpMove:
 +	move.w	d0,x_vel(a0)
@@ -1101,8 +1109,10 @@ Sonic_Boundary_CheckBottom:
 	blt.s	Sonic_Boundary_Bottom	; if yes, branch
 	rts
 ; ---------------------------------------------------------------------------
+; https://info.sonicretro.org/SCHG_How-to:Disable_floor_collision_while_dying
 Sonic_Boundary_Bottom:
 	lea	0.w,a2			; NAT: Make the code below wont crash
+	addq.l    #4,sp
 	jmpto	(KillCharacter).l, JmpTo_KillCharacter
 ; ===========================================================================
 
@@ -1130,14 +1140,16 @@ Sonic_Roll:
 	btst	#status_sec_isSliding,status_secondary(a0)
 	bne.s	Obj_Sonic_NoRoll
     endif
-	mvabs.w	inertia(a0),d0
-	cmpi.w	#$80,d0		; is Sonic moving at $80 speed or faster?
-	blo.s	Obj_Sonic_NoRoll	; if not, branch
+	; TODO: Slow ducking toggle
+	btst	#button_down,(Ctrl_1_Held_Logical).w ; is down being pressed?
+	beq.s   Obj_Sonic_NoRoll               ; if not, branch
 	move.b	(Ctrl_1_Held_Logical).w,d0
 	andi.b	#button_left_mask|button_right_mask,d0 ; is left/right being pressed?
 	bne.s	Obj_Sonic_NoRoll	; if yes, branch
-	btst	#button_down,(Ctrl_1_Held_Logical).w ; is down being pressed?
-	bne.s	Obj_Sonic_ChkRoll			; if yes, branch
+	mvabs.w	inertia(a0),d0
+	cmpi.w   #$100,d0               ; is Sonic moving at $100 speed or faster?
+	bhi.s   Obj_Sonic_ChkRoll               ; if yes, branch
+	move.b   #AniIDSonAni_Duck,anim(a0)       ; use "ducking" animation
 ; return_1A9F8:
 Obj_Sonic_NoRoll:
 	rts
@@ -2083,6 +2095,7 @@ Obj_Sonic_Hurt_Normal:
 	bsr.w	Sonic_HurtStop
 	bsr.w	Sonic_LevelBound
 	bsr.w	Sonic_RecordPos
+	bsr.w	Sonic_Water
 	bsr.w	Sonic_Animate
 	bsr.w	LoadSonicDynPLC
 	jmp	(DisplaySprite).l

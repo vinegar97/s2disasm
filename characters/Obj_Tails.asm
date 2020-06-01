@@ -353,9 +353,13 @@ loc_1BC68:
 	lea	(Sonic_Stat_Record_Buf).w,a2
 	move.b	2(a2,d3.w),d2
 	andi.b	#$D2,d2
-	bne.s	return_1BCDE
+	jne		return_1BCDE
 	or.w	d0,d1
-	bne.s	return_1BCDE
+	jne		return_1BCDE
+	; https://info.sonicretro.org/SCHG_How-to:Fix_Tails%27_respawn_speeds
+	move.w	#$600,(Tails_top_speed).w	; set Tails' top speed
+	move.w	#$C,(Tails_acceleration).w	; set Tails' acceleration
+	move.w	#$80,(Tails_deceleration).w	; set Tails' deceleration
 	move.w	#6,(Tails_CPU_routine).w	; => TailsCPU_Normal
 	move.b	#0,obj_control(a0)
 	move.b	#AniIDTailsAni_Walk,anim(a0)
@@ -701,10 +705,10 @@ Obj_Tails_OutWater:
 	command	Mus_OutWater		; disable underwater mode
 
 +
-	cmpi.b	#4,routine(a0)		; is Tails falling back from getting hurt?
-	beq.s	+			; if yes, branch
+	;cmpi.b	#4,routine(a0)		; is Tails falling back from getting hurt?
+	;beq.s	+			; if yes, branch
 	asl	y_vel(a0)
-+
+;+
 	tst.w	y_vel(a0)
 	beq.w	return_1BF58
 	move.w	#$100,(Tails_Dust+anim).w	; splash animation
@@ -1270,9 +1274,7 @@ Tails_RollSpeed:
 	asl.w	#1,d6
 	move.w	(Tails_acceleration).w,d5
 	asr.w	#1,d5	; natural roll deceleration = 1/2 normal acceleration
-	move.w	(Tails_deceleration).w,d4
-	asr.w	#2,d4	; controlled roll deceleration...
-			; interestingly, Tails is much worse at this than Sonic when underwater
+	move.w    #$20,d4
     if status_sec_isSliding = 7
 	tst.b	status_secondary(a0)
 	bmi.w	Obj_Tails_Roll_ResetScr
@@ -1435,6 +1437,10 @@ Tails_ChgJumpDir:
 	neg.w	d1
 	cmp.w	d1,d0	; compare new speed with top speed
 	bgt.s	+	; if new speed is less than the maximum, branch
+	; TODO: Air speed cap toggle
+	add.w	d5,d0	; +++ remove this frame's acceleration change
+	cmp.w	d1,d0	; +++ compare speed with top speed
+	ble.s	+	; +++ if speed was already greater than the maximum, branch
 	move.w	d1,d0	; limit speed in air going left, even if Tails was already going faster (speed limit/cap)
 +
 	btst	#button_right,(Ctrl_2_Held_Logical).w
@@ -1444,6 +1450,10 @@ Tails_ChgJumpDir:
 	add.w	d5,d0	; accelerate right in the air
 	cmp.w	d6,d0	; compare new speed with top speed
 	blt.s	+	; if new speed is less than the maximum, branch
+	; TODO: Air speed cap toggle
+	sub.w	d5,d0	; +++ remove this frame's acceleration change
+	cmp.w	d6,d0	; +++ compare speed with top speed
+	bge.s	+	; +++ if speed was already greater than the maximum, branch
 	move.w	d6,d0	; limit speed in air going right, even if Tails was already going faster (speed limit/cap)
 ; Obj_Tails_JumpMove:
 +	move.w	d0,x_vel(a0)
@@ -1526,9 +1536,11 @@ Tails_Boundary_CheckBottom:
 	blt.s	Tails_Boundary_Bottom	; if yes, branch
 	rts
 ; ---------------------------------------------------------------------------
+; https://info.sonicretro.org/SCHG_How-to:Disable_floor_collision_while_dying
 Tails_Boundary_Bottom:
 	lea	0.w,a2			; NAT: Make the code below wont crash
-	jmpto	(KillCharacter).l, JmpTo2_KillCharacter
+	addq.l    #4,sp
+	jmpto	(KillCharacter).l, JmpTo_KillCharacter
 ; ===========================================================================
 
 ; loc_1C5A0:
@@ -1555,14 +1567,15 @@ Tails_Roll:
 	btst	#status_sec_isSliding,status_secondary(a0)
 	bne.w	Obj_Tails_NoRoll
     endif
-	mvabs.w	inertia(a0),d0
-	cmpi.w	#$80,d0		; is Tails moving at $80 speed or faster?
-	blo.s	Obj_Tails_NoRoll	; if not, branch
+	btst	#button_down,(Ctrl_2_Held_Logical).w ; is down being pressed?
+	beq.s   Obj_Tails_NoRoll               ; if not, branch
 	move.b	(Ctrl_2_Held_Logical).w,d0
-	andi.b	#button_left_mask|button_right_mask,d0		; is left/right being pressed?
+	andi.b	#button_left_mask|button_right_mask,d0 ; is left/right being pressed?
 	bne.s	Obj_Tails_NoRoll	; if yes, branch
-	btst	#button_down,(Ctrl_2_Held_Logical).w	; is down being pressed?
-	bne.s	Obj_Tails_ChkRoll			; if yes, branch
+	mvabs.w	inertia(a0),d0
+	cmpi.w   #$100,d0               ; is Tails moving at $100 speed or faster?
+	bhi.s   Obj_Tails_ChkRoll               ; if yes, branch
+	move.b   #AniIDTailsAni_Duck,anim(a0)       ; use "ducking" animation
 ; return_1C5DE:
 Obj_Tails_NoRoll:
 	rts

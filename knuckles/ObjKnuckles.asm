@@ -1329,6 +1329,7 @@ loc_316DAE:					  ; ...
 		bsr.w	Sonic_LevelBound
 		bsr.w	Knuckles_RecordPositions
 		bsr.w	Knuckles_Animate
+		bsr.w	Sonic_Water
 		bsr.w	LoadKnucklesDynPLC
 		jmp	DisplaySprite
 ; End of function Obj_Knuckles_Hurt

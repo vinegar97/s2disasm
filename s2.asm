@@ -1223,11 +1223,11 @@ PauseGame:
 Pause_Loop:
 	move.b	#VintID_Pause,(Vint_routine).w
 	bsr.w	WaitForVint
-	tst.b	(Slow_motion_flag).w	; is slow-motion cheat on?
+	tst.b	(Level_select_flag).w	; is slow-motion cheat on?
 	beq.s	Pause_ChkStart		; if not, branch
 	btst	#button_A,(Ctrl_1_Press).w; is button A pressed?
 	beq.s	Pause_ChkBC		; if not, branch
-	move.b	#GameModeID_TitleScreen,(Game_Mode).w ; set game mode to 4 (title screen)
+	move.b	#GameModeID_LevelSelect,(Game_Mode).w ; set game mode to 4 (title screen)
 	bra.s	Pause_Resume
 ; ===========================================================================
 ; loc_13D4:
@@ -3822,8 +3822,9 @@ TitleScreen_Loop:
     else
 	move.w	#emerald_hill_zone_act_1,(Current_ZoneAndAct).w
     endif
-	;tst.b	(Level_select_flag).w	; has level select cheat been entered?
-	;beq.s	+			; if not, branch
+	move.b	#1,(Level_select_flag).w
+	tst.b	(Level_select_flag).w	; has level select cheat been entered?
+	beq.s	+			; if not, branch
 	btst	#button_A,(Ctrl_1_Held).w ; is A held down?
 	beq.s	+	 		; if not, branch
 	move.b	#GameModeID_LevelSelect,(Game_Mode).w ; => LevelSelectMenu
@@ -4221,6 +4222,7 @@ Level_TtlCard:
 	moveq	#PalID_BGND,d0
 	bsr.w	PalLoad_ForFade	; load Sonic's palette line
 	jsr	LevelSizeLoad
+	bsr.w	InitPlayers
 	jsrto	(DeformBgLayer).l, JmpTo_DeformBgLayer
 	clr.w	(Vscroll_Factor_FG).w
 	move.w	#-$E0,(Vscroll_Factor_P2_FG).w
@@ -4234,7 +4236,6 @@ Level_TtlCard:
 	jsr	(ConvertCollisionArray).l
 	bsr.w	LoadCollisionIndexes
 	bsr.w	WaterEffects
-	bsr.w	InitPlayers
 	move.w	#0,(Ctrl_1_Logical).w
 	move.w	#0,(Ctrl_2_Logical).w
 	move.w	#0,(Ctrl_1).w
@@ -4246,9 +4247,9 @@ Level_TtlCard:
 	tst.b	(Water_flag).w	; does level have water?
 	beq.s	+	; if not, branch
 	move.l	#Obj_WaterSurface,(WaterSurface1+id).w ; load Obj_WaterSurface (water surface) at $FFFFB380
-	move.w	#$60,(WaterSurface1+x_pos).w ; set horizontal offset
+	move.w	#$60-40,(WaterSurface1+x_pos).w ; set horizontal offset
 	move.l	#Obj_WaterSurface,(WaterSurface2+id).w ; load Obj_WaterSurface (water surface) at $FFFFB3C0
-	move.w	#$120,(WaterSurface2+x_pos).w ; set different horizontal offset
+	move.w	#$120-40,(WaterSurface2+x_pos).w ; set different horizontal offset
 +
 	cmpi.b	#chemical_plant_zone,(Current_Zone).w	; check if zone == CPZ
 	bne.s	+			; branch if not
@@ -4485,6 +4486,7 @@ InitPlayers:
 	
 	move.l	#Obj_Sonic,(MainCharacter+id).w ; load Obj_Sonic Sonic object at $FFFFB000
 	move.l	#Obj_SpindashDust,(Sonic_Dust+id).w ; load Obj_Splash Sonic's spindash dust/splash object at $FFFFD100
+	move.b	#$13,(MainCharacter+y_radius).w		; Set Sonic's y-radius
 	;move.l	#Obj_Insta_Shield,(Sonic_Shield).w
 
 	cmpi.b	#3,(Player_MainChar).w
@@ -4514,6 +4516,7 @@ InitPlayers:
 InitPlayers_TailsAlone:
 	move.l	#Obj_Tails,(MainCharacter+id).w ; load Obj_Tails Tails object at $FFFFB000
 	move.l	#Obj_SpindashDust,(Tails_Dust+id).w ; load Obj_Splash Tails' spindash dust/splash object at $FFFFD100
+	move.b	#$F,(MainCharacter+y_radius).w		; Set Tails' y-radius
 	addi_.w	#4,(MainCharacter+y_pos).w
 	rts
 ; End of function InitPlayers
@@ -4535,9 +4538,9 @@ UpdateWaterSurface:
 	addi.w	#$20,d1
 +		; match obj x-position to screen position
 	move.w	d1,d0
-	addi.w	#$60,d0
+	addi.w	#$60-40,d0
 	move.w	d0,(WaterSurface1+x_pos).w
-	addi.w	#$120,d1
+	addi.w	#$120-40,d1
 	move.w	d1,(WaterSurface2+x_pos).w
 +
 	rts
@@ -11848,6 +11851,8 @@ MenuScreen_LevelSelect:
 	ori.b	#$40,d0
 	move.w	d0,(VDP_control_port).l
 
+    clr.b    (Water_fullscreen_flag).w
+
 	bsr.w	Pal_FadeFromBlack
 
 ;loc_93AC:
@@ -11947,6 +11952,8 @@ LevelSelect_Order:
 LevelSelect_StartZone:
 	andi.w	#$3FFF,d0
 	move.w	d0,(Current_ZoneAndAct).w
+    moveq    #PLCID_Std1,d0
+    jsr		RunPLC_ROM
 	move.b	#GameModeID_Level,(Game_Mode).w ; => Level (Zone play mode)
 	move.b	#3,(Life_count).w
 	move.b	#3,(Life_count_2P).w
@@ -11958,6 +11965,8 @@ LevelSelect_StartZone:
 	move.l	d0,(Timer_2P).w
 	move.l	d0,(Score_2P).w
 	move.b	d0,(Continue_count).w
+    move.b  d0,(Last_star_pole_hit).w
+    move.b  d0,(Last_star_pole_hit_2P).w
 	move.l	#5000,(Next_Extra_life_score).w
 	move.l	#5000,(Next_Extra_life_score_2P).w
 	command	Mus_FadeOut
@@ -12029,8 +12038,13 @@ LevSelControls_CheckLR:
 	andi.b	#$7F,d0
 
 +
+    btst    #button_B,d1
+    beq.s    +
+    subi.b    #$10,d0
+    andi.b    #$7F,d0
++
 	move.w	d0,(Sound_test_sound).w
-	andi.w	#button_B_mask|button_C_mask,d1
+    andi.w    #button_C_mask,d1
 	beq.s	+	; rts
 	move.w	(Sound_test_sound).w,d0
 	move.b	d0,mQueue+1.w
@@ -12051,6 +12065,13 @@ LevSelControls_SwitchSide:	; not in soundtest, not up/down pressed
 	move.w	(Level_select_zone).w,d0	; left or right pressed
 	move.b	LevelSelect_SwitchTable(pc,d0.w),d0 ; set selected zone according to table
 	move.w	d0,(Level_select_zone).w
++;LevSelControls_SwitchPlayerOption:
+    btst    #button_C,(Ctrl_1_Press).w    ; is C pressed?
+    beq.s    +                ; if not, branch
+    addq.w    #1,(Player_option).w        ; select next character
+    cmpi.w    #4,(Player_option).w        ; did we go over the limit?
+    bls.s    +                ; if not, branch
+    clr.w    (Player_option).w        ; reset to 0
 +
 	rts
 ; ===========================================================================
@@ -12138,16 +12159,34 @@ LevelSelect_MarkFields:
 	move.w	d0,(a6)
 
 +
-	cmpi.w	#$15,(Level_select_zone).w
-	bne.s	+	; rts
-	bsr.w	LevelSelect_DrawSoundNumber
-+
-	rts
+	cmpi.w    #$15,(Level_select_zone).w
+	beq.w   LevelSelect_DrawSoundNumber
+	bra.w   LevelSelect_DrawPlayerOption
 ; ===========================================================================
 ;loc_965A:
 LevelSelect_DrawSoundNumber:
 	move.l	#vdpComm(VRAM_Plane_A_Name_Table+planeLocH40(34,18),VRAM,WRITE),(VDP_control_port).l
 	move.w	(Sound_test_sound).w,d0
+	move.b	d0,d2
+	lsr.b	#4,d0
+	bsr.s	+
+	move.b	d2,d0
+
++
+	andi.w	#$F,d0
+	cmpi.b	#$A,d0
+	blo.s	+
+	addi.b	#4,d0
+
++
+	addi.b	#$10,d0
+	add.w	d3,d0
+	move.w	d0,(a6)
+	rts
+
+LevelSelect_DrawPlayerOption:
+    move.l    #vdpComm(VRAM_Plane_A_Name_Table+planeLocH40(4,24),VRAM,WRITE),(VDP_control_port).l
+    move.w   (Player_option).w,d0
 	move.b	d0,d2
 	lsr.b	#4,d0
 	bsr.s	+
@@ -16064,6 +16103,8 @@ SwScrl_CPZ:
     endm
 	addq.b	#1,d4
 	dbf	d1,-
+	tst.b	(Current_act).w		; is this act 1?
+	bne.w	SwScrl_Water		; if not, proceed to initiate the Labyrinth Zone water ripple effect (this ensures that the effect does not take place in act 1)
 	rts
 ; ===========================================================================
 
@@ -16091,8 +16132,74 @@ loc_D34A:
 
 	addq.b	#1,d4
 	dbf	d1,--
+	tst.b	(Current_act).w		; is this act 1?
+	bne.w	SwScrl_Water		; if not, proceed to initiate the Labyrinth Zone water ripple effect (this ensures that the effect does not take place in act 1)
 	rts
 ; ===========================================================================
+; https://info.sonicretro.org/SCHG_How-to:Insert_Labyrinth_Zone_water_ripple_effect_in_Sonic_2
+SwScrl_Water:
+	; this adds the LZ water ripple effect to any level
+	lea	(Deform_LZ_Data1).l,a3
+	lea	(Obj_SmallBubbles_WobbleData).l,a2
+
+	move.b	($FFFFF7D8).w,d2
+	move.b	d2,d3
+	addi.w	#$80,($FFFFF7D8).w ; '€'
+
+	add.w	(Camera_Bg_Y_pos).w,d2
+	andi.w	#$FF,d2
+
+	add.w	(Camera_Y_pos).w,d3
+	andi.w	#$FF,d3
+
+	lea	(Horiz_Scroll_Buf).w,a1
+	move.w	#$DF,d1	; 'ß'
+	move.w	(Water_Level_1).w,d4
+	move.w	(Camera_Y_pos).w,d5
+
+-	; as long as the camera is above the water
+	cmp.w	d4,d5			; is camera below water?
+	bge.s	SwScrl_Water_doRipple	; if yes, branch
+	addq.w	#4,a1		; increment pointer
+	addq.w	#1,d5		; increment camera y pos
+	addq.b	#1,d2
+	addq.b	#1,d3
+	dbf	d1,-
+	rts
+
+; does the LZ water ripple effect once the camera is below the water
+SwScrl_Water_doRipple:
+	move.b	(a3,d3.w),d4	; FG ripple effect
+	ext.w	d4
+	add.w	d4,(a1)+
+
+	move.b	(a2,d2.w),d4	; BG ripple effect
+	ext.w	d4
+	add.w	d4,(a1)+
+
+	addq.b	#1,d2
+	addq.b	#1,d3
+	dbf	d1,SwScrl_Water_doRipple
+	rts
+
+Deform_LZ_Data1:
+	dc.b   1,  1,  2,  2,  3,  3,  3,  3,  2,  2,  1,  1,  0,  0,  0,  0; 0
+	dc.b   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0; 16
+	dc.b   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0; 32
+	dc.b   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0; 48
+	dc.b   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0; 64
+	dc.b   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0; 80
+	dc.b   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0; 96
+	dc.b   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0; 112
+	dc.b  -1, -1, -2, -2, -3, -3, -3, -3, -2, -2, -1, -1,  0,  0,  0,  0; 128
+	dc.b   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0; 144
+	dc.b   1,  1,  2,  2,  3,  3,  3,  3,  2,  2,  1,  1,  0,  0,  0,  0; 160
+	dc.b   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0; 176
+	dc.b   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0; 192
+	dc.b   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0; 208
+	dc.b   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0; 224
+	dc.b   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0; 240
+
 ; loc_D382:
 SwScrl_DEZ:
 	move.w	(Camera_X_pos_diff).w,d4
@@ -16372,7 +16479,7 @@ SwScrl_ARZ:
 	neg.w	d0
 +	dbf	d2,-		; Loop until Horiz_Scroll_Buf is full
 
-	rts
+	jmp		SwScrl_Water
 ; ===========================================================================
 ; byte_D5CE:
 SwScrl_ARZ_RowHeights:
@@ -16610,17 +16717,23 @@ ScrollHoriz:
 ScrollVerti:
 	moveq	#0,d1
 	move.w	y_pos(a0),d0
+
+	; https://info.sonicretro.org/SCHG_How-to:Fix_camera_y_position_for_Tails
+	moveq	#$13,d2		; set default character height
+	sub.b	y_radius(a0),d2
+	sub.w	d2,d0	; get difference to character's actual height
+
 	sub.w	(a1),d0		; subtract camera Y pos
 	cmpi.w	#-$100,(Camera_Min_Y_pos).w ; does the level wrap vertically?
 	bne.s	.noWrap		; if not, branch
 	andi.w	#$7FF,d0
 ; loc_D78E:
 .noWrap:
-	btst	#2,status(a0)	; is the player rolling?
-	beq.s	.notRolling	; if not, branch
-	subq.w	#5,d0		; subtract difference between standing and rolling heights
+;	btst	#2,status(a0)	; is the player rolling?
+;	beq.s	.notRolling	; if not, branch
+;	subq.w	#5,d0		; subtract difference between standing and rolling heights
 ; loc_D798:
-.notRolling:
+;.notRolling:
 	btst	#1,status(a0)			; is the player in the air?
 	beq.s	.checkBoundaryCrossed_onGround	; if not, branch
 ;.checkBoundaryCrossed_inAir:
@@ -23584,6 +23697,10 @@ Obj_Monitor_Init:
 	tst.w	(Two_player_mode).w	; is it two player mode?
 	beq.s	Obj_Monitor_Main		; if not, branch
 	move.b	#9,anim(a0)		; use '?' icon
+    tst.w   (Two_player_items).w    ; are monitors set to 'teleport only'?
+    beq.s   Obj_Monitor_Main      ; if not, branch
+    subq.b  #1,anim(a0)     ; use teleport icon
+
 ;obj_26_sub_2:
 Obj_Monitor_Main:
 	move.b	routine_secondary(a0),d0
@@ -23622,6 +23739,7 @@ BranchTo2_MarkObjGone
 
 ; ||||||||||||||| S U B R O U T I N E |||||||||||||||||||||||||||||||||||||||
 ; sub_12756:
+; http://sonicresearch.org/community/index.php?threads/how-to-fix-weird-monitor-collision-errors.5834/
 SolidObject_Monitor_Sonic:
 	cmpi.l	#Obj_Knuckles,id(a1)
 	beq.s	SolidObject_Monitor_Knuckles
@@ -23629,6 +23747,12 @@ SolidObject_Monitor_Sonic:
 	bne.s	Obj_Monitor_ChkOverEdge		; if yes, branch
 	cmpi.b	#AniIDSonAni_Roll,anim(a1)		; is Sonic spinning?
 	bne.w	SolidObject_cont		; if not, branch
+    addq.b    #pushing_bit_delta,d6
+    btst    d6,status(a0)    ; check if we're pushing
+    beq.s    +
+    bclr    #5,status(a1)    ; clear 'pushing' bit
+    bclr    d6,status(a0)    ; clear object's 'pushing' bit
++
 	rts
 ; End of function SolidObject_Monitor_Sonic
 
@@ -23643,6 +23767,7 @@ SolidObject_Monitor_Knuckles:
 
 ; ||||||||||||||| S U B R O U T I N E |||||||||||||||||||||||||||||||||||||||
 ; sub_12768:
+; http://sonicresearch.org/community/index.php?threads/how-to-fix-weird-monitor-collision-errors.5834/
 SolidObject_Monitor_Tails:
 	btst	d6,status(a0)			; is Tails standing on the monitor?
 	bne.s	Obj_Monitor_ChkOverEdge		; if yes, branch
@@ -23651,6 +23776,12 @@ SolidObject_Monitor_Tails:
 	; in one player mode monitors always behave as solid for Tails
 	cmpi.b	#AniIDTailsAni_Roll,anim(a1)	; is Tails spinning?
 	bne.w	SolidObject_cont		; if not, branch
+    addq.b    #pushing_bit_delta,d6
+    btst    d6,status(a0)    ; check if we're pushing
+    beq.s    +
+    bclr    #5,status(a1)    ; clear 'pushing' bit
+    bclr    d6,status(a0)    ; clear object's 'pushing' bit
++
 	rts
 ; End of function SolidObject_Monitor_Tails
 
@@ -23686,20 +23817,27 @@ Obj_Monitor_CharStandOn:
 	rts
 ; ===========================================================================
 ;obj_26_sub_4:
-Obj_Monitor_Break:
-	move.b	status(a0),d0
-	andi.b	#standing_mask|pushing_mask,d0	; is someone touching the monitor?
-	beq.s	Obj_Monitor_SpawnIcon	; if not, branch
-	move.b	d0,d1
-	andi.b	#p1_standing|p1_pushing,d1	; is it the main character?
-	beq.s	+		; if not, branch
-	andi.b	#$D7,(MainCharacter+status).w
-	ori.b	#2,(MainCharacter+status).w	; prevent Sonic from walking in the air
+; http://sonicresearch.org/community/index.php?threads/how-to-fix-weird-monitor-collision-errors.5834/
+Obj_Monitor_CheckRelease:
+    btst    d6,status(a0)    ; if we're standing on the object
+    beq.s    +
+    bset    #1,status(a1)    ; set 'in air' bit
+    bclr    #3,status(a1)    ; clear 'should not fall' bit
 +
-	andi.b	#p2_standing|p2_pushing,d0	; is it the sidekick?
-	beq.s	Obj_Monitor_SpawnIcon	; if not, branch
-	andi.b	#$D7,(Sidekick+status).w
-	ori.b	#2,(Sidekick+status).w	; prevent Tails from walking in the air
+    addq.b    #pushing_bit_delta,d6
+    btst    d6,status(a0)    ; if we're pushing against the object
+    beq.s    +
+    bclr    #5,status(a1)    ; clear 'pushing' bit
++
+    rts
+
+Obj_Monitor_Break:
+    moveq    #p1_standing_bit,d6
+    lea        (MainCharacter).w,a1
+    bsr.s    Obj_Monitor_CheckRelease    ; Release player 1 -  d6 = p1 standing bit, a1 = player 1 address
+    moveq    #p2_standing_bit,d6
+    lea        (Sidekick).w,a1
+    bsr.s    Obj_Monitor_CheckRelease    ; Release player 2 - d6 = p2 standing bit, a1 = player 2 address
 ;loc_127EC:
 Obj_Monitor_SpawnIcon:
 	clr.b	status(a0)
@@ -32858,6 +32996,8 @@ SolidObject_TestClearPush:
 	beq.s	loc_19AEA
 	cmpi.b	#AniIDSonAni_Roll,anim(a1)
 	beq.s	loc_19ADC
+	cmpi.b	#AniIDSonAni_Spindash,anim(a1)
+	beq.s	loc_19ADC
 	move.w	#AniIDSonAni_Run,anim(a1)
 
 loc_19ADC:
@@ -33603,7 +33743,7 @@ Obj_SmallBubbles_Wobble:
 	ext.w	d0
 	add.w	objoff_30(a0),d0
 	move.w	d0,x_pos(a0)
-	bsr.s	Obj_SmallBubbles_ShowNumber
+	bsr.w	Obj_SmallBubbles_ShowNumber
 	jsr	(ObjectMove).l
 	tst.b	render_flags(a0)
 	bpl.s	JmpTo4_DeleteObject
@@ -33614,17 +33754,23 @@ JmpTo4_DeleteObject
 	jmp	(DeleteObject).l
 ; ===========================================================================
 ; loc_1D40E:
+;https://forums.sonicretro.org/index.php?threads/some-changes-and-fixes-for-sonic-2.29029/page-12#post-935624
 Obj_SmallBubbles_DisplayNumber:
-	movea.l	objoff_3C(a0),a2 ; a2=character
-	cmpi.b	#$C,air_left(a2)
-	bhi.s	JmpTo5_DeleteObject
+    movea.l objoff_3C(a0),a2 ; a2=character
+    cmpi.b  #$C,air_left(a2)
+    bhi.s   JmpTo5_DeleteObject
+    bsr.w   Obj_SmallBubbles_ShowNumber
+    lea (Ani_Obj_SmallBubbles).l,a1
+    jsr (AnimateSprite).l
+    jmp (DisplaySprite).l
 
 ; loc_1D41A:
 Obj_SmallBubbles_Display:
-	bsr.s	Obj_SmallBubbles_ShowNumber
-	lea	(Ani_Obj_SmallBubbles).l,a1
-	jsr	(AnimateSprite).l
-	jmp	(DisplaySprite).l
+    bsr.s   Obj_SmallBubbles_ShowNumber
+    lea (Ani_Obj_SmallBubbles).l,a1
+    jsr (AnimateSprite).l
+    bsr.w   Obj_SmallBubbles_LoadCountdownArt
+    jmp (DisplaySprite).l
 ; ===========================================================================
 
 JmpTo5_DeleteObject
@@ -35891,6 +36037,8 @@ CheckRightWallDist_Part2:
 ObjCheckRightWallDist:
 	add.w	x_pos(a0),d3
 	move.w	y_pos(a0),d2
+	; https://forums.sonicretro.org/index.php?threads/some-changes-and-fixes-for-sonic-2.29029/page-12
+	eori.w    #$F,d3
 	lea	(Primary_Angle).w,a4
 	move.b	#0,(a4)
 	movea.w	#$10,a3
@@ -43777,7 +43925,8 @@ Obj_LeavesGenerator_Init:
 	move.b	Obj_LeavesGenerator_CollisionFlags(pc,d0.w),collision_flags(a0)
 	move.l	#Obj_LavaMarker_MapUnc_20E74,mappings(a0)
 	move.w	#make_art_tile(ArtTile_ArtNem_Powerups,0,1),art_tile(a0)
-	move.b	#$84,render_flags(a0)
+	; https://forums.sonicretro.org/index.php?threads/some-changes-and-fixes-for-sonic-2.29029/page-12#post-935624
+	move.b	#4,render_flags(a0)
 	move.b	#$80,width_pixels(a0)
 	move.w	#prio(4),priority(a0)
 	move.b	subtype(a0),mapping_frame(a0)
@@ -43788,6 +43937,10 @@ Obj_LeavesGenerator_Main:
 	sub.w	(Camera_X_pos_coarse).w,d0
 	cmpi.w	#$280,d0
 	bhi.w	JmpTo29_DeleteObject
+    tst.w   (Debug_placement_mode).w
+    beq.s   +
+    jsr (DisplaySprite).l
++
 	move.b	collision_property(a0),d0
 	beq.s	loc_261C2
 	move.w	objoff_2E(a0),d0
@@ -58381,7 +58534,6 @@ Obj_CNZBoss_Init:
 	move.w	#$654,y_pos(a0)
 	move.b	#0,mainspr_mapframe(a0)
 	move.b	#$20,mainspr_width(a0)
-	move.b	#$80,mainspr_height(a0)
 	addq.b	#2,boss_subtype(a0)
 	move.b	#0,angle(a0)
 	bset	#6,render_flags(a0)
@@ -69240,7 +69392,7 @@ loc_39B92:
 ; ===========================================================================
 
 loc_39BA4:
-	move.b  #1,(ButtonVine_Trigger).w
+	move.b  #1,(ButtonVine_Trigger).w ; Open door, put there for widescreen
 	move.w	#$1000,(Camera_Max_X_pos).w
 	addq.b	#2,(Dynamic_Resize_Routine).w
 	move.w	(Level_Music).w,d0
@@ -76766,7 +76918,10 @@ Touch_ChkValue:
 	rts
 ; ===========================================================================
 ; loc_3F73C:
+; http://sonicresearch.org/community/index.php?threads/how-to-fix-weird-monitor-collision-errors.5834/
 Touch_Monitor:
+    btst    #1,status(a0)
+    beq.s    loc_3F768
 	tst.w	y_vel(a0)	; is Sonic moving upwards?
 	bpl.s	loc_3F768	; if not, branch
 	move.w	y_pos(a0),d0
@@ -77547,8 +77702,14 @@ Dynamic_HTZ:
 	neg.w	d1
 	asr.w	#3,d1
 	move.w	(Camera_X_pos).w,d0
+	; fix from https://info.sonicretro.org/SCHG_How-to:Fix_Hill_Top%27s_background_scrolling_mountains
+	move.w	d0,d2	; Copy to d2
+	andi.w	#$F,d2	; Is the lower nibble zero?
+	seq.b	d2	; If yes, set low byte of d2 to $FF
+	ext.w	d2	; Low word of d2 = -1
 	lsr.w	#4,d0
-	add.w	d1,d0
+	add.w	d1,d0	; (*) See notes
+	add.w	d2,d0	; Shift the parallax to the correct value
 	subi.w	#$10,d0
 	divu.w	#$30,d0
 	swap	d0
