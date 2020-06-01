@@ -2793,18 +2793,13 @@ Pal_FadeFromBlack:
 	move.w	d1,(a0)+
 	dbf	d0,.palettewrite	; fill palette with $000 (black)
 
-	moveq	#$0E,d4
-	moveq	#0,d0
+	move.w	#$15,d4
 .nextframe:
 	move.b	#VintID_Fade,(Vint_routine).w
 	bsr.w	WaitForVint
-	bsr.w	RunPLC_RAM
-
-	bchg	#$00,d6					; MJ: change delay counter
-	beq.s	.nextframe				; MJ: if null, delay a frame
 	bsr.s	.UpdateAllColours
-	subq.b	#2,d4					; MJ: decrease colour check
-	bne.s	.nextframe				; MJ: if it has not reached null, branch
+	bsr.w	RunPLC_RAM
+	dbf	d4,.nextframe
 
 	rts
 ; End of function Pal_FadeFromBlack
@@ -2850,30 +2845,37 @@ Pal_FadeFromBlack:
 ; ---------------------------------------------------------------------------
 ; sub_243E: Pal_AddColor:
 .UpdateColour:
-	move.b	(a1),d5					; MJ: load blue
-	move.w	(a1)+,d1				; MJ: load green and red
-	move.b	d1,d2					; MJ: load red
-	lsr.b	#$04,d1					; MJ: get only green
-	andi.b	#$0E,d2					; MJ: get only red
+	move.w	(a1)+,d2
+	move.w	(a0),d3
+	cmp.w	d2,d3
+	beq.s	.updatenone
+;.updateblue:
+	move.w	d3,d1
+	addi.w	#$200,d1	; increase blue value
+	cmp.w	d2,d1		; has blue reached threshold level?
+	bhi.s	.updategreen	; if yes, branch
+	move.w	d1,(a0)+	; update palette
+	rts
 
-	move.w	(a0),d3					; MJ: load current colour in buffer
-	cmp.b	d5,d4					; MJ: is it time for blue to fade?
-	bhi.s	FCI_NoBlue				; MJ: if not, branch
-	addi.w	#$0200,d3				; MJ: increase blue
+; loc_2454: Pal_AddGreen:
+.updategreen:
+	move.w	d3,d1
+	addi.w	#$20,d1		; increase green value
+	cmp.w	d2,d1
+	bhi.s	.updatered
+	move.w	d1,(a0)+	; update palette
+	rts
 
-FCI_NoBlue:
-	cmp.b	d1,d4					; MJ: is it time for green to fade?
-	bhi.s	FCI_NoGreen				; MJ: if not, branch
-	addi.b	#$20,d3					; MJ: increase green
+; loc_2462: Pal_AddRed:
+.updatered:
+	addq.w	#2,(a0)+	; increase red value
+	rts
 
-FCI_NoGreen:
-	cmp.b	d2,d4					; MJ: is it time for red to fade?
-	bhi.s	FCI_NoRed				; MJ: if not, branch
-	addq.b	#$02,d3					; MJ: increase red
+; loc_2466: Pal_AddNone:
+.updatenone:
+	addq.w	#2,a0
+	rts
 
-FCI_NoRed:
-	move.w	d3,(a0)+				; MJ: save colour
-	rts						; MJ: return
 
 ; ---------------------------------------------------------------------------
 ; Subroutine to fade out to black
@@ -2885,16 +2887,12 @@ FCI_NoRed:
 Pal_FadeToBlack:
 	move.w	#$3F,(Palette_fade_range).w
 
-	moveq	#$08-1,d4
-	moveq	#0,d0
+	move.w	#$15,d4
 .nextframe:
 	move.b	#VintID_Fade,(Vint_routine).w
 	bsr.w	WaitForVint
-	bsr.w	RunPLC_RAM
-
-	bchg	#$00,d6					; MJ: change delay counter
-	beq.s	.nextframe				; MJ: if null, delay a frame
 	bsr.s	.UpdateAllColours
+	bsr.w	RunPLC_RAM
 	dbf	d4,.nextframe
 
 	rts
@@ -2937,28 +2935,37 @@ Pal_FadeToBlack:
 ; ---------------------------------------------------------------------------
 ; sub_24B8: Pal_DecColor:
 .UpdateColour:
-	move.w	(a0),d5					; MJ: load colour
-	move.w	d5,d1					; MJ: copy to d1
-	move.b	d1,d2					; MJ: load green and red
-	move.b	d1,d3					; MJ: load red
+	move.w	(a0),d2
+	beq.s	.updatenone
+;.updatered:
+	move.w	d2,d1
+	andi.w	#$E,d1
+	beq.s	.updategreen
+	subq.w	#2,(a0)+	; decrease red value
+	rts
 
-	andi.w	#$0E00,d1				; MJ: get only blue
-	beq.s	FCO_NoBlue				; MJ: if blue is finished, branch
-	subi.w	#$0200,d5				; MJ: decrease blue
+; loc_24C8: Pal_DecGreen:
+.updategreen:
+	move.w	d2,d1
+	andi.w	#$E0,d1
+	beq.s	.updateblue
+	subi.w	#$20,(a0)+	; decrease green value
+	rts
 
-FCO_NoBlue:
-	andi.b	#$E0,d2					; MJ: get only green
-	beq.s	FCO_NoGreen				; MJ: if green is finished, branch
-	subi.b	#$20,d5					; MJ: decrease green
+; loc_24D6: Pal_DecBlue:
+.updateblue:
+	move.w	d2,d1
+	andi.w	#$E00,d1
+	beq.s	.updatenone
+	subi.w	#$200,(a0)+	; decrease blue value
+	rts
 
-FCO_NoGreen:
-	andi.b	#$0E,d3					; MJ: get only red
-	beq.s	FCO_NoRed				; MJ: if red is finished, branch
-	subq.b	#$02,d5					; MJ: decrease red
+; loc_24E4: Pal_DecNone:
+.updatenone:
+	addq.w	#2,a0
+	rts
 
-FCO_NoRed:
-	move.w	d5,(a0)+				; MJ: save new colour
-	rts						; MJ: return
+
 ; ---------------------------------------------------------------------------
 ; Subroutine to fade in from white
 ; ---------------------------------------------------------------------------
@@ -2979,18 +2986,13 @@ Pal_FadeFromWhite:
 	move.w	d1,(a0)+
 	dbf	d0,.palettewrite
 
-	moveq	#$0E,d4
-	moveq	#0,d0
+	move.w	#$15,d4
 .nextframe:
 	move.b	#VintID_Fade,(Vint_routine).w
 	bsr.w	WaitForVint
-	bsr.w	RunPLC_RAM
-
-	bchg	#$00,d6					; MJ: change delay counter
-	beq.s	.nextframe				; MJ: if null, delay a frame
 	bsr.s	.UpdateAllColours
-	subq.b	#2,d4					; MJ: decrease colour check
-	bne.s	.nextframe				; MJ: if it has not reached null, branch
+	bsr.w	RunPLC_RAM
+	dbf	d4,.nextframe
 
 	rts
 ; End of function Pal_FadeFromWhite
@@ -3036,30 +3038,40 @@ Pal_FadeFromWhite:
 ; ---------------------------------------------------------------------------
 ; sub_2562: Pal_DecColor2:
 .UpdateColour:
-	move.b	(a1),d5					; MJ: load blue
-	move.w	(a1)+,d1				; MJ: load green and red
-	move.b	d1,d2					; MJ: load red
-	lsr.b	#$04,d1					; MJ: get only green
-	andi.b	#$0E,d2					; MJ: get only red
+	move.w	(a1)+,d2
+	move.w	(a0),d3
+	cmp.w	d2,d3
+	beq.s	.updatenone
+;.updateblue:
+	move.w	d3,d1
+	subi.w	#$200,d1	; decrease blue value
+	bcs.s	.updategreen
+	cmp.w	d2,d1
+	blo.s	.updategreen
+	move.w	d1,(a0)+
+	rts
 
-	move.w	(a0),d3					; MJ: load current colour in buffer
-	cmp.b	d5,d4					; MJ: is it time for blue to fade?
-	blo.s	FC4_NoBlue				; MJ: if not, branch
-	sub.w	#$0200,d3				; MJ: increase blue
+; loc_257A: Pal_DecGreen2:
+.updategreen:
+	move.w	d3,d1
+	subi.w	#$20,d1	; decrease green value
+	bcs.s	.updatered
+	cmp.w	d2,d1
+	blo.s	.updatered
+	move.w	d1,(a0)+
+	rts
 
-FC4_NoBlue:
-	cmp.b	d1,d4					; MJ: is it time for green to fade?
-	blo.s	FC4_NoGreen				; MJ: if not, branch
-	sub.b	#$20,d3					; MJ: increase green
+; loc_258A: Pal_DecRed2:
+.updatered:
+	subq.w	#2,(a0)+	; decrease red value
+	rts
 
-FC4_NoGreen:
-	cmp.b	d2,d4					; MJ: is it time for red to fade?
-	blo.s	FC4_NoRed				; MJ: if not, branch
-	subq.b	#$02,d3					; MJ: increase red
+; loc_258E: Pal_DecNone2:
+.updatenone:
+	addq.w	#2,a0
+	rts
 
-FC4_NoRed:
-	move.w	d3,(a0)+				; MJ: save colour
-	rts						; MJ: return
+
 ; ---------------------------------------------------------------------------
 ; Subroutine to fade out to white (used when you enter a special stage)
 ; ---------------------------------------------------------------------------
@@ -3070,16 +3082,12 @@ FC4_NoRed:
 Pal_FadeToWhite:
 	move.w	#$3F,(Palette_fade_range).w
 
-	moveq	#$08-1,d4
-	moveq	#0,d0
+	move.w	#$15,d4
 .nextframe:
 	move.b	#VintID_Fade,(Vint_routine).w
 	bsr.w	WaitForVint
-	bsr.w	RunPLC_RAM
-
-	bchg	#$00,d6					; MJ: change delay counter
-	beq.s	.nextframe				; MJ: if null, delay a frame
 	bsr.s	.UpdateAllColours
+	bsr.w	RunPLC_RAM
 	dbf	d4,.nextframe
 
 	rts
@@ -3122,31 +3130,40 @@ Pal_FadeToWhite:
 ; ---------------------------------------------------------------------------
 ; sub_25E0: Pal_AddColor2:
 .UpdateColour:
-	move.w	(a0),d5					; MJ: load colour
-	move.w	d5,d1					; MJ: copy to d1
-	move.b	d1,d2					; MJ: load green and red
-	move.b	d1,d3					; MJ: load red
+	move.w	(a0),d2
+	cmpi.w	#$EEE,d2
+	beq.s	.updatenone
+;.updatered:
+	move.w	d2,d1
+	andi.w	#$E,d1
+	cmpi.w	#$E,d1
+	beq.s	.updategreen
+	addq.w	#2,(a0)+	; increase red value
+	rts
 
-	andi.w	#$0E00,d1				; MJ: get only blue
-	cmp.w	#$0E00,d1
-	beq.s	FC3_NoBlue				; MJ: if blue is finished, branch
-	add.w	#$0200,d5				; MJ: decrease blue
+; loc_25F8: Pal_AddGreen2:
+.updategreen:
+	move.w	d2,d1
+	andi.w	#$E0,d1
+	cmpi.w	#$E0,d1
+	beq.s	.updateblue
+	addi.w	#$20,(a0)+	; increase green value
+	rts
 
-FC3_NoBlue:
-	andi.b	#$E0,d2					; MJ: get only green
-	cmp.b	#$E0,d2
-	beq.s	FC3_NoGreen				; MJ: if green is finished, branch
-	add.b	#$20,d5					; MJ: decrease green
+; loc_260A: Pal_AddBlue2:
+.updateblue:
+	move.w	d2,d1
+	andi.w	#$E00,d1
+	cmpi.w	#$E00,d1
+	beq.s	.updatenone
+	addi.w	#$200,(a0)+	; increase blue value
+	rts
 
-FC3_NoGreen:
-	andi.b	#$0E,d3					; MJ: get only red
-	cmp.b	#$0E,d3
-	beq.s	FC3_NoRed				; MJ: if red is finished, branch
-	addq.b	#$02,d5					; MJ: decrease red
-
-FC3_NoRed:
-	move.w	d5,(a0)+				; MJ: save new colour
-	rts						; MJ: return
+; loc_261C: Pal_AddNone2:
+.updatenone:
+	addq.w	#2,a0
+	rts
+; End of function Pal_AddColor2
 ; ||||||||||||||| S U B R O U T I N E |||||||||||||||||||||||||||||||||||||||
 
 ; sub_2712: PalLoad1:
@@ -25149,7 +25166,7 @@ C9PalInfo macro codeptr,dataptr,loadtoOffset,length,fadeinTime,fadeinAmount
 	dc.b loadtoOffset, length, fadeinTime, fadeinAmount
     endm
 
-off_1338C:	C9PalInfo 	  +, Pal_1342C, $60, $F,2,$08-1
+off_1338C:	C9PalInfo Pal_FadeFromBlack.UpdateColour, Pal_1342C, $60, $F,2,$15
 off_13398:	C9PalInfo loc_1344C, Pal_1340C, $40, $F,4,7
 off_133A4:	C9PalInfo loc_1344C,  Pal_AD1E,   0, $F,8,7
 off_133B0:	C9PalInfo loc_1348A,  Pal_AD1E,   0, $F,8,7
@@ -25161,12 +25178,7 @@ off_133E0:	C9PalInfo loc_1344C,  Pal_AC9E,   0,$1F,4,7
 Pal_133EC:	BINCLUDE "art/palettes/Title Sonic.bin"
 Pal_1340C:	BINCLUDE "art/palettes/Title Background.bin"
 Pal_1342C:	BINCLUDE "art/palettes/Title Emblem.bin"
-; ===========================================================================
 
-+	move.b	ttlscrpalchanger_fadein_amount(a3),d4
-	add.b	d4,d4
-	addq.b	#2,d4
-	jmp	Pal_FadeFromBlack.UpdateColour
 ; ===========================================================================
 
 loc_1344C:
@@ -60367,11 +60379,16 @@ Obj_OOZBoss_Main_End:
 Obj_OOZBoss_HandleHits:
 	bsr.w	Boss_HandleHits
 	cmpi.b	#$1F,boss_invulnerable_time(a0)
-	bne.s	return_33192
+	bne.s	.chk_killed
 	lea	(Boss_AnimationArray).w,a1
 	andi.b	#$F0,(a1)
 	ori.b	#3,(a1)
 	ori.b	#$80,Obj_OOZBoss_status(a0)	; set boss hit bit
+
+.chk_killed:
+	cmpi.b #8,boss_routine(a0) ; is boss exploding or retreating?
+	blo.s return_33192 ; if yes, branch
+	move.b #2,boss_subtype(a0) ; => Obj55_Main
 
 return_33192:
 	rts
