@@ -4338,7 +4338,7 @@ Level_FromCheckpoint:
 +
 	move.w	#-1,(TitleCard_ZoneName+titlecard_leaveflag).w
 	move.b	#$E,(TitleCard_Left+routine).w	; make the left part move offscreen
-	move.w	#$A,(TitleCard_Left+titlecard_location).w
+	move.w	#20-4,(TitleCard_Left+titlecard_location).w
 
 -	move.b	#VintID_TitleCard,(Vint_routine).w
 	bsr.w	WaitForVint
@@ -25392,8 +25392,8 @@ Obj_TitleCard_TitleCardData:
 	titlecarddata $A, $11, $40, $1C,  $28, $148, $D0	; "ZONE"
 	titlecarddata $C, $12, $18, $1C,  $68, $188, $D0	; act number
 	titlecarddata  2,   0,   0,   0,    0,    0,   0	; blue background
-	titlecarddata  4, $15, $48,   8, $2A8, $168,$120	; bottom yellow part
-	titlecarddata  6, $16,   8, $15,  $80,  $F0, $F0	; left red part
+	titlecarddata  4, $15, $48,   8, $2A8+(6*8), $168,$120	; bottom yellow part
+	titlecarddata  6, $16,   8, $15,  $80-(6*8),  $F0, $F0	; left red part
 Obj_TitleCard_TitleCardData_End:
 
 ; ||||||||||||||| S U B R O U T I N E |||||||||||||||||||||||||||||||||||||||
@@ -25469,18 +25469,14 @@ Obj_TitleCard_LeftPartIn:	; the red part on the left, coming in
 	jsr	Obj_TitleCard_Wait(pc)
 	tst.w	titlecard_location(a0)
 	bmi.w	Obj_TitleCard_MoveTowardsTargetPosition
-	move.w	#VRAM_Plane_A_Name_Table+(2*50)+(2*9),titlecard_vram_dest(a0)
+	move.w	#VRAM_Plane_A_Name_Table,titlecard_vram_dest(a0)
 	tst.w	(Two_player_mode).w
 	beq.s	+
 	move.w	#VRAM_Plane_A_Name_Table_2P,titlecard_vram_dest_2P(a0)
 +
 	addq.w	#2,titlecard_location(a0)
-	cmpi.w	#8,titlecard_location(a0)
-	blt.s   +
-	subi.w  #(2*50)+(2*9),titlecard_vram_dest(a0)
-+
 	move.w	titlecard_location(a0),titlecard_split_point(a0)
-	cmpi.w	#14,titlecard_location(a0)
+	cmpi.w	#20,titlecard_location(a0)
 	seq	titlecard_location(a0)
 	bra.w	Obj_TitleCard_MoveTowardsTargetPosition
 ; ===========================================================================
@@ -25556,11 +25552,7 @@ Obj_TitleCard_LeftPartOut:	; red part on the left, going out
 	add.w	d0,titlecard_vram_dest_2P(a0)
 +
 	subq.w	#4,titlecard_location(a0)
-	;cmpi.w	#-2,titlecard_location(a0)
-	;bgt.s   +
-	;addi.w  #(2*50),titlecard_vram_dest(a0)
-;+
-	cmpi.w	#-12,titlecard_location(a0)
+	cmpi.w	#-2,titlecard_location(a0)
 	bne.s	+
 	clr.w	titlecard_location(a0)
 +
@@ -25570,7 +25562,7 @@ Obj_TitleCard_LeftPartOut:	; red part on the left, going out
 Obj_TitleCard_BottomPartOut:	; yellow part at the bottom, going out
 	move.w	titlecard_location(a0),d0
 	cmpi.w	#$28,d0
-	bne.s	+
+	blt.s	+
 	move.b	#$12,TitleCard_Background-TitleCard_Bottom+routine(a0)
 	bra.s	BranchTo9_DeleteObject
 ; ---------------------------------------------------------------------------
@@ -26886,7 +26878,19 @@ loc_15640:
 	move.w	d1,d4
 
 loc_1564E:
+	cmpi.l	#$40000003+$A0000,d0
+	bgt.s	+
+	addi.l	#vdpCommDelta(116),d0
 	move.l	d0,VDP_control_port-VDP_data_port(a6)
+	subi.l	#vdpCommDelta(116),d0
+	bra.s	++
++
+	addi.l	#vdpCommDelta(116),d0
+	subi.l	#vdpCommDelta(128),d0
+	move.l	d0,VDP_control_port-VDP_data_port(a6)
+	addi.l	#vdpCommDelta(128),d0
+	subi.l	#vdpCommDelta(116),d0
++
 	move.w	d5,d3
 
 loc_15654:
@@ -26905,13 +26909,13 @@ loc_15670:
 	moveq	#9,d3
 	moveq	#3,d4
 	move.l	#make_block_tile_pair(ArtTile_ArtNem_TitleCard+$5A,0,0,0,1),d5
-	move.l	#make_block_tile_pair(ArtTile_ArtNem_TitleCard+$5C,0,0,1,1),d6
+	move.l	#make_block_tile_pair(ArtTile_ArtNem_TitleCard+$5A,0,0,0,1),d6
 	tst.w	(Two_player_mode).w
 	beq.s	+
 	moveq	#4,d3
 	moveq	#1,d4
 	move.l	#make_block_tile_pair_2p(ArtTile_ArtNem_TitleCard+$5A,0,0,0,1),d5
-	move.l	#make_block_tile_pair_2p(ArtTile_ArtNem_TitleCard+$5C,0,0,1,1),d6
+	move.l	#make_block_tile_pair_2p(ArtTile_ArtNem_TitleCard+$5A,0,0,0,1),d6
 +
 	lea	(TitleCard_Left+titlecard_vram_dest).w,a0
 	moveq	#1,d7	; Once for P1, once for P2 (if in 2p mode)
@@ -26925,8 +26929,19 @@ loc_156A2:
 	moveq	#3,d2
 
 loc_156B0:
+	cmpi.l	#$40000003+$A0000,d0
+	bgt.s	+
+	addi.l	#vdpCommDelta(116),d0
 	move.l	d0,VDP_control_port-VDP_data_port(a6)
-
+	subi.l	#vdpCommDelta(116),d0
+	bra.s	++
++
+	addi.l	#vdpCommDelta(116),d0
+	subi.l	#vdpCommDelta(128),d0
+	move.l	d0,VDP_control_port-VDP_data_port(a6)
+	addi.l	#vdpCommDelta(128),d0
+	subi.l	#vdpCommDelta(116),d0
++
 	move.w	d3,d1
 -	move.l	d5,(a6)
 	dbf	d1,-
