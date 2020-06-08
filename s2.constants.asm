@@ -44,7 +44,7 @@ x_radius		ds.b 1		; object's width / 2, often used for floor/wall collision
 flip_turned =		*		; 0 for normal, 1 to invert flipping (it's a 180 degree rotation about the axis of Sonic's spine, so he stays in the same position but looks turned around)
 objoff_40 =		*
 objoff_41 =		*
-glidemode		ds.b 1			; this space is not used (aside from a couple of objects, due to lack of object RAM)
+glidemode		ds.b 1
 double_jump_flag = *
 glideflags		ds.b 1
 boss_sine_count =	*		;
@@ -628,7 +628,14 @@ AniIDTailsAni_Dummy4		= id(TailsAni_Dummy4_ptr)		; 29 ; $1D
 AniIDTailsAni_Dummy5		= id(TailsAni_Dummy5_ptr)		; 30 ; $1E
 AniIDTailsAni_HaulAss		= id(TailsAni_HaulAss_ptr)		; 31 ; $1F
 AniIDTailsAni_Fly			= id(TailsAni_Fly_ptr)			; 32 ; $20
-
+AniIDTailsAni_FlyTired		= id(TailsAni_FlyTired_ptr)
+AniIDTailsAni_FlyCarry		= id(TailsAni_FlyCarry_ptr)
+AniIDTailsAni_FlyCarryUp	= id(TailsAni_FlyCarryUp_ptr)
+AniIDTailsAni_FlyCarryTired	= id(TailsAni_FlyCarryTired_ptr)
+AniIDTailsAni_Swim			= id(TailsAni_Swim_ptr)
+AniIDTailsAni_SwimFast		= id(TailsAni_SwimFast_ptr)
+AniIDTailsAni_SwimTired		= id(TailsAni_SwimTired_ptr)
+AniIDTailsAni_SwimCarry		= id(TailsAni_SwimCarry_ptr)
 
 ; Other sizes
 palette_line_size =	$10*2	; 16 word entries
@@ -1019,8 +1026,9 @@ Demo_button_index_2P:		ds.w 1		; index into button press demo data, for player 2
 Demo_press_counter_2P:		ds.w 1		; frames remaining until next button press, for player 2
 Tornado_Velocity_X:		ds.w 1		; speed of tails' plane in scz ($FFFFF736)
 Tornado_Velocity_Y:		ds.w 1
+Flying_x_vel_unk:		ds.w 1
+Flying_y_vel_unk:       ds.w 1
 ScreenShift:			ds.b 1
-				ds.b 4		; $FFFFF73B-$FFFFF73E
 Boss_CollisionRoutine:		ds.b 1
 Boss_AnimationArray:		ds.b $10	; up to $10 bytes; 2 bytes per entry
 Ending_Routine:

@@ -1018,16 +1018,24 @@ Knuckles_CheckGlide:				  ; ...
 		tst.b	glidemode(a0)
 		bne.w	return_3165D2
 		move.b	(Ctrl_1_Press_Logical).w,d0
-		and.b	#$70,d0
+		andi.b	#button_A_mask|button_B_mask|button_C_mask,d0
 		beq.w	return_3165D2
 		tst.b	(Super_Sonic_flag).w
-		bne.s	Knuckles_BeginGlide
+		bne.s	Knuckles_AssistCheck
 		cmp.b	#7,(Emerald_count).w
-		bcs.s	Knuckles_BeginGlide
+		bcs.s	Knuckles_AssistCheck
 		cmp.w	#50,(Ring_count).w
-		bcs.s	Knuckles_BeginGlide
+		bcs.s	Knuckles_AssistCheck
 		tst.b	(Update_HUD_timer).w
 		bne.s	Knuckles_TurnSuper
+
+Knuckles_AssistCheck:
+		cmpi.l	#Obj_Tails,(Sidekick+id).w
+		bne.s	Knuckles_BeginGlide
+		move.b	(Ctrl_1_Held_Logical).w,d0
+		andi.b	#button_up_mask,d0
+		beq.w	Knuckles_BeginGlide
+		rts
 
 Knuckles_BeginGlide:				  ; ...
 		bclr	#2,status(a0)
@@ -1744,7 +1752,7 @@ LoadKnucklesDynPLC_Part2:			  ; ...
     cmp.b	(Sonic_LastLoadedDPLC).w,d0
     beq.w	return_31753E
     move.b	d0,(Sonic_LastLoadedDPLC).w
-    lea	(SK_PLC_Knuckles).l,a2	  ; SK_PLC_Knuckles
+    lea	(MapRUnc_Knuckles).l,a2	  ; SK_PLC_Knuckles
     add.w	d0,d0
     add.w	(a2,d0.w),a2
     move.w	(a2)+,d5
@@ -1761,7 +1769,7 @@ KPLC_ReadEntry:
 	addi.w	#$10,d3
 	andi.w	#$FFF,d1
 	lsl.l	#5,d1
-	addi.l	#SK_ArtUnc_Knux,d1
+	addi.l	#ArtUnc_Knuckles,d1
 	move.w	d4,d2
 	add.w	d3,d4
 	add.w	d3,d4

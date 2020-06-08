@@ -1517,7 +1517,6 @@ Sonic_UpdateSpindash:
 	bset	#2,status(a0)
 	move.b	#0,(Sonic_Dust+anim).w
 	sfx	sfx_Dash
-	rts
 	bra.s	Obj_Sonic_Spindash_ResetScr
 ; ===========================================================================
 ; word_1AD0C:
@@ -1984,7 +1983,6 @@ Sonic_ResetOnFloor_Part2:
 
     cmpi.l	#Obj_Knuckles,id(a0)	; is this object ID Knuckles?
 	beq.w	Knuckles_ResetOnFloor_Part2	; if it is, branch to the Knuckles version of this code
-
 
 	btst	#2,status(a0)
 	beq.s	Sonic_ResetOnFloor_Part3
