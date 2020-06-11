@@ -2642,7 +2642,7 @@ Obj_Tails_Gone:
 	beq.s	+
 	subq.w	#1,restart_countdown(a0)
 	bne.s	+
-	move.w	#1,(Level_Inactive_flag).w
+	move.b	#1,(Level_Inactive_flag).w
 +
 	rts
 ; ===========================================================================

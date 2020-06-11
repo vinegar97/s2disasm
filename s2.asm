@@ -4051,21 +4051,30 @@ Level:
 	bset	#GameModeFlag_TitleCard,(Game_Mode).w ; add $80 to screen mode (for pre level sequence)
 	tst.w	(Demo_mode_flag).w	; test the old flag for the credits demos (now unused)
 	bmi.s	+
+	tst.b	(Level_Quick_Reset_flag).w
+	bne.s	++
 	command	Mus_FadeOut	; fade out music
 +
 	bsr.w	Level_SetPlayerMode
 	bsr.w	ClearPLC
 	bsr.w	Pal_FadeToBlack
++
 	tst.w	(Demo_mode_flag).w
-	bmi.s	Level_ClrRam
+	bmi.w	Level_ClrRam
 	move	#$2700,sr
 	bsr.w	ClearScreen
++
+	tst.b	(Level_Quick_Reset_flag).w
+	bne.s	+
 	jsr	(LoadTitleCard).l ; load title card patterns
++
 	move	#$2300,sr
 	moveq	#0,d0
 	move.w	d0,(Timer_frames).w
-	move.b	(Current_Zone).w,d0
 
+	tst.b	(Level_Quick_Reset_flag).w
+	bne.s	Level_ClrRam
+	move.b	(Current_Zone).w,d0
 	; multiply d0 by 12, the size of a level art load block
 	add.w	d0,d0
 	add.w	d0,d0
@@ -4173,11 +4182,9 @@ Level_InitWater:
 	move.b	#1,(Water_on).w	; enable water
 ; loc_407C:
 Level_LoadPal:
-	moveq	#PalID_BGND,d0
-	cmpi.b	#3,(Player_MainChar).w	; are you playing as Knuckles?
-	blt.s	+	; if not, branch
-	moveq	#PalID_Knux,d0	; load Knuckles' palette index
-+	bsr.w	PalLoad_Now	; load Sonic's palette line
+	tst.b	(Level_Quick_Reset_flag).w
+	bne.w	Level_TtlCard
+	jsr		LoadPal_Character
 	tst.b	(Water_flag).w	; does level have water?
 	beq.s	Level_GetBgm	; if not, branch
 	moveq	#PalID_HPZ_U,d0	; palette number $15
@@ -4206,7 +4213,7 @@ Level_WaterPal:
 ; loc_40AE:
 Level_GetBgm:
 	tst.w	(Demo_mode_flag).w
-	bmi.s	+
+	bmi.s	++
 	moveq	#0,d0
 	move.b	(Current_Zone).w,d0
 	lea_	MusicList,a1
@@ -4219,6 +4226,8 @@ Level_PlayBgm:
 	move.w	d0,(Level_Music).w	; store level music
 	move.b	d0,mQueue+1.w
 	command	Mus_Reset
+	tst.b	(Level_Quick_Reset_flag).w
+	bne.w	Level_TtlCard
 	move.l	#Obj_TitleCard,(TitleCard+id).w ; load Obj_TitleCard (level title card) at $FFFFB080
 ; loc_40DA:
 Level_TtlCard:
@@ -4227,9 +4236,12 @@ Level_TtlCard:
 	jsr	(RunObjects).l
 	jsr	(BuildSprites).l
 	bsr.w	RunPLC_RAM
+	tst.b	(Level_Quick_Reset_flag).w
+	bne.w	+
 	move.w	(TitleCard_ZoneName+x_pos).w,d0
 	cmp.w	(TitleCard_ZoneName+titlecard_x_target).w,d0 ; has title card sequence finished?
 	bne.s	Level_TtlCard		; if not, branch
++
 	tst.l	(Plc_Buffer).w		; are there any items in the pattern load cue?
 	bne.s	Level_TtlCard		; if yes, branch
 	move.b	#VintID_TitleCard,(Vint_routine).w
@@ -4237,7 +4249,10 @@ Level_TtlCard:
 	jsr	(Hud_Base).l
 +
 	moveq	#PalID_BGND,d0
-	bsr.w	PalLoad_ForFade	; load Sonic's palette line
+	cmpi.b	#3,(Player_MainChar).w	; are you playing as Knuckles?
+	blt.s	+	; if not, branch
+	moveq	#PalID_Knux,d0	; load Knuckles' palette index
++	bsr.w	PalLoad_ForFade	; load Sonic's palette line
 	jsr	LevelSizeLoad
 	bsr.w	InitPlayers
 	jsrto	(DeformBgLayer).l, JmpTo_DeformBgLayer
@@ -4246,10 +4261,15 @@ Level_TtlCard:
 
 	clearRAM Horiz_Scroll_Buf,Horiz_Scroll_Buf_End
 
+	tst.b	(Level_Quick_Reset_flag).w
+	bne.w	+
 	bsr.w	LoadZoneTiles
++
 	jsrto	(loadZoneBlockMaps).l, JmpTo_loadZoneBlockMaps
-	jsr	(loc_402D4).l
 	jsrto	(DrawInitialBG).l, JmpTo_DrawInitialBG
+	tst.b	(Level_Quick_Reset_flag).w
+	bne.w	Level_ChkWater
+	jsr	(loc_402D4).l
 	jsr	(ConvertCollisionArray).l
 	bsr.w	LoadCollisionIndexes
 	bsr.w	WaterEffects
@@ -4260,7 +4280,7 @@ Level_TtlCard:
 	move.b	#1,(Control_Locked).w
 	move.b	#1,(Control_Locked_P2).w
 	move.b	#0,(Level_started_flag).w
-; Level_ChkWater:
+Level_ChkWater:
 	tst.b	(Water_flag).w	; does level have water?
 	beq.s	+	; if not, branch
 	move.l	#Obj_WaterSurface,(WaterSurface1+id).w ; load Obj_WaterSurface (water surface) at $FFFFB380
@@ -4293,7 +4313,7 @@ Level_FromCheckpoint:
 	move.b	d0,(SlotMachine_Routine).w
 	move.w	d0,(SlotMachineInUse).w
 	move.w	d0,(Debug_placement_mode).w
-	move.w	d0,(Level_Inactive_flag).w
+	move.b	d0,(Level_Inactive_flag).w
 	move.b	d0,(Teleport_timer).w
 	move.b	d0,(Teleport_flag).w
 	move.w	d0,(Rings_Collected).w
@@ -4366,6 +4386,8 @@ Level_FromCheckpoint:
 	tst.l	(TitleCard_Background+id).w
 	bne.s	-	; loop while the title card background is still loaded
 
+	tst.b	(Level_Quick_Reset_flag).w
+	bne.s	+
 	lea	(TitleCard).w,a1
 	move.b	#$16,TitleCard_ZoneName-TitleCard+routine(a1)
 	move.b	#$2D,TitleCard_ZoneName-TitleCard+anim_frame_duration(a1)
@@ -4378,15 +4400,69 @@ Level_FromCheckpoint:
 +	move.b	#0,(Control_Locked).w
 	move.b	#0,(Control_Locked_P2).w
 	move.b	#1,(Level_started_flag).w
+	move.b	#1,(Screen_redraw_flag).w
+	jsr		Level_Iterate
 
 ; Level_StartGame: loc_435A:
+	tst.b	(Level_Quick_Reset_flag).w
+	beq.s	+
+	move.b	#0,(Level_Quick_Reset_flag).w
+	bsr.w	Pal_FadeFromWhite
++
 	bclr	#GameModeFlag_TitleCard,(Game_Mode).w ; clear $80 from the game mode
+	jmp		Level_MainLoop
+
+LoadPal_Character:
+	moveq	#PalID_BGND,d0
+	cmpi.b	#3,(Player_MainChar).w	; are you playing as Knuckles?
+	blt.s	+	; if not, branch
+	moveq	#PalID_Knux,d0	; load Knuckles' palette index
++	bra.w	PalLoad_Now	; load Sonic's palette line
+
+TimeAttack_Iterate:
+	cmpi.b	#$FF,(Level_Quick_Reset_timer).w
+	beq.s	TimeAttack_PreventLoop
+	btst	#button_A,(Ctrl_1_Held).w ; is button A pressed?
+	beq.s	TimeAttack_Cancel		; if no, branch
++
+	cmpi.b	#0,(Level_Quick_Reset_timer).w
+	bne.s	+
+	sfx		sfx_Swap
++
+	move.w	#$7FFF,(PalCycle_Timer).w
+	addi.b	#1,(Level_Quick_Reset_timer).w
+	jsr		(Pal_FadeToWhite.UpdateAllColours).l
+	cmpi.b	#30,(Level_Quick_Reset_timer).w
+	ble.s	+
+	move.b	#1,(Level_Inactive_flag).w
+	move.b	#1,(Level_Quick_Reset_flag).w
+	move.b	#$FF,(Level_Quick_Reset_timer).w
++	rts
+
+TimeAttack_Cancel:
+	cmpi.b	#0,(Level_Quick_Reset_timer).w
+	beq.s	TimeAttack_Ret
+	jsr		LoadPal_Character
+	jsr		loadZonePalette
+	move.w	#0,(PalCycle_Timer).w
+	move.b	#0,(Level_Quick_Reset_timer).w
+	command	Mus_StopSFX
+
+TimeAttack_Ret:
+	rts
+
+TimeAttack_PreventLoop:
+	btst	#button_A,(Ctrl_1_Held).w ; is button A pressed?
+	bne.s	+		; if yes, stop
+	move.b	#0,(Level_Quick_Reset_timer).w
++	rts
 
 ; ---------------------------------------------------------------------------
 ; Main level loop (when all title card and loading sequences are finished)
 ; ---------------------------------------------------------------------------
 ; loc_4360:
-Level_MainLoop:
+Level_Iterate:
+	bsr.w	TimeAttack_Iterate
 	bsr.w	PauseGame
 	move.b	#VintID_Level,(Vint_routine).w
 	bsr.w	WaitForVint
@@ -4394,7 +4470,7 @@ Level_MainLoop:
 	bsr.w	MoveSonicInDemo
 	bsr.w	WaterEffects
 	jsr	(RunObjects).l
-	tst.w	(Level_Inactive_flag).w
+	tst.b	(Level_Inactive_flag).w
 	bne.w	Level
 	jsrto	(DeformBgLayer).l, JmpTo_DeformBgLayer
 	bsr.w	UpdateWaterSurface
@@ -4411,6 +4487,10 @@ Level_MainLoop:
 	bsr.w	CheckLoadSignpostArt
 	jsr	(BuildSprites).l
 	jsr	(ObjectsManager).l
+	rts
+
+Level_MainLoop:
+	jsr		Level_Iterate
 	cmpi.b	#GameModeID_Demo,(Game_Mode).w	; check if in demo mode
 	beq.s	+
 	cmpi.b	#GameModeID_Level,(Game_Mode).w	; check if in normal play mode
@@ -4418,7 +4498,7 @@ Level_MainLoop:
 	rts
 ; ---------------------------------------------------------------------------
 +
-	tst.w	(Level_Inactive_flag).w
+	tst.b	(Level_Inactive_flag).w
 	bne.s	+
 	tst.w	(Demo_Time_left).w
 	beq.s	+
@@ -6067,7 +6147,7 @@ SpecialStage:
 	jsr	(RunObjects).l
 	jsr	(BuildSprites).l
 	bsr.w	RunPLC_RAM
-	tst.w	(Level_Inactive_flag).w
+	tst.b	(Level_Inactive_flag).w
 	beq.s	-
 	tst.l	(Plc_Buffer).w
 	bne.s	-
@@ -11815,7 +11895,7 @@ MenuScreen_LevelSelect:
 	lea	(Chunk_Table).l,a1
 	lea	(MapEng_LevSel).l,a0	; 2 bytes per 8x8 tile, compressed
 	move.w	#make_art_tile(ArtTile_VRAM_Start,0,0),d0
-	bsr.w	EniDec
+	jsr		EniDec
 
 	lea	(Chunk_Table).l,a1
 	move.l	#vdpComm(VRAM_Plane_A_Name_Table,VRAM,WRITE),d0
@@ -11831,7 +11911,7 @@ MenuScreen_LevelSelect:
 	lea	(Chunk_Table+$8C0).l,a1
 	lea	(MapEng_LevSelIcon).l,a0
 	move.w	#make_art_tile(ArtTile_ArtNem_LevelSelectPics,0,0),d0
-	bsr.w	EniDec
+	jsr		EniDec
 
 	bsr.w	LevelSelect_DrawIcon
 
@@ -12487,7 +12567,7 @@ EndingSequence:
 	clr.b	(Screen_Shaking_Flag).w
 	moveq	#0,d0
 	move.w	d0,(Debug_placement_mode).w
-	move.w	d0,(Level_Inactive_flag).w
+	move.b	d0,(Level_Inactive_flag).w
 	move.w	d0,(Timer_frames).w
 	move.w	d0,(Camera_X_pos).w
 	move.w	d0,(Camera_Y_pos).w
@@ -12532,7 +12612,7 @@ EndingSequence:
 	jsrto	(PalCycle_Load).l, JmpTo_PalCycle_Load
 +
 	bsr.w	EndgameCredits
-	tst.w	(Level_Inactive_flag).w
+	tst.b	(Level_Inactive_flag).w
 	beq.w	-
 	rts
 
@@ -12563,7 +12643,7 @@ EndgameCredits:
 
 	clr.b	(Screen_Shaking_Flag).w
 	moveq	#0,d0
-	move.w	d0,(Level_Inactive_flag).w
+	move.b	d0,(Level_Inactive_flag).w
 	move.w	d0,(Timer_frames).w
 	move.w	d0,(Camera_X_pos).w
 	move.w	d0,(Camera_Y_pos).w
@@ -18378,6 +18458,7 @@ loadZoneBlockMaps:
 	move.l	a2,-(sp)
 	addq.w	#4,a2
 	move.l	(a2)+,d0
+
 	andi.l	#$FFFFFF,d0	; pointer to block mappings
 	movea.l	d0,a0
 	lea	(Block_Table).w,a1
@@ -18415,10 +18496,27 @@ loadZoneBlockMaps:
 	move.b	(a2),d0	; PLC2 ID
 	beq.s	+
 	jsrto	(LoadPLC).l, JmpTo_LoadPLC
+	bra.s	+
+
+loadZonePalette:
+	moveq	#0,d0
+	move.b	(Current_Zone).w,d0
+	add.w	d0,d0
+	add.w	d0,d0
+	move.w	d0,d1
+	add.w	d0,d0
+	add.w	d1,d0
+	lea	(LevelArtPointers).l,a2
+	lea	(a2,d0.w),a2
+	move.l	a2,-(sp)
+	movea.l	(sp)+,a2	; zone specific pointer in LevelArtPointers
+	addq.w	#4,a2
 +
 	addq.w	#4,a2
 	moveq	#0,d0
 	move.b	(a2),d0	; palette ID
+	tst.b	(Level_Quick_Reset_flag).w
+	jne		PalLoad_ForFade
 	jsrto	(PalLoad_Now).l, JmpTo_PalLoad_Now
 	rts
 
@@ -25897,6 +25995,8 @@ Obj_TitleCard_WaitAndGoAway:
 Obj_TitleCard_LoadStandardWaterAndAnimalArt:
 	cmpa.w	#TitleCard_ZoneName,a0	; is this the zone name object?
 	bne.s	+			; if not, just delete the title card
+
+LoadStandardWaterAndAnimalArt:
 	moveq	#PLCID_StdWtr,d0	; load the standard water graphics
 	jsrto	(LoadPLC).l, JmpTo3_LoadPLC
 	moveq	#0,d0
@@ -26011,13 +26111,13 @@ Obj_GameOver_Dismiss:
 ; loc_14034:
 Obj_GameOver_TimeOver:
 	clr.l	(Saved_Timer).w
-	move.w	#1,(Level_Inactive_flag).w
+	move.b	#1,(Level_Inactive_flag).w
 ; loc_1403E:
 Obj_GameOver_Check2PMode:
 	tst.w	(Two_player_mode).w
 	beq.s	Obj_GameOver_Display
 
-	move.w	#0,(Level_Inactive_flag).w
+	move.b	#0,(Level_Inactive_flag).w
 	move.b	#GameModeID_2PResults,(Game_Mode).w ; => TwoPlayerResults
 	move.w	#VsRSID_Act,(Results_Screen_2P).w
 	tst.b	(Time_Over_flag).w
@@ -26271,7 +26371,7 @@ loc_1429C:
 	move.w	d0,(Current_ZoneAndAct).w
 	clr.b	(Last_star_pole_hit).w
 	clr.b	(Last_star_pole_hit_2P).w
-	move.w	#1,(Level_Inactive_flag).w
+	move.b	#1,(Level_Inactive_flag).w
 	rts
 ; ===========================================================================
 
@@ -26664,7 +26764,7 @@ Obj_SSResults_TallyScore:
 ; ===========================================================================
 ;loc_1461C
 Obj_SSResults_DisplayOnly:
-	move.w	#1,(Level_Inactive_flag).w
+	move.b	#1,(Level_Inactive_flag).w
 	bra.w	DisplaySprite
 ; ===========================================================================
 ;loc_14626
@@ -71026,7 +71126,7 @@ Obj_Tornado_Start_DEZ:
 	move.w	#death_egg_zone_act_1,(Current_ZoneAndAct).w
 ; loc_3AC46:
 Obj_Tornado_Deactivate_level:
-	move.w	#1,(Level_Inactive_flag).w
+	move.b	#1,(Level_Inactive_flag).w
 	clr.b	(Last_star_pole_hit).w
 	clr.b	(Last_star_pole_hit_2P).w
 	rts

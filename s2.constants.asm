@@ -1125,10 +1125,11 @@ Obj_respawn_data_End:
 System_Stack:
 
 SS_2p_Flag:			ds.w 1		; $FFFFFE00-$FFFFFE01 ; seems unused
-Level_Inactive_flag:		ds.w 1		; (2 bytes)
+Level_Inactive_flag:		ds.b 1
+Level_Quick_Reset_flag:		ds.b 1
 Timer_frames:			ds.w 1		; (2 bytes)
 Debug_object:			ds.b 1
-				ds.b 1		; $FFFFFE07 ; seems unused
+Level_Quick_Reset_timer:	ds.b 1
 Debug_placement_mode:		ds.b 1
 				ds.b 1		; the whole word is tested, but the debug mode code uses only the low byte
 Debug_Accel_Timer:		ds.b 1
