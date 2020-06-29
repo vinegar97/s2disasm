@@ -1288,32 +1288,38 @@ SlotMachine_Slot3Rout:		ds.b 1
 Player_MainChar:		ds.b 1
 Player_PartnerChar:		ds.b 1
 Player_mode:			ds.w 1		; 0 = Sonic and Tails, 1 = Sonic, 2 = Tails
-Player_option:			ds.w 1		; 0 = Sonic and Tails, 1 = Sonic, 2 = Tails
+Player_option:			ds.b 1		; 0 = Sonic and Tails, 1 = Sonic, 2 = Tails
+Player_option_byte:			ds.b 1		; 0 = Sonic and Tails, 1 = Sonic, 2 = Tails
 
-Two_player_items:		ds.w 1
-Control_Style:			ds.w 1
-Physics_Style:			ds.w 1
+Two_player_items:		ds.b 1
+Physics_Style:			ds.b 1
+DropDash_Toggle:		ds.b 1
+AirCurling_Toggle:		ds.b 1
+CharSprite_Style:		ds.b 1
+Unk2_Toggle:		ds.b 1
 				ds.b $6		; $FFFFFF76-$FFFFFF7F ; seems unused
 ;				ds.b $A		; $FFFFFF76-$FFFFFF7F ; seems unused
 
 LevSel_HoldTimer:		ds.w 1
 Level_select_zone:		ds.w 1
-Sound_test_sound:		ds.w 1
+Sound_test_sound:		ds.b 1
+Sound_test_sound_byte:		ds.b 1
 Title_screen_option:		ds.b 1
 				ds.b 1		; $FFFFFF87 ; unused
 Current_Zone_2P:		ds.b 1
 Current_Act_2P:			ds.b 1
 Two_player_mode_copy:		ds.w 1
+Options_menu_selection:
 Options_menu_box:		ds.b 1
-				ds.b 1		; $FFFFFF8D ; unused
+Options_menu_scroll:	ds.b 1
 Total_Bonus_Countdown:		ds.w 1
 
 Level_Music:			ds.w 1
 Bonus_Countdown_3:		ds.w 1
 				ds.b 4		; $FFFFFF94-$FFFFFF97 ; seems unused
 Game_Over_2P:			ds.w 1
-
-				ds.b 6		; $FFFFFF9A-$FFFFFF9F ; seems unused
+Options_menu_pointer:	ds.l 1
+				ds.b 2
 
 SS2p_RingBuffer:		ds.w 6
 				ds.b 4		; $FFFFFFAC-$FFFFFFAF ; seems unused
@@ -2052,7 +2058,7 @@ ArtTile_ArtNem_Numbers                = $04AC
 ArtTile_ArtNem_Shield                 = $04BE
 ArtTile_ArtNem_Invincible_stars       = $04DE
 ArtTile_ArtNem_Powerups               = $0680
-ArtTile_ArtNem_Ring                   = $06BC
+ArtTile_ArtNem_Ring                   = $06BC - 6
 ArtTile_ArtNem_HUD                    = ArtTile_ArtNem_Powerups + $4A
 ArtTile_ArtUnc_Sonic                  = $0780
 ArtTile_ArtUnc_Tails                  = $07A0

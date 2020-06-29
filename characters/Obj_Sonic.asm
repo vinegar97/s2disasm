@@ -1205,6 +1205,11 @@ Sonic_Jump:
 	beq.s	+
 	move.w	#$380,d2	; set lower jump speed if under
 +
+	; HJW: Set lower jump speed for Knux
+	cmpi.l	#Obj_Knuckles,id(a0)
+	bne.s	+
+	subi.w	#$80,d2
++
 	moveq	#0,d0
 	move.b	angle(a0),d0
 	subi.b	#$40,d0

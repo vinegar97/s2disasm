@@ -127,7 +127,7 @@ Knuckles_RecordPositions:			  ; ...
 
 Obj_Knuckles_MdNormal:					  ; ...
     bsr.w	Sonic_CheckSpindash
-    bsr.w	Knuckles_Jump
+    bsr.w	Sonic_Jump
     bsr.w	Sonic_SlopeResist
     bsr.w	Sonic_Move
     bsr.w	Sonic_Roll
@@ -332,7 +332,7 @@ loc_31587A:			  ; ...
 ; ---------------------------------------------------------------------------
 
 Knuckles_FallingFromGlide:		  ; ...
-	bsr.w	Knuckles_ChgJumpDir
+	bsr.w	Sonic_ChgJumpDir
 	add.w	#$38,y_vel(a0)
 	btst	#6,status(a0)
 	beq.s	loc_3158B2
@@ -802,7 +802,7 @@ return_315D9A:			  ; ...
 Obj_Knuckles_MdRoll:					  ; ...
     tst.b	pinball_mode(a0)
     bne.s	loc_315DA6
-    bsr.w	Knuckles_Jump
+    bsr.w	Sonic_Jump
 
 loc_315DA6:					  ; ...
 		bsr.w	Sonic_RollRepel
@@ -816,7 +816,7 @@ loc_315DA6:					  ; ...
 
 Obj_Knuckles_MdJump:					  ; ...
     bsr.w	Knuckles_JumpHeight
-    bsr.w	Knuckles_ChgJumpDir
+    bsr.w	Sonic_ChgJumpDir
     bsr.w	Sonic_LevelBound
     jsr	ObjectMoveAndFall
     btst	#6,status(a0)
@@ -827,156 +827,6 @@ loc_315DE2:					  ; ...
 		bsr.w	Sonic_JumpAngle
 		bsr.w	Sonic_DoLevelCollision
 		rts
-
-; ---------------------------------------------------------------------------
-; Subroutine for moving	Knuckles left or right when he's in the air
-; ---------------------------------------------------------------------------
-
-; =============== S U B	R O U T	I N E =======================================
-
-
-Knuckles_ChgJumpDir:				  ; ...
-		move.w	(Sonic_top_speed).w,d6
-		move.w	(Sonic_acceleration).w,d5
-		asl.w	#1,d5
-		btst	#4,status(a0)
-		bne.s	Obj_Knuckles_Jump_ResetScreen
-		move.w	x_vel(a0),d0
-		btst	#2,(Ctrl_1_Held_Logical).w
-		beq.s	loc_31630E
-		bset	#0,status(a0)
-		sub.w	d5,d0
-		move.w	d6,d1
-		neg.w	d1
-		cmp.w	d1,d0
-		bgt.s	loc_31630E
-		tst.w	(Demo_mode_flag).w
-		bne.w	loc_31630C
-		add.w	d5,d0
-		cmp.w	d1,d0
-		ble.s	loc_31630E
-
-loc_31630C:					  ; ...
-		move.w	d1,d0
-
-loc_31630E:					  ; ...
-		btst	#3,(Ctrl_1_Held_Logical).w
-		beq.s	loc_316332
-		bclr	#0,status(a0)
-		add.w	d5,d0
-		cmp.w	d6,d0
-		blt.s	loc_316332
-		tst.w	(Demo_mode_flag).w
-		bne.w	loc_316330
-		sub.w	d5,d0
-		cmp.w	d6,d0
-		bge.s	loc_316332
-
-loc_316330:					  ; ...
-		move.w	d6,d0
-
-loc_316332:					  ; ...
-		move.w	d0,x_vel(a0)
-
-Obj_Knuckles_Jump_ResetScreen:				  ; ...
-		cmp.w	#$60,($FFFFEED8).w
-		beq.s	Knuckles_JumpPeakDecelerate
-		bcc.s	loc_316344
-		addq.w	#4,($FFFFEED8).w
-
-loc_316344:					  ; ...
-		subq.w	#2,($FFFFEED8).w
-
-Knuckles_JumpPeakDecelerate:			  ; ...
-		cmp.w	#-$400,y_vel(a0)
-		bcs.s	return_316376
-		move.w	x_vel(a0),d0
-		move.w	d0,d1
-		asr.w	#5,d1
-		beq.s	return_316376
-		bmi.s	Knuckles_JumpPeakDecelerateLeft
-		sub.w	d1,d0
-		bcc.s	loc_316364
-		move.w	#0,d0
-
-loc_316364:					  ; ...
-		move.w	d0,x_vel(a0)
-		rts
-; ---------------------------------------------------------------------------
-
-Knuckles_JumpPeakDecelerateLeft:		  ; ...
-		sub.w	d1,d0
-		bcs.s	loc_316372
-		move.w	#0,d0
-
-loc_316372:					  ; ...
-		move.w	d0,x_vel(a0)
-
-return_316376:					  ; ...
-		rts
-; End of function Knuckles_ChgJumpDir
-
-; =============== S U B	R O U T	I N E =======================================
-
-
-Knuckles_Jump:					  ; ...
-    move.b	(Ctrl_1_Press_Logical).w,d0
-    andi.b	#button_B_mask|button_C_mask|button_A_mask,d0 ; is A, B or C pressed?
-    beq.w	return_3164EC
-    moveq	#0,d0
-    move.b	angle(a0),d0
-    add.b	#$80,d0
-    bsr.w	CalcRoomOverHead
-    cmp.w	#6,d1
-    blt.w	return_3164EC
-    move.w	#$600,d2
-    btst	#6,status(a0)
-    beq.s	loc_316470
-    move.w	#$300,d2
-
-loc_316470:					  ; ...
-		tst.w	(Demo_mode_flag).w		  ; Check for demo mode	(note: in normal Sonic 2, this is the level select flag!)
-		beq.s	loc_31647A
-		add.w	#$80,d2			  ; Set	the jump height	to Sonic's height in Demo mode because Sonic Team were too lazy to record new demos for S2&K.
-
-loc_31647A:					  ; ...
-		moveq	#0,d0
-		move.b	angle(a0),d0
-		sub.b	#$40,d0
-		jsr	CalcSine
-		muls.w	d2,d1
-		asr.l	#8,d1
-		add.w	d1,x_vel(a0)
-		muls.w	d2,d0
-		asr.l	#8,d0
-		add.w	d0,y_vel(a0)
-		bset	#1,status(a0)
-		bclr	#5,status(a0)
-		addq.l	#4,sp
-		move.b	#1,jumping(a0)
-		clr.b	stick_to_convex(a0)
-
-loc_3164B2:
-	sfx	sfx_Jump	; play jumping sound
-    move.b	#$13,y_radius(a0)
-    move.b	#9,x_radius(a0)
-    btst	#2,status(a0)
-    bne.s	Knuckles_RollJump
-    move.b	#$E,y_radius(a0)
-    move.b	#7,x_radius(a0)
-    move.b	#2,anim(a0)
-    bset	#2,status(a0)
-    addq.w	#5,y_pos(a0)
-
-return_3164EC:					  ; ...
-		rts
-; ---------------------------------------------------------------------------
-
-Knuckles_RollJump:				  ; ...
-		bset	#4,status(a0)
-		rts
-; End of function Knuckles_Jump
-
 
 ; =============== S U B	R O U T	I N E =======================================
 
