@@ -1,0 +1,10 @@
+	sHeaderInitSFX
+	sHeaderPrio	$70
+	sHeaderCh	$01
+	sHeaderSFX	$A0, ctDAC1, .DAC1, $00, $00		; DAC channels must all use $A0 or $A1 for the flags value
+
+.DAC1
+	sComm	0, $00		; indicate sample is playing
+	dc.b dDropDash, $7F		; C4 is the base pitch (pitch $100) note for DAC
+	sComm	0, $01		; indicate sample has ended
+.DAC2	sStop

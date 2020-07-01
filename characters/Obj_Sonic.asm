@@ -365,6 +365,7 @@ return_1A2DE:
 ; loc_1A2E0: Obj_Sonic_MdJump
 Obj_Sonic_MdAir:
 	bsr.w	Sonic_JumpHeight
+	bsr.w	Sonic_AirCurl
 	bsr.w	Sonic_ChgJumpDir
 	bsr.w	Sonic_LevelBound
 	jsr	(ObjectMoveAndFall).l
@@ -376,6 +377,24 @@ Obj_Sonic_MdAir:
 	bsr.w	Sonic_DoLevelCollision
 	rts
 ; End of subroutine Obj_Sonic_MdAir
+
+Sonic_AirCurl:
+	tst.b	(Option_AirCurling).w
+	beq.s	+
+
+	btst	#button_a,(Ctrl_1_Press_Logical).w	; is a being pressed?
+	beq.s	+			; if not, branch
+
+	clr.b	double_jump_flag(a0)
+	clr.b	glidemode(a0)
+	move.b	#1,jumping(a0)
+	move.b	#$E,y_radius(a0)
+	move.b	#7,x_radius(a0)
+	move.b	#AniIDSonAni_Roll,anim(a0)	; use "jumping" animation
+	bset	#2,status(a0)
+	addq.w	#5,y_pos(a0)
++
+	rts
 ; ===========================================================================
 ; Start of subroutine Obj_Sonic_MdRoll
 ; Called if Sonic is in a ball, but not airborne (thus, probably rolling)
@@ -400,6 +419,8 @@ Obj_Sonic_MdRoll:
 ;        Why they gave it a separate copy of the code, I don't know.
 ; loc_1A330: Obj_Sonic_MdJump2:
 Obj_Sonic_MdJump:
+	tst.l	(HomingAttack_Object).l
+	bne.s	Sonic_HomingAttackMove
 	bsr.w	Sonic_JumpHeight
 	bsr.w	Sonic_ChgJumpDir
 	bsr.w	Sonic_LevelBound
@@ -412,6 +433,35 @@ Obj_Sonic_MdJump:
 	bsr.w	Sonic_DoLevelCollision
 	rts
 ; End of subroutine Obj_Sonic_MdJump
+
+Sonic_HomingAttackMove:
+	move.l	(HomingAttack_Object).l,a1
+	tst.l	id(a1) ; if object is deleted, cancel
+	bne.s	+
+	clr.l	(HomingAttack_Object).l
+	clr.w	x_vel(a0)
+	clr.w	y_vel(a0)
+	clr.b	double_jump_flag(a0)
+	rts	
++
+	moveq	#0,d1
+	move.w	x_pos(a1),d1
+	sub.w	x_pos(a0),d1
+
+	moveq	#0,d2
+	move.w	y_pos(a1),d2
+	sub.w	y_pos(a0),d2
+
+	jsr		CalcAngle
+	jsr		CalcSine
+	
+	muls.w	#16,d0
+	muls.w	#16,d1
+
+	move.w	d0,y_vel(a0)
+	move.w	d1,x_vel(a0)
+
+	jmp	(ObjectMove).l
 
 ; ---------------------------------------------------------------------------
 ; Subroutine to make Sonic walk/run
@@ -1296,18 +1346,52 @@ Sonic_InstaAndShieldMoves:
 	beq.w	locret_11A14			; if not, branch
 	bclr	#Status_RollJump,status(a0)
 	tst.b	(Super_Sonic_flag).w	; check Super-state
-	beq.s	Sonic_FireShield		; if not in a super-state, branch
+	beq.s	Sonic_PrimaryAbility		; if not in a super-state, branch
 	;bmi.w	Sonic_HyperDash			; if Hyper, branch
 	move.b	#1,double_jump_flag(a0)
 	rts
 ; ---------------------------------------------------------------------------
 
+Sonic_PrimaryAbility:
+	cmpi.b	#1,(Option_SonicAbility).l
+	beq.s	Sonic_FireShield
+	cmpi.b	#2,(Option_SonicAbility).l
+	beq.s	Sonic_FireShield
+	cmpi.b	#3,(Option_SonicAbility).l
+	beq.s	Sonic_FireShield
+
+	cmpi.b	#4,(Option_SonicAbility).l
+	bne.s	+
+	bsr.w	Sonic_HomingAttack
++
+	btst	#Status_Shield,status_secondary(a0)	; does Sonic have a Shield
+	beq.w	Sonic_CheckGoSuper			; if not, branch
+	rts
+
+Sonic_HomingAttack:
+	jsr		FindClosestTargetInFront
+	move.l	a1,(HomingAttack_Object).l
+	move.l	#Obj_HyperSonicKnux_Trail,(SuperSonicStars+id).w
+	sfx		sfx_Thok
+	tst.l	(HomingAttack_Object).l
+	bne.s	+
+	move.w	#$800,x_vel(a0)
+	clr.w	y_vel(a0)
+	btst	#Status_Facing,status(a0)		; is Sonic facing left?
+	beq.s	+				; if not, branch
+	neg.w	x_vel(a0)					; reverse speed value, moving Sonic left
++
+	move.b	#1,double_jump_flag(a0)
+	rts
+
 Sonic_FireShield:
 	btst	#Status_Invincible,status_secondary(a0)	; first, does Sonic have invincibility?
-	bne.w	locret_11A14				; if yes, branch
+	bne.w	Sonic_MidInvinc				; if yes, branch
 	btst	#Status_FireShield,status_secondary(a0)	; does Sonic have a Fire Shield?
 	beq.s	Sonic_LightningShield			; if not, branch
 	move.b	#1,(Shield+anim).w
+
+Sonic_FireShieldDo:
 	move.b	#1,double_jump_flag(a0)
 	move.w	#$800,d0
 	btst	#Status_Facing,status(a0)		; is Sonic facing left?
@@ -1328,6 +1412,8 @@ Sonic_LightningShield:
 	btst	#Status_LtngShield,status_secondary(a0)	; does Sonic have a Lightning Shield?
 	beq.s	Sonic_BubbleShield			; if not, branch
 	move.b	#1,(Shield+anim).w
+
+Sonic_LightningShieldDo:
 	move.b	#1,double_jump_flag(a0)
 	move.w	#-$580,y_vel(a0)	; bounce Sonic up, creating the double jump effect
 	clr.b	jumping(a0)
@@ -1339,6 +1425,8 @@ Sonic_BubbleShield:
 	btst	#Status_BublShield,status_secondary(a0)	; does Sonic have a Bubble Shield
 	beq.s	Sonic_CheckGoSuper			; if not, branch
 	move.b	#1,(Shield+anim).w
+
+Sonic_BubbleShieldDo:
 	move.b	#1,double_jump_flag(a0)
 	move.w	#0,x_vel(a0)		; halt horizontal speed...
 	move.w	#0,ground_vel(a0)	; ...both ground and air
@@ -1357,27 +1445,68 @@ Sonic_BubbleShield:
 ; loc_1AB38: test_set_SS:
 Sonic_CheckGoSuper:
 	cmpi.b	#7,(Emerald_count).w	; does Sonic have exactly 7 emeralds?
-	bne.s	Sonic_InstaShield		; if not, branch
+	bne.s	Sonic_InstaAndDrop		; if not, branch
 	tst.b	(Update_HUD_timer).w	; has Sonic reached the end of the act?
-	beq.s	Sonic_InstaShield		; if yes, branch
+	beq.s	Sonic_InstaAndDrop		; if yes, branch
 
 loc_119E8:
 	cmpi.w	#50,(Ring_count).w	; does Sonic have at least 50 rings?
-	blo.s	Sonic_InstaShield	; if not, perform Insta-Shield
+	blo.s	Sonic_InstaAndDrop	; if not, perform Insta-Shield
 	tst.b	(Update_HUD_timer).w
-	bne.s	Sonic_Transform
+	bne.w	Sonic_Transform
+
+Sonic_MidInvinc:
+	bsr.s	Sonic_ShieldControl
+	bra.s	Sonic_DropDash
+
+Sonic_InstaAndDrop:
+	bsr.s	Sonic_InstaShield
+	bsr.s	Sonic_ShieldControl
+	bra.s	Sonic_DropDash
 
 Sonic_InstaShield:
+	cmpi.b	#1,(Option_SonicAbility).l
+	beq.s	Sonic_InstaShieldCont
+	cmpi.b	#3,(Option_SonicAbility).l
+	beq.s	Sonic_InstaShieldCont
 	rts
+
+Sonic_InstaShieldCont:
 	btst	#Status_Shield,status_secondary(a0)	; does Sonic have an S2 shield (The Elementals were already filtered out at this point)?
 	bne.s	locret_11A14				; if yes, branch
 	;move.b	#1,(Shield+anim).w
++
 	move.b	#1,double_jump_flag(a0)
 	sfx		sfx_S3K_42			; play Insta-Shield sound
-; ---------------------------------------------------------------------------
+	rts
 
 locret_11A14:
 		rts
+
+Sonic_DropDash:
+	cmpi.b	#2,(Option_SonicAbility).l
+	beq.s	Sonic_DropDashCont
+	cmpi.b	#3,(Option_SonicAbility).l
+	beq.s	Sonic_DropDashCont
+	rts
+
+Sonic_DropDashCont:
+	sfx		sfx_DropDash
+	move.b	#1,double_jump_flag(a0)
+	rts
+
+Sonic_ShieldControl:
+	cmpi.b	#5,(Option_SonicAbility).l
+	beq.s	Sonic_ShieldControlCont
+	rts
+
+Sonic_ShieldControlCont:
+	btst	#button_up,(Ctrl_1_Held_logical).w
+	bne.w	Sonic_LightningShieldDo
+	btst	#button_down,(Ctrl_1_Held_logical).w
+	bne.w	Sonic_BubbleShieldDo
+	bra.w	Sonic_FireShieldDo
+
 ; ---------------------------------------------------------------------------
 
 Sonic_Transform:
@@ -1829,6 +1958,7 @@ loc_1AF5A:
 	move.w	#0,y_vel(a0)
 	move.w	x_vel(a0),inertia(a0)
 	bsr.w	Sonic_ResetOnFloor
+	bsr.w	Sonic_DropDashRelease
 	rts
 ; ===========================================================================
 
@@ -1842,8 +1972,10 @@ loc_1AF7C:
 	bsr.w	Sonic_ResetOnFloor
 	move.w	y_vel(a0),inertia(a0)
 	tst.b	d3
-	bpl.s	return_1AF8A
+	bpl.s	+
 	neg.w	inertia(a0)
++
+	bsr.w	Sonic_DropDashRelease
 
 return_1AF8A:
 	rts
@@ -1883,6 +2015,7 @@ Sonic_HitFloor:
 	move.w	#0,y_vel(a0)
 	move.w	x_vel(a0),inertia(a0)
 	bsr.w	Sonic_ResetOnFloor
+	bsr.w	Sonic_DropDashRelease
 
 return_1AFE6:
 	rts
@@ -1918,8 +2051,10 @@ loc_1B02C:
 	move.w	y_vel(a0),inertia(a0)
 	bsr.w	Sonic_ResetOnFloor
 	tst.b	d3
-	bpl.s	return_1B042
+	bpl.s	+
 	neg.w	inertia(a0)
++
+	bsr.w	Sonic_DropDashRelease
 
 return_1B042:
 	rts
@@ -1961,6 +2096,7 @@ Sonic_HitFloor2:
 	move.w	#0,y_vel(a0)
 	move.w	x_vel(a0),inertia(a0)
 	bsr.w	Sonic_ResetOnFloor
+	bsr.w	Sonic_DropDashRelease
 
 return_1B09E:
 	rts
@@ -2015,16 +2151,147 @@ Sonic_ResetOnFloor_Part3:
 	tst.b	(Super_Sonic_flag).w
 	bne.s	loc_1222A
 	btst	#Status_BublShield,status_secondary(a0)	; does character have a bubble shield?
-	bne.s	BubbleShield_Bounce	; if so, branch
+	bne.w	BubbleShield_Bounce	; if so, branch
 
 loc_1222A:
-	move.b	#0,double_jump_flag(a0)
 
 return_1B11E:
 	rts
 
 ; =============== S U B R O U T I N E =======================================
 
+Sonic_DropDashRelease:
+	cmpi.b	#2,(Option_SonicAbility).l
+	beq.s	Sonic_DropDashRelease_Start
+	cmpi.b	#3,(Option_SonicAbility).l
+	beq.s	Sonic_DropDashRelease_Start
+	jmp	Sonic_DropDashRelease_Ret
+
+Sonic_DropDashRelease_Start:
+	cmpi.l	#Obj_Sonic,id(a0)
+	bne.w	Sonic_DropDashRelease_Ret
+
+	tst.b	double_jump_flag(a0)
+	beq.w	Sonic_DropDashRelease_Ret
+
+	move.w	#$800,d0	; [ dashspeed = 0x80000 ]
+	move.w	#$C00,d1	; [ maxspeed = 0xC0000 ]
+
+	; [ if ( v0->RightHeld == 1 ) ]
+	btst	#button_right,(Ctrl_1_Held_Logical).w	; is right being pressed?
+	beq.s	+			; if not, branch
+	; [ v0->Direction = 0 ]
+	bclr	#Status_Facing,status(a0)
++
+	; [ if ( v0->LeftHeld == 1 ) ]
+	btst	#button_left,(Ctrl_1_Held_Logical).w	; is left being pressed?
+	beq.s	+			; if not, branch
+	; [ v0->Direction = 1 ]
+	bset	#Status_Facing,status(a0)
++
+
+	; [ if ( v0->SuperMode == 2 ) ]
+	tst.b	(Super_Sonic_flag).w	; Ignore this code if not Super Sonic
+	beq.w	+
+	move.w	#$C00,d0	; [ dashspeed = 0xC0000 ]
+	move.w	#$D00,d1	; [ maxspeed = 0xD0000 ]
++
+	; [ if ( v0->Direction ) ]
+	btst	#Status_Facing,status(a0)		; is Sonic facing left?
+	beq.s	Sonic_DropDashRelease_Right				; if not, branch
+
+Sonic_DropDashRelease_Left:
+	; [ if ( v0->XSpeed <= 0 ) ]
+	tst.w	x_vel(a0)	; is Sonic moving left?
+	bpl.s	++		; if not, branch
+      
+	; [ v6 = -maxspeed ]
+	move.w	d1,d6
+	neg.w	d6
+
+	; [ v7 = (v0->GSpeed >> 2) - dashspeed ]
+	moveq	#0,d5
+	move.w	ground_vel(a0),d5
+	asr.w	#2,d5
+	sub.w	d0,d5
+
+	; [ v0->GSpeed = v7 ]
+	move.w	d5,ground_vel(a0)
+
+	; [ if ( v7 < v6 ) ]
+	cmp.w	d5,d6
+	bge.s	+
+	; [ v0->GSpeed = v6; ]
+	move.w	d6,ground_vel(a0)
++
+	bra.s Sonic_DropDashRelease_Release
++
+    ; [ if ( v0->GroundAngle ) ]
+	tst.b	angle(a0)
+	beq.s	+
+	; [ v0->GSpeed = (v0->GSpeed >> 1) - dashspeed ]
+	asr.w	#1,ground_vel(a0)
+	sub.w	d0,ground_vel(a0)
+	bra.s Sonic_DropDashRelease_Release
++
+	; [ dashspeed = -dashspeed ]
+	neg.w	d0
+	bra.s Sonic_DropDashRelease_ApplyVel
+
+Sonic_DropDashRelease_Right:
+    ; [ if ( v0->XSpeed >= 0 ) ]
+	tst.w	x_vel(a0)	; is Sonic moving right? [ if ( v0->XSpeed <= 0 ) ]
+	bmi.s	++		; if not, branch
+
+	; [ v7 = (v0->GSpeed >> 2) - dashspeed ]
+	; [ v5 = dashspeed + (v0->GSpeed >> 2) ]
+	moveq	#0,d5
+	move.w	ground_vel(a0),d5
+	asr.w	#2,d5
+	add.w	d0,d5
+
+	; [ v0->GSpeed = v7 ]
+	; [ v0->GSpeed = v5 ]
+	move.w	d5,ground_vel(a0)
+
+	; [ if ( v5 > maxspeed ) ]
+	cmp.w	d5,d1
+	bge.s	+
+	; [ v0->GSpeed = maxspeed; ]
+	move.w	d1,ground_vel(a0)
++
+	bra.s Sonic_DropDashRelease_Release
++
+    ; [ if ( v0->GroundAngle ) ]
+	tst.b	angle(a0)
+	beq.s	Sonic_DropDashRelease_ApplyVel
+	; [ v0->GSpeed = dashspeed + (v0->GSpeed >> 1) ]
+	asr.w	#1,ground_vel(a0)
+	add.w	d0,ground_vel(a0)
+	bra.s Sonic_DropDashRelease_Release
+
+Sonic_DropDashRelease_ApplyVel:
+    ; [ v0->GSpeed = dashspeed ]
+	move.w	d0,ground_vel(a0)
+
+Sonic_DropDashRelease_Release:
+	move.w	#$1000,(Horiz_scroll_delay_val).w
+	bsr.w	Reset_Player_Position_Array
+	move.b	#$E,y_radius(a0)
+	move.b	#7,x_radius(a0)
+	move.b	#AniIDSonAni_Roll,anim(a0)
+	addq.w	#5,y_pos(a0)	; add the difference between Sonic's rolling and standing heights
+	bset	#2,status(a0)
+	move.b	#2,(Sonic_Dust+anim).w
+	sfx	sfx_Dash
+
+Sonic_DropDashRelease_Ret:
+	clr.b	double_jump_flag(a0)
+	rts
+; End of function BubbleShield_Bounce
+
+; ===========================================================================
+; =============== S U B R O U T I N E =======================================
 
 BubbleShield_Bounce:
 		movem.l	d1-d2,-(sp)

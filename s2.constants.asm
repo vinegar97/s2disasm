@@ -1124,7 +1124,7 @@ Obj_respawn_data_End:
 				ds.b $FC	; Stack; the first $7E bytes are cleared by ObjectsManager_Init, with possibly disastrous consequences. At least $A0 bytes are needed.
 System_Stack:
 
-SS_2p_Flag:			ds.w 1		; $FFFFFE00-$FFFFFE01 ; seems unused
+SS_2p_Flag:			ds.w 1
 Level_Inactive_flag:		ds.b 1
 Level_Quick_Reset_flag:		ds.b 1
 Timer_frames:			ds.w 1		; (2 bytes)
@@ -1202,8 +1202,8 @@ Logspike_anim_counter:		ds.b 1
 Logspike_anim_frame:		ds.b 1
 Rings_anim_counter:		ds.b 1
 Rings_anim_frame:		ds.b 1
-Unknown_anim_counter:		ds.b 1		; I think this was $FFFFFEC4 in the alpha
-Unknown_anim_frame:		ds.b 1
+Unknown_anim_counter:		ds.b 1		; I think this was $FFFFFEC4 in the alpha (unused)
+Unknown_anim_frame:		ds.b 1 ; (unused)
 Ring_spill_anim_counter:	ds.b 1		; scattered rings
 Ring_spill_anim_frame:		ds.b 1
 Ring_spill_anim_accum:		ds.w 1
@@ -1220,7 +1220,7 @@ Extra_life_flags_2P:		ds.b 1
 Update_HUD_lives_2P:		ds.b 1
 Update_HUD_rings_2P:		ds.b 1
 Update_HUD_timer_2P:		ds.b 1
-Update_HUD_score_2P:		ds.b 1		; mostly unused
+Update_HUD_score_2P:		ds.b 1		; unused
 Time_Over_flag_2P:		ds.b 1
 				ds.b 3		; $FFFFFECD-$FFFFFECF ; seems unused
 Ring_count_2P:			ds.w 1
@@ -1270,19 +1270,19 @@ CreditsScreenIndex:
 SlotMachineInUse:		ds.w 1
 SlotMachineVariables:				; $12 values
 SlotMachine_Routine:		ds.b 1
-SlotMachine_Timer:		ds.b 1
+SlotMachine_Timer:		ds.b 1 ; unused?
 				ds.b 1		; $FFFFFF50 ; seems unused except for 1 write
-SlotMachine_Index:		ds.b 1
+SlotMachine_Index:		ds.b 1 ; unused?
 SlotMachine_Reward:		ds.w 1
-SlotMachine_Slot1Pos:		ds.w 1
-SlotMachine_Slot1Speed:		ds.b 1
-SlotMachine_Slot1Rout:		ds.b 1
-SlotMachine_Slot2Pos:		ds.w 1
-SlotMachine_Slot2Speed:		ds.b 1
-SlotMachine_Slot2Rout:		ds.b 1
-SlotMachine_Slot3Pos:		ds.w 1
-SlotMachine_Slot3Speed:		ds.b 1
-SlotMachine_Slot3Rout:		ds.b 1
+SlotMachine_Slot1Pos:		ds.w 1 ; unused?
+SlotMachine_Slot1Speed:		ds.b 1 ; unused?
+SlotMachine_Slot1Rout:		ds.b 1 ; unused?
+SlotMachine_Slot2Pos:		ds.w 1 ; unused?
+SlotMachine_Slot2Speed:		ds.b 1 ; unused?
+SlotMachine_Slot2Rout:		ds.b 1 ; unused?
+SlotMachine_Slot3Pos:		ds.w 1 ; unused?
+SlotMachine_Slot3Speed:		ds.b 1 ; unused?
+SlotMachine_Slot3Rout:		ds.b 1 ; unused?
 
 				ds.b $8	
 Player_MainChar:		ds.b 1
@@ -1293,12 +1293,12 @@ Player_option_byte:			ds.b 1		; 0 = Sonic and Tails, 1 = Sonic, 2 = Tails
 
 Two_player_items:		ds.b 1
 Physics_Style:			ds.b 1
-DropDash_Toggle:		ds.b 1
-AirCurling_Toggle:		ds.b 1
+Option_SonicAbility:	ds.b 1
+Option_AirCurling:		ds.b 1
 CharSprite_Style:		ds.b 1
 Unk2_Toggle:		ds.b 1
-				ds.b $6		; $FFFFFF76-$FFFFFF7F ; seems unused
-;				ds.b $A		; $FFFFFF76-$FFFFFF7F ; seems unused
+HomingAttack_Object:	ds.l 1
+				ds.b $2		; $FFFFFF76-$FFFFFF7F ; seems unused
 
 LevSel_HoldTimer:		ds.w 1
 Level_select_zone:		ds.w 1
@@ -1309,8 +1309,7 @@ Title_screen_option:		ds.b 1
 Current_Zone_2P:		ds.b 1
 Current_Act_2P:			ds.b 1
 Two_player_mode_copy:		ds.w 1
-Options_menu_selection:
-Options_menu_box:		ds.b 1
+Options_menu_selection:	ds.b 1
 Options_menu_scroll:	ds.b 1
 Total_Bonus_Countdown:		ds.w 1
 

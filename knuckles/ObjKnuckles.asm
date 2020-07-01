@@ -146,6 +146,7 @@ Obj_Knuckles_MdAir:					  ; ...
     tst.b	glidemode(a0)
     bne.s	Obj_Knuckles_MdAir_Gliding
     bsr.w	Knuckles_JumpHeight
+	jsr		Sonic_AirCurl
     bsr.w	Sonic_ChgJumpDir
     bsr.w	Sonic_LevelBound
     jsr	ObjectMoveAndFall
@@ -164,6 +165,7 @@ Obj_Knuckles_MdAir_Gliding:				  ; ...
     bsr.w	Sonic_LevelBound
     jsr	ObjectMove		  ; AKA	SpeedToPos in Sonic 1
     bsr.w	Knuckles_GlideControl
+	jsr		Sonic_AirCurl
 
 return_3156B8:					  ; ...
     rts

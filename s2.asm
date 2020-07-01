@@ -389,8 +389,8 @@ MainGameLoop:
 ; ===========================================================================
 ; loc_3A2:
 GameModesArray: ;;
-GameMode_SegaScreen:	bra.w	TitleScreen_ChoseOptions		; SEGA screen mode
-;GameMode_SegaScreen:	bra.w	SegaScreen		; SEGA screen mode
+;GameMode_SegaScreen:	bra.w	TitleScreen_ChoseOptions		; SEGA screen mode
+GameMode_SegaScreen:	bra.w	SegaScreen		; SEGA screen mode
 GameMode_TitleScreen:	bra.w	TitleScreen		; Title screen mode
 GameMode_Demo:		bra.w	Level			; Demo mode
 GameMode_Level:		bra.w	Level			; Zone play mode
@@ -3872,7 +3872,6 @@ TitleScreen_CheckIfChose2P:
 ; loc_3D20:
 TitleScreen_ChoseOptions:
 	move.b	#GameModeID_OptionsMenu,(Game_Mode).w ; => OptionsMenu
-	move.b	#0,(Options_menu_box).w
 	rts
 ; ===========================================================================
 ; loc_3D2E:
@@ -4461,7 +4460,7 @@ TimeAttack_PreventLoop:
 ; ---------------------------------------------------------------------------
 ; loc_4360:
 Level_Iterate:
-	bsr.w	TimeAttack_Iterate
+	;bsr.w	TimeAttack_Iterate
 	bsr.w	PauseGame
 	move.b	#VintID_Level,(Vint_routine).w
 	bsr.w	WaitForVint
@@ -5400,14 +5399,6 @@ ChangeRingFrame:
 	move.b	#7,(Rings_anim_counter).w
 	addq.b	#1,(Rings_anim_frame).w ; animate rings in the level (Obj_Ring)
 	andi.b	#7,(Rings_anim_frame).w ; HJW: Added ring frames
-+
-	subq.b	#1,(Unknown_anim_counter).w
-	bpl.s	+
-	move.b	#7,(Unknown_anim_counter).w
-	addq.b	#1,(Unknown_anim_frame).w ; animate nothing (deleted special stage object is my best guess)
-	cmpi.b	#6,(Unknown_anim_frame).w
-	blo.s	+
-	move.b	#0,(Unknown_anim_frame).w
 +
 	tst.b	(Ring_spill_anim_counter).w
 	beq.s	+	; rts
@@ -11330,7 +11321,20 @@ TextOptScr_KnuxAlone:		menutxt	"     KNUCKLES ALONE"	; byte_981C:
 TextOptScr_KnuxAndMiles:	menutxt	" KNUCKLES AND MILES"	; byte_981C:
 TextOptScr_KnuxAndTails:	menutxt	" KNUCKLES AND TAILS"	; byte_981C:
 
+TextOptScr_SonicOptions:	menutxt	"SONIC OPTIONS      "
+TextOptScr_TailsOptions:	menutxt	"SONIC OPTIONS      "
+TextOptScr_KnuxOptions:		menutxt	"KNUCKLES OPTIONS   "
+
+TextOptScr_None:			menutxt	"               NONE"
+TextOptScr_InstaShield:		menutxt	"       INSTA SHIELD"
+TextOptScr_DropDash:		menutxt	"          DROP DASH"
+TextOptScr_InstaAndDrop:	menutxt	"     INSTA AND DROP"
+TextOptScr_HomingAttack:	menutxt	"      HOMING ATTACK"
+TextOptScr_ShieldControl:	menutxt	"     SHIELD CONTROL"
+
 TextOptScr_PhysicsStyle:	menutxt	"PHYSICS STYLE      "
+TextOptScr_AirCurling:		menutxt	"AIR CURLING        "
+TextOptScr_AirAbility:		menutxt	"AIR ABILITY        "
 TextOptScr_CharStyle:		menutxt	"PLAYER SPRITES     "
 TextOptScr_S2:				menutxt	"            SONIC 2"
 TextOptScr_S1:				menutxt	"            SONIC 1"
@@ -11338,6 +11342,9 @@ TextOptScr_SCD:				menutxt	"           SONIC CD"
 TextOptScr_S3K:				menutxt	"           SONIC 3K"
 TextOptScr_Mania:			menutxt	"        SONIC MANIA"
 TextOptScr_Original:		menutxt	"           ORIGINAL"
+
+TextOptScr_On:				menutxt	"                 ON"
+TextOptScr_Off:				menutxt	"                OFF"
 
 TextOptScr_VsModeItems:		menutxt	"* VS MODE ITEMS *  "	; byte_982C:
 TextOptScr_AllKindsItems:	menutxt	"    ALL KINDS ITEMS"	; byte_983E:
@@ -11373,8 +11380,6 @@ TextOptScr_LevelOptions:	menutxt	"LEVEL OPTIONS      "
 
 ;TextOptScr_Controlstyle:	menutxt	"CONTROL STYLE"
 ;TextOptScr_Physicsstyle:	menutxt	"PHYSICS STYLE"
-TextOptScr_Aircurling:		menutxt	"AIR CURLING        "
-TextOptScr_ExtCam:			menutxt	"EXT. CAMERA        "
 
 TextOptScr_Playersprites:	menutxt	"PLAYER SPRITES     "
 TextOptScr_Itemsprites:		menutxt	"ITEM SPRITES       "
@@ -11416,6 +11421,17 @@ OptScrValText_2PItems:
 	dc.l TextOptScr_AllKindsItems
 	dc.l TextOptScr_TeleportOnly
 
+OptScrValText_OffOn:
+	dc.l TextOptScr_Off
+	dc.l TextOptScr_On
+
+OptScrValText_SonicAbility:
+	dc.l TextOptScr_None
+	dc.l TextOptScr_InstaShield
+	dc.l TextOptScr_DropDash
+	dc.l TextOptScr_InstaAndDrop
+	dc.l TextOptScr_HomingAttack
+	dc.l TextOptScr_ShieldControl
 
 OptionsMenu_Main:
 	dc.w 4
@@ -11425,25 +11441,38 @@ OptionsMenu_Main:
 	menuitemdata MenuItemSub,			TextOptScr_GameplayOptions, OptionsMenu_Gameplay
 	menuitemdata MenuItemSub,			TextOptScr_StyleOptions,    OptionsMenu_Style
 
+OptionsMenu_Val_Player: 	menuitemdatavalue	4, 			Player_option_byte,		OptScrValText_CharacterUE
+OptionsMenu_Val_2P:			menuitemdatavalue	1, 			Two_player_items,		OptScrValText_2PItems
+OptionsMenu_Val_Sound:		menuitemdatavalue	SFXlast, 	Sound_test_sound_byte,	0
+
+
 OptionsMenu_Gameplay:
-	dc.w 1 ; max index
+	dc.w 3 ; max index
 	menuitemdata MenuItemSub,	TextOptScr_Back,    		OptionsMenu_Main
+	menuitemdata MenuItemSub,	TextOptScr_SonicOptions,   	OptionsMenu_GameplaySonic
 	menuitemdata MenuItemValue, TextOptScr_PhysicsStyle, 	OptionsMenu_Val_Physics
+	menuitemdata MenuItemValue, TextOptScr_AirCurling, 		OptionsMenu_Val_AirCurling
+
+OptionsMenu_Val_Physics: 	menuitemdatavalue	4, 			Physics_Style,			OptScrValText_PhysicsStyle
+OptionsMenu_Val_AirCurling: menuitemdatavalue	1,	 		Option_AirCurling,		OptScrValText_OffOn
+
+
+OptionsMenu_GameplaySonic:
+	dc.w 1 ; max index
+	menuitemdata MenuItemSub,	TextOptScr_Back,    		OptionsMenu_Gameplay
+	menuitemdata MenuItemValue, TextOptScr_AirAbility, 		OptionsMenu_Val_SonicAbility
+
+OptionsMenu_Val_SonicAbility: menuitemdatavalue	5,	 		Option_SonicAbility,		OptScrValText_SonicAbility
+
 
 OptionsMenu_Style:
 	dc.w 1 ; max index
 	menuitemdata MenuItemSub,	TextOptScr_Back,    		OptionsMenu_Main
 	menuitemdata MenuItemValue, TextOptScr_CharStyle, 		OptionsMenu_Val_Char
 
-
 OptionsMenu_Val_Char: 		menuitemdatavalue	4, 			CharSprite_Style,		OptScrValText_CharStyle
-OptionsMenu_Val_Physics: 	menuitemdatavalue	4, 			Physics_Style,			OptScrValText_PhysicsStyle
-OptionsMenu_Val_Player: 	menuitemdatavalue	4, 			Player_option_byte,		OptScrValText_CharacterUE
-OptionsMenu_Val_2P:			menuitemdatavalue	1, 			Two_player_items,		OptScrValText_2PItems
-OptionsMenu_Val_Sound:		menuitemdatavalue	SFXlast, 	Sound_test_sound_byte,	0
 
 	charset ; reset character set
-
 	even
 ; ===========================================================================
 
@@ -11742,7 +11771,7 @@ OptionsScreen_Input_MenuItemSound:
 ; loc_8FCC:
 MenuScreen_Options:
 	move.l	#OptionsMenu_Main,(Options_menu_pointer).l
-	move.l	#0,(Options_menu_selection).l
+	clr.b	(Options_menu_selection).w
 
 	; Load tile graphics
 	lea	(Chunk_Table).l,a1
@@ -11753,7 +11782,6 @@ MenuScreen_Options:
 	lea	(MapEng_Options).l,a0
 	move.w	#make_art_tile(ArtTile_ArtNem_MenuBox,1,0),d0
 	jsr		EniDec
-	clr.b	(Options_menu_box).w
 	clr.b	(Level_started_flag).w
 	clr.w	(Anim_Counters).w
 	lea	(Anim_SonicMilesBG).l,a2
@@ -14321,12 +14349,10 @@ InitCameraValues:
 	move.w	d0,(Camera_BG2_Y_pos).w
 	move.w	d1,(Camera_BG_X_pos).w
 	move.w	d1,(Camera_BG2_X_pos).w
-	move.w	d1,(Camera_BG3_X_pos).w
 	move.w	d0,(Camera_BG_Y_pos_P2).w
 	move.w	d0,(Camera_BG2_Y_pos_P2).w
 	move.w	d1,(Camera_BG_X_pos_P2).w
 	move.w	d1,(Camera_BG2_X_pos_P2).w
-	move.w	d1,(Camera_BG3_X_pos_P2).w
 +
 	moveq	#0,d2
 	move.b	(Current_Zone).w,d2
@@ -17144,48 +17170,6 @@ SetHorizScrollFlagsBG2:	; only used by CPZ
 +
 	rts
 ; End of function SetHorizScrollFlagsBG2
-
-; ===========================================================================
-; some apparently unused code
-;SetHorizScrollFlagsBG3:
-	move.l	(Camera_BG3_X_pos).w,d2
-	move.l	d2,d0
-	add.l	d4,d0
-	move.l	d0,(Camera_BG3_X_pos).w
-	move.l	d0,d1
-	swap	d1
-	andi.w	#$10,d1
-	move.b	(Horiz_block_crossed_flag_BG3).w,d3
-	eor.b	d3,d1
-	bne.s	++	; rts
-	eori.b	#$10,(Horiz_block_crossed_flag_BG3).w
-	sub.l	d2,d0
-	bpl.s	+
-	bset	d6,(Scroll_flags_BG3).w
-	bra.s	++	; rts
-; ===========================================================================
-+
-	addq.b	#1,d6
-	bset	d6,(Scroll_flags_BG3).w
-+
-	rts
-; ===========================================================================
-; Unused - dead code leftover from S1:
-	lea	(VDP_control_port).l,a5
-	lea	(VDP_data_port).l,a6
-	lea	(Scroll_flags_BG).w,a2
-	lea	(Camera_BG_X_pos).w,a3
-	lea	(Level_Layout+$80).w,a4
-	move.w	#vdpComm(VRAM_Plane_B_Name_Table,VRAM,WRITE)>>16,d2
-	bsr.w	Draw_BG1
-	lea	(Scroll_flags_BG2).w,a2
-	lea	(Camera_BG2_X_pos).w,a3
-	bra.w	Draw_BG2
-
-; ===========================================================================
-
-
-
 
 ; ---------------------------------------------------------------------------
 ; Subroutine to display correct tiles as you move
@@ -23006,6 +22990,7 @@ JmpTo_RandomNumber
 
 Obj_HyperSonicKnux_Trail:
 		; init
+		move.b	#20,objoff_2B(a0)
 		move.l	#Mapunc_Knuckles,mappings(a0)	; Load Knuckles' mappings
 		cmpi.b	#3,(Player_MainChar).w		; Are we playing as Knuckles?
 		beq.s	.playingasknux			; If so, branch
@@ -23019,8 +23004,17 @@ Obj_HyperSonicKnux_Trail:
 		move.l	#Obj_HyperSonicKnux_Trail_Main,(a0)
 
 Obj_HyperSonicKnux_Trail_Main:
+		tst.b	objoff_2B(a0)
+		beq.s	+
+		subi.b	#1,objoff_2B(a0)
+		bra.s	++
++
 		btst	#status_sec_hasSpeedShoes,(MainCharacter+status_secondary).w
-		beq.w	DeleteObject		; If so, branch and delete
+		bne.s	+
+		tst.l	(HomingAttack_Object).l
+		bne.s	+
+		jmp		DeleteObject
++
 		moveq	#$C,d1				; This will be subtracted from Pos_table_index, giving the object an older entry
 		btst	#0,(Timer_frames+1).w	; Even frame? (Think of it as 'every other number' logic)
 		beq.s	.evenframe			; If so, branch
@@ -27882,7 +27876,130 @@ Obj3C_MapUnc_15ECC:	BINCLUDE "mappings/sprite/obj3C.bin"
 	bra.w	ObjNull
 
 
+; https://www.atari-forum.com/viewtopic.php?t=4984
+; In: d1
+; Out: d0
+; Uses: d2,d3
+sqrt_nyh1:
+	move.l  #$40000000,d1   ; mask
+.loop0:
+	cmp.l   d1,d0           ; x-tmp<0?
+	bcs.s   .cont0          ; yep
+	move.l  d1,d2           ; result=mask
+	sub.l   d1,d0           ; x-=mask
+	lsr.l   #2,d1           ; mask>>=2
+	bne.s   .loop1
+	move.l  d2,d0           ; d0=result
+	rts
+.cont0:
+	lsr.l   #2,d1           ; mask>>=2
+	bne.s   .loop0
+	rts
+.loop1:
+	move.l  d2,d3           ; tmp=result
+	add.l   d1,d3           ; tmp+=mask
+	lsr.l   #1,d2           ; result>>=1
+	cmp.l   d3,d0           ; x-tmp<0?
+	bcs.s   .cont1          ; yep
+	sub.l   d3,d0           ; x-=tmp
+	add.l   d1,d2           ; result+=mask
+.cont1:
+	lsr.l   #2,d1           ; mask>>=2;
+	bne.s   .loop1          ; nogmal
+	move.l  d2,d0           ; d0=result
+	rts                     ; Einde
 
+; Output:
+; d0: distance
+; a1: object
+FindClosestTargetInFront:
+	lea	(Dynamic_Object_RAM).w,a2 ; a2=object
+	moveq	#(Dynamic_Object_RAM_End-Dynamic_Object_RAM)/object_size-1,d6 ; run the first $80 objects out of levels
+	move.l	#$FFFFFFFF,d5 ; d5 = smallest distance
+	move.l	#0,a1 ; a1 = closest obj
+
+FindClosestTargetInFront_Loop:
+	bsr.s	FindClosestTargetInFront_Iterate
+	lea	next_object(a2),a2 ; load obj address
+	dbf	d6,FindClosestTargetInFront_Loop
+	moveq	#0,d0
+	move.w	d5,d0
+	rts
+
+FindClosestTargetInFront_Iterate:
+	tst.l	id(a2)	; get the object's ID
+	beq.s	+	; if it's obj00, skip it
+
+	move.b	collision_flags(a2),d1
+	beq.s	+
+	andi.b	#$C0,d1			; is touch response $40 or higher?
+	beq.w	FindClosestTargetInFront_FoundNew		; if yes, branch
+
+	cmpi.b	#$C0,d1			; is touch response $C0 or higher?
+	beq.w	+		; if yes, branch
+	tst.b	d1			; is touch response $80-$BF ?
+	bmi.w	+		; if yes, branch
+
+	move.b	collision_flags(a2),d1
+	andi.b	#$3F,d1
+	cmpi.b	#6,d1			; is touch response $46 ?
+	beq.s	FindClosestTargetInFront_FoundNew		; if yes, branch
++
+	rts
+
+FindClosestTargetInFront_FoundNew:
+	moveq	#0,d0
+	move.w	x_pos(a2),d0
+
+	btst	#Status_Facing,status(a0)		; is Sonic facing left?
+	beq.s	.facingright				; if not, branch
+	cmp.w	x_pos(a0),d0	; is obj in front of Sonic?
+	blt.s	.cont			; if so, continue
+	rts
+
+  .facingright:
+	cmp.w	x_pos(a0),d0	; is obj in front of Sonic?
+	bge.s	.cont			; if so, continue
+	rts
+
+  .cont:
+	; Pythagorean theorem to get distance
+	; a squared...
+	sub.w	x_pos(a0),d0
+	muls.w	d0,d0
+
+	; b squared...
+	moveq	#0,d1
+	move.w	y_pos(a2),d1
+	sub.w	y_pos(a0),d1
+
+	; cap y distance
+	cmpi.w	#$100,d1 ; is y dist greater than cap?
+	bge.s	+	; leave if is
+	cmpi.w	#-$100,d1 ; is y dist greater than cap?
+	ble.s	+	; leave if is
+
+	; okay back to the b squared part
+	muls.w	d1,d1
+
+	; add em up...
+	add.w	d0,d1
+
+	; and square root em!
+	bsr.w	sqrt_nyh1
+
+	; is the distance greater than prev?
+	cmp.w	d0,d5
+	blo.s	+	; leave if not
+
+	cmpi.w	#$100,d0 ; is dist greater than cap?
+	bge.s	+	; leave if is
+
+	; store current obj and distance
+	move.l	a2,a1
+	move.w	d0,d5
++
+	rts
 
 ; -------------------------------------------------------------------------------
 ; This runs the code of all the objects that are in Object_RAM
@@ -34190,7 +34307,7 @@ loc_1D9A4:
 loc_1DA0C:
 	movea.w	parent(a0),a1 ; a1=character
 	btst	#status_sec_isInvincible,status_secondary(a1)
-	beq.w	DeleteObject
+	jeq		DeleteObject
 	move.w	x_pos(a1),d0
 	move.w	d0,x_pos(a0)
 	move.w	y_pos(a1),d1
@@ -36344,8 +36461,6 @@ Obj_Starpost_SaveData:
 	move.w	(Camera_BG_Y_pos).w,(Saved_Camera_BG_Y_pos).w
 	move.w	(Camera_BG2_X_pos).w,(Saved_Camera_BG2_X_pos).w
 	move.w	(Camera_BG2_Y_pos).w,(Saved_Camera_BG2_Y_pos).w
-	move.w	(Camera_BG3_X_pos).w,(Saved_Camera_BG3_X_pos).w
-	move.w	(Camera_BG3_Y_pos).w,(Saved_Camera_BG3_Y_pos).w
 	move.w	(Water_Level_2).w,(Saved_Water_Level).w
 	move.b	(Water_routine).w,(Saved_Water_routine).w
 	move.b	(Water_fullscreen_flag).w,(Saved_Water_move).w
@@ -36390,8 +36505,6 @@ Obj_Starpost_LoadData:
 	move.w	(Saved_Camera_BG_Y_pos).w,(Camera_BG_Y_pos).w
 	move.w	(Saved_Camera_BG2_X_pos).w,(Camera_BG2_X_pos).w
 	move.w	(Saved_Camera_BG2_Y_pos).w,(Camera_BG2_Y_pos).w
-	move.w	(Saved_Camera_BG3_X_pos).w,(Camera_BG3_X_pos).w
-	move.w	(Saved_Camera_BG3_Y_pos).w,(Camera_BG3_Y_pos).w
 	tst.b	(Water_flag).w	; does the level have water?
 	beq.s	+		; if not, branch to skip loading water stuff
 	move.w	(Saved_Water_Level).w,(Water_Level_2).w
@@ -76727,6 +76840,17 @@ Touch_ChkValue:
 	move.w	a0,parent(a1)
 +
 	rts
+
+Touch_HomingAttack:
+	tst.l	(HomingAttack_Object).l
+	beq.s	+
+	move.w	#-$680,y_vel(a0)
+	clr.w	x_vel(a0)
+	clr.l	(HomingAttack_Object).l
+	clr.b	double_jump_flag(a0)
++
+	rts
+
 ; ===========================================================================
 ; loc_3F73C:
 ; http://sonicresearch.org/community/index.php?threads/how-to-fix-weird-monitor-collision-errors.5834/
@@ -76766,6 +76890,7 @@ Break_Monitor:
 	neg.w	y_vel(a0)	; reverse Sonic's y-motion
 	move.b	#4,routine(a1)
 	move.w	a0,parent(a1)
+	bsr.w	Touch_HomingAttack
 
 	;cmpi.b	#AniIDSonAni_Roll,anim(a0)
 	;bne.s	return_3F78A
@@ -76778,6 +76903,7 @@ return_3F78A:
 ; ===========================================================================
 ; loc_3F78C:
 Touch_Enemy:
+	bsr.w	Touch_HomingAttack
 	btst	#status_sec_isInvincible,status_secondary(a0)	; is Sonic invincible?
 	bne.s	.checkhurtenemy			; if yes, branch
 	cmpi.b	#AniIDSonAni_Spindash,anim(a0)
@@ -79104,7 +79230,6 @@ AddPoints2:
 	beq.s	AddPoints
 	cmpa.w	#MainCharacter,a3
 	beq.s	AddPoints
-	move.b	#1,(Update_HUD_score_2P).w
 	lea	(Score_2P).w,a3
 	add.l	d0,(a3)	; add d0*10 to the score
 	move.l	#999999,d1
