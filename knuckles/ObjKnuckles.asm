@@ -91,7 +91,7 @@ Obj_Knuckles_Control:					  ; ...
 +
 	jsr 	Sonic_Display
 	bsr.w	Knuckles_Super
-	bsr.w	Knuckles_RecordPositions
+	bsr.w	Sonic_RecordPos
 	bsr.w	Sonic_Water
 	move.b	(Primary_Angle).w,next_tilt(a0)
 	move.b	(Secondary_Angle).w,tilt(a0)
@@ -115,13 +115,6 @@ Obj_Knuckles_Modes:	offsetTable
     offsetTableEntry.w Obj_Knuckles_MdAir			; 2 - airborne
     offsetTableEntry.w Obj_Knuckles_MdRoll			; 4 - rolling
     offsetTableEntry.w Obj_Knuckles_MdJump			; 6 - jumping
-
-
-; =============== S U B	R O U T	I N E =======================================
-
-Knuckles_RecordPositions:			  ; ...
-    jmp (Sonic_RecordPos).l
-; End of function Knuckles_RecordPositions
 
 ; =============== S U B	R O U T	I N E =======================================
 
@@ -1187,7 +1180,7 @@ loc_316DA0:					  ; ...
 loc_316DAE:					  ; ...
 		bsr.w	Sonic_HurtStop
 		bsr.w	Sonic_LevelBound
-		bsr.w	Knuckles_RecordPositions
+		bsr.w	Sonic_RecordPos
 		bsr.w	Knuckles_Animate
 		bsr.w	Sonic_Water
 		bsr.w	LoadKnucklesDynPLC
@@ -1206,7 +1199,7 @@ JmpToK_KillCharacter:				  ; ...
 Knuckles_HurtInstantRecover:			  ; ...
     subq.b	#2,routine(a0)
     move.b	#0,routine_secondary(a0)
-    bsr.w	Knuckles_RecordPositions
+    bsr.w	Sonic_RecordPos
     bsr.w	Knuckles_Animate
     bsr.w	LoadKnucklesDynPLC
     jmp	DisplaySprite
@@ -1227,7 +1220,7 @@ Obj_Knuckles_Dead:					  ; ...
 loc_316E4A:					  ; ...
 		bsr.w	CheckGameOver
 		jsr	ObjectMoveAndFall
-		bsr.w	Knuckles_RecordPositions
+		bsr.w	Sonic_RecordPos
 		bsr.w	Knuckles_Animate
 		bsr.w	LoadKnucklesDynPLC
 		jmp	DisplaySprite

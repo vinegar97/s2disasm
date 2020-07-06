@@ -77,8 +77,6 @@ IF EXIST s2.log goto LABLERROR4
 REM // done -- pause if we seem to have failed, then exit
 IF NOT EXIST s2built.md pause & exit /b
 "ErrorDebugger/ConvSym.exe" s2.lst s2built.md -input as_lst -a
-del s2.p
-del s2.h
 del AMPS\.Data
 exit /b
 

@@ -1142,7 +1142,6 @@ VDP_ClrCRAM:
 	dbf	d7,VDP_ClrCRAM	; clear	the CRAM
 
 	clr.l	(Vscroll_Factor).w
-	clr.l	(unk_F61A).w
 	move.l	d1,-(sp)
 
 	dmaFillVRAM 0,$0000,$10000	; fill entire VRAM with 0
@@ -1191,7 +1190,6 @@ ClearScreen:
 	dmaFillVRAM 0,VRAM_Plane_A_Name_Table_2P,VRAM_Plane_Table_Size
 +
 	clr.l	(Vscroll_Factor).w
-	clr.l	(unk_F61A).w
 
 	; Bug: These '+4's shouldn't be here; clearRAM accidentally clears an additional 4 bytes
 	clearRAM Sprite_Table,Sprite_Table_End
@@ -3708,7 +3706,6 @@ TitleScreen:
 	move.b	#0,(Last_star_pole_hit_2P).w
 	move.w	#0,(Debug_placement_mode).w
 	move.w	#0,(Demo_mode_flag).w
-	move.w	#0,(unk_FFDA).w
 	move.w	#0,(PalCycle_Timer).w
 	move.w	#0,(Two_player_mode).w
 	move.b	#0,(Level_started_flag).w
@@ -3838,7 +3835,7 @@ TitleScreen_Loop:
     else
 	move.w	#emerald_hill_zone_act_1,(Current_ZoneAndAct).w
     endif
-	move.b	#1,(Level_select_flag).w
+	move.b	#1,(Level_select_flag).w ; REMOVE THIS
 	tst.b	(Level_select_flag).w	; has level select cheat been entered?
 	beq.s	+			; if not, branch
 	btst	#button_A,(Ctrl_1_Held).w ; is A held down?
@@ -5925,7 +5922,6 @@ SpecialStage:
 	dmaFillVRAM 0,VRAM_SS_Horiz_Scroll_Table,VRAM_SS_Horiz_Scroll_Table_Size  ; clear Horizontal scroll table
 
 	clr.l	(Vscroll_Factor).w
-	clr.l	(unk_F61A).w
 	clr.b	(SpecialStage_Started).w
 
 ; /------------------------------------------------------------------------\
@@ -11335,6 +11331,7 @@ TextOptScr_ShieldControl:	menutxt	"     SHIELD CONTROL"
 TextOptScr_PhysicsStyle:	menutxt	"PHYSICS STYLE      "
 TextOptScr_AirCurling:		menutxt	"AIR CURLING        "
 TextOptScr_AirAbility:		menutxt	"AIR ABILITY        "
+TextOptScr_ShieldAbilityStyle:		menutxt	"SHLD ABILITY STYLE "
 TextOptScr_CharStyle:		menutxt	"PLAYER SPRITES     "
 TextOptScr_S2:				menutxt	"            SONIC 2"
 TextOptScr_S1:				menutxt	"            SONIC 1"
@@ -11342,6 +11339,7 @@ TextOptScr_SCD:				menutxt	"           SONIC CD"
 TextOptScr_S3K:				menutxt	"           SONIC 3K"
 TextOptScr_Mania:			menutxt	"        SONIC MANIA"
 TextOptScr_Original:		menutxt	"           ORIGINAL"
+TextOptScr_Joey:			menutxt	"               JOEY"
 
 TextOptScr_On:				menutxt	"                 ON"
 TextOptScr_Off:				menutxt	"                OFF"
@@ -11358,6 +11356,7 @@ MenuItemSub 		= 6
 MenuItemSound 		= 8
 MenuItemValuePlayer = 10
 MenuItemValue2P 	= 12
+MenuItemBack 	= 14
 
 menuitemdata_len	= 10
 menuitemdata macro type,txtlabel,otherdataptr
@@ -11406,7 +11405,6 @@ OptScrValText_CharacterUE:
 OptScrValText_PhysicsStyle:
 	dc.l TextOptScr_S2
 	dc.l TextOptScr_S1
-	dc.l TextOptScr_SCD
 	dc.l TextOptScr_S3K
 	dc.l TextOptScr_Mania
 
@@ -11433,6 +11431,12 @@ OptScrValText_SonicAbility:
 	dc.l TextOptScr_HomingAttack
 	dc.l TextOptScr_ShieldControl
 
+OptScrValText_ShieldAbilityStyle:
+	dc.l TextOptScr_Original
+	dc.l TextOptScr_Mania
+	dc.l TextOptScr_Joey
+
+
 OptionsMenu_Main:
 	dc.w 4
 	menuitemdata MenuItemValuePlayer,	TextOptScr_PlayerSelect, 	OptionsMenu_Val_Player
@@ -11442,35 +11446,37 @@ OptionsMenu_Main:
 	menuitemdata MenuItemSub,			TextOptScr_StyleOptions,    OptionsMenu_Style
 
 OptionsMenu_Val_Player: 	menuitemdatavalue	4, 			Player_option_byte,		OptScrValText_CharacterUE
-OptionsMenu_Val_2P:			menuitemdatavalue	1, 			Two_player_items,		OptScrValText_2PItems
+OptionsMenu_Val_2P:			menuitemdatavalue	1, 			Option_2PItems,		OptScrValText_2PItems
 OptionsMenu_Val_Sound:		menuitemdatavalue	SFXlast, 	Sound_test_sound_byte,	0
 
 
 OptionsMenu_Gameplay:
 	dc.w 3 ; max index
-	menuitemdata MenuItemSub,	TextOptScr_Back,    		OptionsMenu_Main
+	menuitemdata MenuItemBack,	TextOptScr_Back,    		OptionsMenu_Main
 	menuitemdata MenuItemSub,	TextOptScr_SonicOptions,   	OptionsMenu_GameplaySonic
 	menuitemdata MenuItemValue, TextOptScr_PhysicsStyle, 	OptionsMenu_Val_Physics
 	menuitemdata MenuItemValue, TextOptScr_AirCurling, 		OptionsMenu_Val_AirCurling
 
-OptionsMenu_Val_Physics: 	menuitemdatavalue	4, 			Physics_Style,			OptScrValText_PhysicsStyle
+OptionsMenu_Val_Physics: 	menuitemdatavalue	3, 			Option_PhysicsStyle,			OptScrValText_PhysicsStyle
 OptionsMenu_Val_AirCurling: menuitemdatavalue	1,	 		Option_AirCurling,		OptScrValText_OffOn
 
 
 OptionsMenu_GameplaySonic:
-	dc.w 1 ; max index
-	menuitemdata MenuItemSub,	TextOptScr_Back,    		OptionsMenu_Gameplay
+	dc.w 2 ; max index
+	menuitemdata MenuItemBack,	TextOptScr_Back,    		OptionsMenu_Gameplay
 	menuitemdata MenuItemValue, TextOptScr_AirAbility, 		OptionsMenu_Val_SonicAbility
+	menuitemdata MenuItemValue, TextOptScr_ShieldAbilityStyle, 		OptionsMenu_Val_ShieldAbilityStyle
 
 OptionsMenu_Val_SonicAbility: menuitemdatavalue	5,	 		Option_SonicAbility,		OptScrValText_SonicAbility
+OptionsMenu_Val_ShieldAbilityStyle: menuitemdatavalue	2,	 		Option_ShieldAbilityStyle,		OptScrValText_ShieldAbilityStyle
 
 
 OptionsMenu_Style:
-	dc.w 1 ; max index
-	menuitemdata MenuItemSub,	TextOptScr_Back,    		OptionsMenu_Main
-	menuitemdata MenuItemValue, TextOptScr_CharStyle, 		OptionsMenu_Val_Char
+	dc.w 0 ; max index
+	menuitemdata MenuItemBack,	TextOptScr_Back,    		OptionsMenu_Main
+;	menuitemdata MenuItemValue, TextOptScr_CharStyle, 		OptionsMenu_Val_Char
 
-OptionsMenu_Val_Char: 		menuitemdatavalue	4, 			CharSprite_Style,		OptScrValText_CharStyle
+;OptionsMenu_Val_Char: 		menuitemdatavalue	4, 			CharSprite_Style,		OptScrValText_CharStyle
 
 	charset ; reset character set
 	even
@@ -11595,6 +11601,7 @@ OptionsScreen_GetValTextPtr_Index:	offsetTable
 	offsetTableEntry.w	OptionsScreen_GetValTextPtr_MenuItemSound ; 8 (MenuItemSound)
 	offsetTableEntry.w	OptionsScreen_GetValTextPtr_MenuItemValue ; 10 (MenuItemValuePlayer)
 	offsetTableEntry.w	OptionsScreen_GetValTextPtr_MenuItemValue ; 12 (MenuItemValue2P)
+	offsetTableEntry.w	OptionsScreen_GetValTextPtr_Null ; 14 (MenuItemBack)
 
 OptionsScreen_GetValTextPtr_Null:
 	move.l	#TextOptScr_Empty,a1
@@ -11672,6 +11679,7 @@ OptionsScreen_Input_Index:	offsetTable
 	offsetTableEntry.w	OptionsScreen_Input_MenuItemSound ; 8 (MenuItemSound)
 	offsetTableEntry.w	OptionsScreen_Input_MenuItemValuePlayer ; 10 (MenuItemValuePlayer)
 	offsetTableEntry.w	OptionsScreen_Input_MenuItemValue2P ; 12 (MenuItemValue2P)
+	offsetTableEntry.w	OptionsScreen_Input_MenuItemBack ; 14 (MenuItemBack)
 
 OptionsScreen_Input_Null:
 	rts
@@ -11684,6 +11692,15 @@ OptionsScreen_Input_MenuItemValuePlayer:
 	; Start a single player game
 	move.w	#0,(Two_player_mode).w
 	move.w	#0,(Two_player_mode_copy).w
+
+	move.b	#1,(Level_select_flag).w	; REMOVE THIS
+	tst.b	(Level_select_flag).w	; has level select cheat been entered?
+	beq.s	+			; if not, branch
+	btst	#button_A,(Ctrl_1_Held).w ; is A held down?
+	beq.s	+	 		; if not, branch
+	move.b	#GameModeID_LevelSelect,(Game_Mode).w ; => LevelSelectMen
+	rts
++
 	move.w	#0,(Current_ZoneAndAct).w	; emerald_hill_zone_act_1
 	move.b	#GameModeID_Level,(Game_Mode).w ; => Level (Zone play mode)
 	rts
@@ -11710,12 +11727,14 @@ OptionsScreen_Input_MenuItemValue:
 	or.b	(Ctrl_2_Press).w,d0
 	btst	#button_left,d0
 	beq.s	+
+	sfx		sfx_Beep
 	subq.b	#1,(a0)
 	bcc.s	++
 	move.b	d1,(a0)
 +
 	btst	#button_right,d0
 	beq.s	+
+	sfx		sfx_Beep
 	addq.b	#1,(a0)
 	move.b	(a0),d2
 	subi.b	#1,d2
@@ -11725,14 +11744,31 @@ OptionsScreen_Input_MenuItemValue:
 +
 	rts
 
+OptionsScreen_Input_MenuItemBack:
+	move.b	(Ctrl_1_Press).w,d0
+	or.b	(Ctrl_2_Press).w,d0
+	btst	#button_start,d0
+	beq.s	+
+	bsr.w	OptionsScreen_Input_MenuItemSubEnter
+	sfx		sfx_S3K_42
++
+	rts
+
 OptionsScreen_Input_MenuItemSub:
 	move.b	(Ctrl_1_Press).w,d0
 	or.b	(Ctrl_2_Press).w,d0
 	btst	#button_start,d0
 	beq.s	+
+	bsr.w	OptionsScreen_Input_MenuItemSubEnter
+	sfx		sfx_Starpost
++
+	rts
+
+OptionsScreen_Input_MenuItemSubEnter:
 	move.w	#0,(Options_menu_selection).l
 	move.l	a0,(Options_menu_pointer).l
 	dmaFillVRAM 0,VRAM_Plane_A_Name_Table,VRAM_Plane_Table_Size	; Clear Plane A pattern name table
+	bsr.w	OptionsScreen_DrawMenu
 +
 	rts
 
@@ -11961,7 +11997,7 @@ LevelSelect_PressStart:
 
 ;loc_944C:
 LevelSelect_Return:
-	move.b	#GameModeID_SegaScreen,(Game_Mode).w ; => SegaScreen
+	move.b	#GameModeID_OptionsMenu,(Game_Mode).w ; => SegaScreen
 	rts
 ; ===========================================================================
 ; -----------------------------------------------------------------------------
@@ -12436,7 +12472,6 @@ EndingSequence:
 
 	dmaFillVRAM 0,VRAM_Plane_A_Name_Table,VRAM_Plane_Table_Size ; clear Plane A pattern name table
 	clr.l	(Vscroll_Factor).w
-	clr.l	(unk_F61A).w
 
 	lea	(VDP_control_port).l,a6
 	move.w	#$8B03,(a6)		; EXT-INT disabled, V scroll by screen, H scroll by line
@@ -14164,7 +14199,6 @@ LevelSizeLoad:
 	clr.w	(Scroll_flags_BG3).w
 	clr.w	(Scroll_flags_P2).w
 	clr.w	(Scroll_flags_BG_P2).w
-	clr.w	(Scroll_flags_BG2_P2).w
 	clr.w	(Scroll_flags_BG3_P2).w
 	clr.w	(Scroll_flags_copy).w
 	clr.w	(Scroll_flags_BG_copy).w
@@ -14193,7 +14227,6 @@ LevelSizeLoad:
 	lea	LevelSize(pc,d0.w),a0
 	move.l	(a0)+,d0
 	move.l	d0,(Camera_Min_X_pos).w
-	move.l	d0,(unk_EEC0).w	; unused besides this one write...
 	move.l	d0,(Tails_Min_X_pos).w
 	move.l	(a0)+,d0
 	move.l	d0,(Camera_Min_Y_pos).w
@@ -14352,7 +14385,6 @@ InitCameraValues:
 	move.w	d0,(Camera_BG_Y_pos_P2).w
 	move.w	d0,(Camera_BG2_Y_pos_P2).w
 	move.w	d1,(Camera_BG_X_pos_P2).w
-	move.w	d1,(Camera_BG2_X_pos_P2).w
 +
 	moveq	#0,d2
 	move.b	(Current_Zone).w,d2
@@ -14388,7 +14420,6 @@ InitCam_EHZ:
 	clr.l	(Camera_BG_X_pos).w
 	clr.l	(Camera_BG_Y_pos).w
 	clr.l	(Camera_BG2_Y_pos).w
-	clr.l	(Camera_BG3_Y_pos).w
 	lea	(TempArray_LayerDef).w,a2
 	clr.l	(a2)+
 	clr.l	(a2)+
@@ -14396,7 +14427,6 @@ InitCam_EHZ:
 	clr.l	(Camera_BG_X_pos_P2).w
 	clr.l	(Camera_BG_Y_pos_P2).w
 	clr.l	(Camera_BG2_Y_pos_P2).w
-	clr.l	(Camera_BG3_Y_pos_P2).w
 	rts
 ; ===========================================================================
 ; wtf:
@@ -14433,7 +14463,6 @@ InitCam_HTZ:
 	clr.l	(Camera_BG_X_pos).w
 	clr.l	(Camera_BG_Y_pos).w
 	clr.l	(Camera_BG2_Y_pos).w
-	clr.l	(Camera_BG3_Y_pos).w
 	lea	(TempArray_LayerDef).w,a2
 	clr.l	(a2)+
 	clr.l	(a2)+
@@ -14441,7 +14470,6 @@ InitCam_HTZ:
 	clr.l	(Camera_BG_X_pos_P2).w
 	clr.l	(Camera_BG_Y_pos_P2).w
 	clr.l	(Camera_BG2_Y_pos_P2).w
-	clr.l	(Camera_BG3_Y_pos_P2).w
 	rts
 ; ===========================================================================
 ; Hidden_Palace_Zone_BG:
@@ -14544,7 +14572,6 @@ loc_C3A6:
 	clr.w	(Camera_BG_X_pos+2).w
 	clr.w	(Camera_ARZ_BG_X_pos+2).w
 	clr.l	(Camera_BG2_Y_pos).w
-	clr.l	(Camera_BG3_Y_pos).w
 	rts
 ; ===========================================================================
 ;loc_C3C6:
@@ -14567,7 +14594,6 @@ DeformBgLayer:
 	clr.w	(Scroll_flags_BG3).w
 	clr.w	(Scroll_flags_P2).w
 	clr.w	(Scroll_flags_BG_P2).w
-	clr.w	(Scroll_flags_BG2_P2).w
 	clr.w	(Scroll_flags_BG3_P2).w
 	clr.w	(Camera_X_pos_diff).w
 	clr.w	(Camera_Y_pos_diff).w
@@ -16241,13 +16267,15 @@ loc_D34A:
 ; ===========================================================================
 ; https://info.sonicretro.org/SCHG_How-to:Insert_Labyrinth_Zone_water_ripple_effect_in_Sonic_2
 SwScrl_Water:
+	tst.b	(Option_WaterRipple).w
+	bne.s	+
 	; this adds the LZ water ripple effect to any level
 	lea	(Deform_LZ_Data1).l,a3
 	lea	(Obj_SmallBubbles_WobbleData).l,a2
 
-	move.b	($FFFFF7D8).w,d2
+	move.b	(Water_Ripple_Counter).w,d2
 	move.b	d2,d3
-	addi.w	#$80,($FFFFF7D8).w ; '€'
+	addi.w	#$80,(Water_Ripple_Counter).w ; '€'
 
 	add.w	(Camera_Bg_Y_pos).w,d2
 	andi.w	#$FF,d2
@@ -16268,6 +16296,7 @@ SwScrl_Water:
 	addq.b	#1,d2
 	addq.b	#1,d3
 	dbf	d1,-
++
 	rts
 
 ; does the LZ water ripple effect once the camera is below the water
@@ -18627,7 +18656,6 @@ LevEvents_EHZ2_Routine3:
 	cmpi.w	#$388,(Camera_Y_pos).w
 	blo.s	+
 	move.w	#$388,(Camera_Min_Y_pos).w
-	move.w	#$388,(Tails_Min_Y_pos).w
 +
 	addq.b	#1,(ScreenShift).w
 	cmpi.b	#$5A,(ScreenShift).w
@@ -18733,7 +18761,6 @@ LevEvents_MTZ3_Routine4:
 	cmpi.w	#$400,(Camera_Y_pos).w
 	blo.s	+
 	move.w	#$400,(Camera_Min_Y_pos).w
-	move.w	#$400,(Tails_Min_Y_pos).w
 +
 	addq.b	#1,(ScreenShift).w
 	cmpi.b	#$5A,(ScreenShift).w
@@ -19438,7 +19465,6 @@ LevEvents_HTZ2_Routine8:
 	cmpi.w	#$478,(Camera_Y_pos).w
 	blo.s	+
 	move.w	#$478,(Camera_Min_Y_pos).w
-	move.w	#$478,(Tails_Min_Y_pos).w
 +
 	addq.b	#1,(ScreenShift).w
 	cmpi.b	#$5A,(ScreenShift).w
@@ -19539,7 +19565,6 @@ LevEvents_OOZ2_Routine3:
 	cmpi.w	#$1D8,(Camera_Y_pos).w
 	blo.s	+
 	move.w	#$1D8,(Camera_Min_Y_pos).w
-	move.w	#$1D8,(Tails_Min_Y_pos).w
 +
 	addq.b	#1,(ScreenShift).w
 	cmpi.b	#$5A,(ScreenShift).w
@@ -19636,7 +19661,6 @@ LevEvents_MCZ2_Routine3:
 	cmpi.w	#$5C8,(Camera_Y_pos).w
 	blo.s	+
 	move.w	#$5C8,(Camera_Min_Y_pos).w
-	move.w	#$5C8,(Tails_Min_Y_pos).w
 +
 	addq.b	#1,(ScreenShift).w
 	cmpi.b	#$5A,(ScreenShift).w
@@ -19732,7 +19756,6 @@ LevEvents_CNZ2_Routine3:
 	cmpi.w	#$4E0,(Camera_Y_pos).w
 	blo.s	+
 	move.w	#$4E0,(Camera_Min_Y_pos).w
-	move.w	#$4E0,(Tails_Min_Y_pos).w
 +
 	addq.b	#1,(ScreenShift).w
 	cmpi.b	#$5A,(ScreenShift).w
@@ -19813,7 +19836,6 @@ LevEvents_CPZ2_Routine3:
 	cmpi.w	#$448,(Camera_Y_pos).w
 	blo.s	+
 	move.w	#$448,(Camera_Min_Y_pos).w
-	move.w	#$448,(Tails_Min_Y_pos).w
 +
 	addq.b	#1,(ScreenShift).w
 	cmpi.b	#$5A,(ScreenShift).w
@@ -19957,7 +19979,6 @@ LevEvents_ARZ2_Routine3:
 	cmpi.w	#$3F8,(Camera_Y_pos).w
 	blo.s	+
 	move.w	#$3F8,(Camera_Min_Y_pos).w
-	move.w	#$3F8,(Tails_Min_Y_pos).w
 +
 	addq.b	#1,(ScreenShift).w
 	cmpi.b	#$5A,(ScreenShift).w
@@ -23720,7 +23741,7 @@ Obj_Monitor_Init:
 	tst.w	(Two_player_mode).w	; is it two player mode?
 	beq.s	Obj_Monitor_Main		; if not, branch
 	move.b	#9,anim(a0)		; use '?' icon
-    tst.b   (Two_player_items).w    ; are monitors set to 'teleport only'?
+    tst.b   (Option_2PItems).w    ; are monitors set to 'teleport only'?
     beq.s   Obj_Monitor_Main      ; if not, branch
     subq.b  #1,anim(a0)     ; use teleport icon
 
@@ -23928,7 +23949,7 @@ Obj_MonitorContents_Init:
 	move.w	(Timer_frames).w,d0	; use the timer to determine which item
 	andi.w	#7,d0	; and 7 means there are 8 different items
 	addq.w	#1,d0	; add 1 to prevent getting the static monitor
-	tst.b	(Two_player_items).w	; are monitors set to 'teleport only'?
+	tst.b	(Option_2PItems).w	; are monitors set to 'teleport only'?
 	beq.s	+			; if not, branch
 	moveq	#8,d0			; force contents to be teleport
 +	; keep teleport monitor from causing unwanted effects
@@ -30237,19 +30258,15 @@ loc_175EA:
 	move.w	x_vel(a0),d1
 	move.w	y_vel(a0),d2
 	jsr	(CalcAngle).l
-	move.b	d0,(unk_FFDC).w
 	sub.w	d3,d0
 	mvabs.w	d0,d1
 	neg.w	d0
 	add.w	d3,d0
-	move.b	d0,(unk_FFDD).w
-	move.b	d1,(unk_FFDF).w
 	cmpi.b	#$38,d1
 	blo.s	loc_17618
 	move.w	d3,d0
 
 loc_17618:
-	move.b	d0,(unk_FFDE).w
 	jsr	(CalcSine).l
 	muls.w	#-$A00,d1
 	asr.l	#8,d1
@@ -31681,6 +31698,12 @@ loc_189CA:
 	move.w	objoff_30(a0),y_vel(a1)
 	bset	#1,status(a1)
 	bclr	#3,status(a1)
+
+	clr.b	jumping(a1)
+	bclr	#Status_Roll,status(a1)
+	clr.b	double_jump_flag(a1)
+	clr.b	glidemode(a1)
+
 	move.b	#AniIDSonAni_Spring,anim(a1)
 	move.b	#2,routine(a1)
 	move.b	subtype(a0),d0
@@ -32036,6 +32059,12 @@ loc_18DD8:
 loc_18E10:
 	bset	#1,status(a1)
 	bclr	#3,status(a1)
+
+	clr.b	jumping(a1)
+	bclr	#Status_Roll,status(a1)
+	clr.b	double_jump_flag(a1)
+	clr.b	glidemode(a1)
+
 	move.b	#AniIDSonAni_Spring,anim(a1)
 	move.b	#2,routine(a1)
 	move.b	subtype(a0),d0
@@ -33500,6 +33529,7 @@ loc_19E30:
 	cmpi.w	#2,(Player_mode).w
 	beq.s	loc_19E76
 	jsr	(Sonic_ResetOnFloor_Part2).l
+	jsr	(Sonic_ResetOnFloor_Ability).l
 	bra.s	loc_19E7C
 ; ===========================================================================
 
@@ -34697,7 +34727,7 @@ Obj_SuperSonicStars_Init:
 	move.w	#prio(1),priority(a0)
 	move.b	#$18,width_pixels(a0)
 	move.w	#make_art_tile(ArtTile_ArtNem_SuperSonic_stars,0,0),art_tile(a0)
-	bsr.w	Adjust2PArtPointer
+	jsr		Adjust2PArtPointer
 	btst	#high_priority_bit,(MainCharacter+art_tile).w
 	beq.s	Obj_SuperSonicStars_Main
 	bset	#high_priority_bit,art_tile(a0)
@@ -57632,6 +57662,7 @@ Obj_ARZBoss_Pillar_Shoot:
 	jsrto	(SingleObjLoad).l, JmpTo14_SingleObjLoad
 	bne.w	return_30B40
 	_move.l	#Obj_ARZBoss,id(a1) ; load Obj_ARZBoss
+	move.l	a3,Obj_ARZBoss_pillar_parent(a1)
 	move.w	#prio(0),priority(a1)
 	move.b	#4,boss_subtype(a1)
 	move.b	#8,routine_secondary(a1)	; => Obj_ARZBoss_Pillar_BulgingEyes
@@ -57661,6 +57692,8 @@ Obj_ARZBoss_Pillar_Shoot:
 	move.l	a2,Obj_ARZBoss_arrow_parent2(a1)
 	move.b	d6,subtype(a1)
 	move.l	a3,Obj_ARZBoss_arrow_parent(a1)
+	move.l	a3,Obj_ARZBoss_pillar_parent(a1)
+	move.b	#0,Obj_ARZBoss_arrow_routine(a1)
 
 return_30B40:
 	rts
@@ -64313,6 +64346,7 @@ SubObjData_Index: offsetTable
 	offsetTableEntry.w Obj_WallTurret_SubObjData	; $74
 	offsetTableEntry.w Obj_Laser_SubObjData	; $76
 	offsetTableEntry.w Obj_WFZWheel_SubObjData	; $78
+	offsetTableEntry.w ObjBB_SubObjData	; $7A
 	offsetTableEntry.w Obj_WFZShipFire_SubObjData2	; $7C
 	offsetTableEntry.w Obj_SmallMetalPlatform_SubObjData	; $7E
 	offsetTableEntry.w Obj_SmallMetalPlatform_SubObjData	; $80
@@ -69658,23 +69692,7 @@ Obj_SonicOnSegaScreen:
 	moveq	#0,d0
 	move.b	routine(a0),d0
 	move.w	Obj_SonicOnSegaScreen_Index(pc,d0.w),d1
-
-	if customAMPS == 0
-		jmp	Obj_SonicOnSegaScreen_Index(pc,d1.w)
-	else
-		jsr	Obj_SonicOnSegaScreen_Index(pc,d1.w)
-
-	; animate player
-		move.w	SegaSonicVelocity.w,d0		; get velocity to d0
-		add.w	d0,anim(a0)			; add to counter
-
-		moveq	#0,d0
-		move.b	anim(a0),d0			; get only upper byte to d0
-		lsr.w	#5,d0				; divide by 32 ($20 pixels per frame)
-		and.b	#3,d0				; keep in range
-		move.b	d0,mapping_frame(a0)		; set as mappings frame
-		bra.s	Obj_SOSS_Speed
-	endif
+	jmp	Obj_SonicOnSegaScreen_Index(pc,d1.w)
 ; ===========================================================================
 ; off_3A1EA:
 Obj_SonicOnSegaScreen_Index:	offsetTable
@@ -69684,57 +69702,6 @@ Obj_SonicOnSegaScreen_Index:	offsetTable
 		offsetTableEntry.w Obj_SonicOnSegaScreen_RunRight	;  6
 		offsetTableEntry.w Obj_SonicOnSegaScreen_EndWipe	;  8
 		offsetTableEntry.w return_3A3F6		; $A
-; ===========================================================================
-
-	if customAMPS
-Obj_SOSS_Speed:
-.index =	objoff_30
-.framec =	objoff_32
-.vel =		objoff_34
-
-	subq.w	#1,.framec(a0)				; check frame counter
-	bne.s	.animate				; if not 0, branch
-
-; read next entry from table
-	move.w	.index(a0),d0				; load index to data table
-	add.w	#6,.index(a0)				; increment index already
-	lea	.data(pc,d0.w),a1			; load final data table address
-
-	move.w	(a1)+,d0				; load frame counter
-	move.w	d0,.framec(a0)				; save frame counter
-	move.w	(a1)+,d1				; load initial velocity
-	move.w	(a1)+,d2				; load final velocity
-	move.w	d1,SegaSonicVelocity.w			; save initial velocity
-
-	; calculate the speed increment
-	sub.w	d1,d2					; sub the initial vel from final
-	ext.l	d2					; extend to long
-	divs	d0,d2					; divide by num of frames
-	move.w	d2,.vel(a0)				; save velocity offset
-
-.animate
-	move.w	.vel(a0),d0				; load velocity to d0
-	add.w	d0,SegaSonicVelocity.w			; change screen velocity
-
-	move.w	SegaSonicVelocity.w,d0			; get velocity to d0
-	asr.w	#5,d0					; convert $2000 to $100
-	move.w	d0,mDAC1+cFreq.w			; save as the note frequency
-
-.rts
-	rts
-; ----------------------------------------------------------------------------
-
-.data
-	dc.w 15, $2000, $2000				; length, start speed, end speed
-	dc.w 14, $2000, $2000				; length, start speed, end speed
-	dc.w 43, $2000, $0000				; length, start speed, end speed
-	dc.w 20, $0000, $0000				; length, start speed, end speed
-	dc.w 20, $0000,-$1000				; length, start speed, end speed
-	dc.w 20,-$1000,-$1000				; length, start speed, end speed
-	dc.w 20,-$1000, $0000				; length, start speed, end speed
-	dc.w 80, $0000, $2400				; length, start speed, end speed
-	dc.w -1, $2400, $2400				; do nothing
-	endif
 ; ===========================================================================
 
 Obj_SonicOnSegaScreen_Init:
@@ -69848,19 +69815,9 @@ SegaScreenScaledSpriteDataEnd = copydst
 ; ===========================================================================
 
 Obj_SonicOnSegaScreen_RunLeft:
-	if customAMPS
-		move.w	SegaSonicVelocity.w,d0
-		ext.l	d0
-		asl.l	#8,d0
-		sub.l	d0,x_pos(a0)
-
-		cmp.w	#$10,x_pos(a0)
-		ble.s	loc_3A312
-	else
-		subi.w	#$20,x_pos(a0)
-		subq.w	#1,objoff_2A(a0)
-		bmi.s	loc_3A312
-	endif
+	subi.w	#$20,x_pos(a0)
+	subq.w	#1,objoff_2A(a0)
+	bmi.s	loc_3A312
 
 	bsr.w	Obj_SonicOnSegaScreen_Move_Streaks_Left
 	if customAMPS == 0
@@ -69886,19 +69843,9 @@ Obj_SSOS_Back1:
 	endif
 
 Obj_SonicOnSegaScreen_MidWipe:
-	if customAMPS
-		move.w	SegaSonicVelocity.w,d0
-		ext.l	d0
-		asl.l	#8,d0
-		sub.l	d0,x_pos(a0)
-
-		cmp.w	#-$1A0,x_pos(a0)
-		ble.s	loc_3A33A
-	else
-		tst.w	objoff_2A(a0)
-		beq.s	loc_3A33A
-		subq.w	#1,objoff_2A(a0)
-	endif
+	tst.w	objoff_2A(a0)
+	beq.s	loc_3A33A
+	subq.w	#1,objoff_2A(a0)
 	bsr.w	Obj_SonicOnSegaScreen_Move_Streaks_Left
 
 loc_3A33A:
@@ -69951,21 +69898,9 @@ loc_3A38A:
 ; ===========================================================================
 
 Obj_SonicOnSegaScreen_RunRight:
-	if customAMPS
-		cmp.w	#$130,x_pos(a0)
-		bgt.w	loc_3A312
-		cmp.w	#-$20,x_pos(a0)
-		blt.w	Obj_SSOS_Back1
-
-		move.w	SegaSonicVelocity.w,d0
-		ext.l	d0
-		asl.l	#8,d0
-		add.l	d0,x_pos(a0)
-	else
-		subq.w	#1,objoff_2A(a0)
-		bmi.s	loc_3A312
-		addi.w	#$20,x_pos(a0)
-	endif
+	subq.w	#1,objoff_2A(a0)
+	bmi.s	loc_3A312
+	addi.w	#$20,x_pos(a0)
 
 	bsr.w	Obj_SonicOnSegaScreen_Move_Streaks_Right
 	if customAMPS == 0
@@ -71977,7 +71912,31 @@ Obj_WFZWheel_MapUnc_3BB70:	BINCLUDE "mappings/sprite/Obj_WFZWheel.bin"
 ; ----------------------------------------------------------------------------
 ; Sprite_3BB7C:
 ObjBB:
-	rts
+	moveq	#0,d0
+	move.b	routine(a0),d0
+	move.w	ObjBB_Index(pc,d0.w),d1
+	jmp	ObjBB_Index(pc,d1.w)
+; ===========================================================================
+; off_3BB8A:
+ObjBB_Index:	offsetTable
+		offsetTableEntry.w ObjBB_Init	; 0
+		offsetTableEntry.w ObjBB_Main	; 2
+; ===========================================================================
+; BranchTo8_LoadSubObject
+ObjBB_Init:
+	bra.w	LoadSubObject
+; ===========================================================================
+; BranchTo15_JmpTo39_MarkObjGone
+ObjBB_Main:
+	jmpto	(MarkObjGone).l, JmpTo39_MarkObjGone
+; ===========================================================================
+; off_3BB96:
+ObjBB_SubObjData:
+	SubObjData ObjBB_MapUnc_3BBA0,make_art_tile(ArtTile_ArtNem_Unknown,1,0),4,4,$C,9
+; ----------------------------------------------------------------------------
+; sprite mappings
+; ----------------------------------------------------------------------------
+ObjBB_MapUnc_3BBA0:	BINCLUDE "mappings/sprite/objBB.bin"
 
 ; ===========================================================================
 ; ----------------------------------------------------------------------------

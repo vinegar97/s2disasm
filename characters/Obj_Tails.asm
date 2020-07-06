@@ -916,8 +916,9 @@ Obj_Tails_InWater:
 
 	cmpa.w	#MainCharacter,a0	; is this Tails alone?
 	bne.s	+			; if not, skip
-	command	Mus_ToWater		; enable underwater mode
-
+	tst.b	(Option_WaterSoundFilter).w
+	beq.s	+
+	command	Mus_ToWater
 +
 	move.l	#Obj_SmallBubbles,(Tails_BreathingBubbles+id).w ; load Obj_SmallBubbles (tail's breathing bubbles) at $FFFFD0C0
 	move.b	#$81,(Tails_BreathingBubbles+subtype).w
@@ -993,6 +994,7 @@ Obj_Tails_MdAir:
 	bne.s	Tails_FlyingSwimming
 
 	bsr.w	Tails_JumpHeight
+	bsr.w	Tails_AirCurl
 	bsr.w	Tails_ChgJumpDir
 	bsr.w	Tails_LevelBound
 	jsr	(ObjectMoveAndFall).l
@@ -1007,6 +1009,7 @@ Obj_Tails_MdAir:
 Tails_FlyingSwimming:
 	bsr.w	Tails_Move_FlySwim
 	bsr.w	Tails_ChgJumpDir
+	bsr.w	Tails_AirCurl
 	bsr.w	Tails_LevelBound
 	jsr	(ObjectMove).l
 	bsr.w	Sonic_JumpAngle
@@ -1020,6 +1023,23 @@ Tails_FlyingSwimming:
 locret_14820:
 		rts
 
+Tails_AirCurl:
+	tst.b	(Option_AirCurling).w
+	beq.s	+
+
+	btst	#button_a,(Ctrl_2_Press_Logical).w	; is a being pressed?
+	beq.s	+			; if not, branch
+
+	move.b	#1,jumping(a0)
+	move.b	#$E,y_radius(a0)
+	move.b	#7,x_radius(a0)
+	move.b	#AniIDSonAni_Roll,anim(a0)	; use "jumping" animation
+	bset	#Status_Roll,status(a0)
+	addq.w	#5,y_pos(a0)
+	clr.b	double_jump_flag(a0)
++
+	rts
+
 ; =============== S U B R O U T I N E =======================================
 
 
@@ -1027,7 +1047,7 @@ Tails_Move_FlySwim:
 		move.b	(Timer_frames+1).w,d0
 		andi.b	#1,d0
 		beq.s	loc_14836
-		tst.b	double_jump_property(a0)
+		cmpi.b	#1,double_jump_property(a0)
 		beq.s	loc_14836
 		subq.b	#1,double_jump_property(a0)
 
@@ -1052,7 +1072,7 @@ loc_14860:
 		beq.s	loc_1488C
 		cmpi.w	#-$100,y_vel(a0)
 		blt.s	loc_1488C
-		tst.b	double_jump_property(a0)
+		cmpi.b	#1,double_jump_property(a0)
 		beq.s	loc_1488C
 		btst	#6,status(a0)
 		beq.s	loc_14886
@@ -1084,7 +1104,7 @@ Tails_Set_Flying_Animation:
 		bne.s	Tails_FlyAnim_Underwater
 
 Tails_FlyAnim_Tired:
-		tst.b	double_jump_property(a0) ; Is tails tired?
+		cmpi.b	#1,double_jump_property(a0) ; Is tails tired?
 		bne.s	Tails_FlyAnim_NotTired ; If not, branch
 		
 		move.b	#AniIDTailsAni_FlyTired,anim(a0)
@@ -1143,7 +1163,7 @@ loc_1491E:
 		move.b	#AniIDTailsAni_SwimCarry,anim(a0)
 
 loc_14926:
-		tst.b	double_jump_property(a0)
+		cmpi.b	#1,double_jump_property(a0)
 		bne.s	loc_1492E
 		move.b	#AniIDTailsAni_SwimTired,anim(a0)
 
@@ -1176,6 +1196,7 @@ Obj_Tails_MdRoll:
 ; loc_1C082: Obj_Tails_MdJump2:
 Obj_Tails_MdJump:
 	bsr.w	Tails_JumpHeight
+	bsr.w	Tails_AirCurl
 	bsr.w	Tails_ChgJumpDir
 	bsr.w	Tails_LevelBound
 	jsr	(ObjectMoveAndFall).l
@@ -1422,10 +1443,14 @@ Tails_MoveLeft:
 	move.w	d6,d1
 	neg.w	d1
 	cmp.w	d1,d0	; compare new speed with top speed
-	bgt.s	+	; if new speed is less than the maximum, branch
+	bgt.s	++	; if new speed is less than the maximum, branch
+
+	cmpi.b	#1,(Option_PhysicsStyle).w ; Ground speed cap toggle
+	beq.s	+
 	add.w	d5,d0	; remove this frame's acceleration change
 	cmp.w	d1,d0	; compare speed with top speed
-	ble.s	+	; if speed was already greater than the maximum, branch
+	ble.s	++	; if speed was already greater than the maximum, branch
++
 	move.w	d1,d0	; limit speed on ground going left
 +
 	move.w	d0,inertia(a0)
@@ -1471,10 +1496,14 @@ Tails_MoveRight:
 +
 	add.w	d5,d0	; add acceleration to the right
 	cmp.w	d6,d0	; compare new speed with top speed
-	blt.s	+	; if new speed is less than the maximum, branch
+	blt.s	++	; if new speed is less than the maximum, branch
+
+	cmpi.b	#1,(Option_PhysicsStyle).w ; Ground speed cap toggle
+	beq.s	+
 	sub.w	d5,d0	; remove this frame's acceleration change
 	cmp.w	d6,d0	; compare speed with top speed
-	bge.s	+	; if speed was already greater than the maximum, branch
+	bge.s	++	; if speed was already greater than the maximum, branch
++
 	move.w	d6,d0	; limit speed on ground going right
 +
 	move.w	d0,inertia(a0)
@@ -1989,9 +2018,12 @@ Tails_DoFly:
 		add.w	d1,y_pos(a0)
 
 loc_1518C:
+		tst.b	double_jump_property(a0)
+		bne.s	+
+		move.b	#-$F,double_jump_property(a0)
++
 		bclr	#4,status(a0)
 		move.b	#1,double_jump_flag(a0)
-		move.b	#-$10,double_jump_property(a0)
 		bsr.w	Tails_Set_Flying_Animation
 
 locret_151A2:

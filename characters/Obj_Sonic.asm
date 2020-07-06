@@ -262,7 +262,11 @@ Obj_Sonic_InWater:
 
 	movea.l	a0,a1
 	bsr.w	ResumeMusic
-	command	Mus_ToWater ; HJW: TODO - Add option to disable this
+
+	tst.b	(Option_WaterSoundFilter).w
+	beq.s	+
+	command	Mus_ToWater
++
 	move.l	#Obj_SmallBubbles,(Sonic_BreathingBubbles+id).w ; load Obj_SmallBubbles (sonic's breathing bubbles) at $FFFFD080
 	move.b	#$81,(Sonic_BreathingBubbles+subtype).w
 	move.l	a0,(Sonic_BreathingBubbles+objoff_3C).w
@@ -286,7 +290,7 @@ Obj_Sonic_InWater:
 ; loc_1A1FE:
 Obj_Sonic_OutWater:
 	bclr	#6,status(a0) ; unset underwater flag
-	beq.s	return_1A18C ; if already above water, branch
+	beq.w	return_1A18C ; if already above water, branch
 
 	movea.l	a0,a1
 	bsr.w	ResumeMusic
@@ -385,14 +389,16 @@ Sonic_AirCurl:
 	btst	#button_a,(Ctrl_1_Press_Logical).w	; is a being pressed?
 	beq.s	+			; if not, branch
 
-	clr.b	double_jump_flag(a0)
-	clr.b	glidemode(a0)
 	move.b	#1,jumping(a0)
 	move.b	#$E,y_radius(a0)
 	move.b	#7,x_radius(a0)
 	move.b	#AniIDSonAni_Roll,anim(a0)	; use "jumping" animation
-	bset	#2,status(a0)
+	bset	#Status_Roll,status(a0)
 	addq.w	#5,y_pos(a0)
+	cmpi.l	#Obj_Knuckles,id(a0)
+	bne.s	+
+	clr.b	double_jump_flag(a0)
+	clr.b	glidemode(a0)
 +
 	rts
 ; ===========================================================================
@@ -422,6 +428,7 @@ Obj_Sonic_MdJump:
 	tst.l	(HomingAttack_Object).l
 	bne.s	Sonic_HomingAttackMove
 	bsr.w	Sonic_JumpHeight
+	bsr.w	Sonic_AirCurl
 	bsr.w	Sonic_ChgJumpDir
 	bsr.w	Sonic_LevelBound
 	jsr	(ObjectMoveAndFall).l
@@ -799,10 +806,14 @@ Sonic_MoveLeft:
 	move.w	d6,d1
 	neg.w	d1
 	cmp.w	d1,d0	; compare new speed with top speed
-	bgt.s	+	; if new speed is less than the maximum, branch
+	bgt.s	++	; if new speed is less than the maximum, branch
+
+	cmpi.b	#1,(Option_PhysicsStyle).w ; Ground speed cap toggle
+	beq.s	+
 	add.w	d5,d0	; remove this frame's acceleration change
 	cmp.w	d1,d0	; compare speed with top speed
-	ble.s	+	; if speed was already greater than the maximum, branch
+	ble.s	++	; if speed was already greater than the maximum, branch
++
 	move.w	d1,d0	; limit speed on ground going left
 +
 	move.w	d0,inertia(a0)
@@ -848,10 +859,14 @@ Sonic_MoveRight:
 +
 	add.w	d5,d0	; add acceleration to the right
 	cmp.w	d6,d0	; compare new speed with top speed
-	blt.s	+	; if new speed is less than the maximum, branch
+	blt.s	++	; if new speed is less than the maximum, branch
+
+	cmpi.b	#1,(Option_PhysicsStyle).w ; Ground speed cap toggle
+	beq.s	+
 	sub.w	d5,d0	; remove this frame's acceleration change
 	cmp.w	d6,d0	; compare speed with top speed
-	bge.s	+	; if speed was already greater than the maximum, branch
+	bge.s	++	; if speed was already greater than the maximum, branch
++
 	move.w	d6,d0	; limit speed on ground going right
 +
 	move.w	d0,inertia(a0)
@@ -943,7 +958,7 @@ Sonic_CheckRollStop:
 	bne.s	Obj_Sonic_Roll_ResetScr
 	tst.b	pinball_mode(a0) ; note: the spindash flag has a different meaning when Sonic's already rolling -- it's used to mean he's not allowed to stop rolling
 	bne.s	Sonic_KeepRolling
-	bclr	#2,status(a0)
+	bclr	#Status_Roll,status(a0)
 	move.b	#$13,y_radius(a0)
 	move.b	#9,x_radius(a0)
 	move.b	#AniIDSonAni_Wait,anim(a0)
@@ -1052,31 +1067,35 @@ Sonic_ChgJumpDir:
 	bne.s	Obj_Sonic_Jump_ResetScr	; if yes, branch to skip midair control
 	move.w	x_vel(a0),d0
 	btst	#button_left,(Ctrl_1_Held_Logical).w
-	beq.s	+	; if not holding left, branch
+	beq.s	++	; if not holding left, branch
 
 	bset	#0,status(a0)
 	sub.w	d5,d0	; add acceleration to the left
 	move.w	d6,d1
 	neg.w	d1
 	cmp.w	d1,d0	; compare new speed with top speed
-	bgt.s	+	; if new speed is less than the maximum, branch
-	; TODO: Air speed cap toggle
+	bgt.s	++	; if new speed is less than the maximum, branch
+	cmpi.b	#2,(Option_PhysicsStyle).w
+	blt.s	+
 	add.w	d5,d0	; +++ remove this frame's acceleration change
 	cmp.w	d1,d0	; +++ compare speed with top speed
-	ble.s	+	; +++ if speed was already greater than the maximum, branch
+	ble.s	++	; +++ if speed was already greater than the maximum, branch
++
 	move.w	d1,d0	; limit speed in air going left, even if Sonic was already going faster (speed limit/cap)
 +
 	btst	#button_right,(Ctrl_1_Held_Logical).w
-	beq.s	+	; if not holding right, branch
+	beq.s	++	; if not holding right, branch
 
 	bclr	#0,status(a0)
 	add.w	d5,d0	; accelerate right in the air
 	cmp.w	d6,d0	; compare new speed with top speed
-	blt.s	+	; if new speed is less than the maximum, branch
-	; TODO: Air speed cap toggle
+	blt.s	++	; if new speed is less than the maximum, branch
+	cmpi.b	#2,(Option_PhysicsStyle).w
+	blt.s	+
 	sub.w	d5,d0	; +++ remove this frame's acceleration change
 	cmp.w	d6,d0	; +++ compare speed with top speed
-	bge.s	+	; +++ if speed was already greater than the maximum, branch
+	bge.s	++	; +++ if speed was already greater than the maximum, branch
++
 	move.w	d6,d0	; limit speed in air going right, even if Sonic was already going faster (speed limit/cap)
 ; Obj_Sonic_JumpMove:
 +	move.w	d0,x_vel(a0)
@@ -1190,7 +1209,10 @@ Sonic_Roll:
 	btst	#status_sec_isSliding,status_secondary(a0)
 	bne.s	Obj_Sonic_NoRoll
     endif
-	; TODO: Slow ducking toggle
+
+	cmpi.b	#2,(Option_PhysicsStyle).w
+	blt.s	Sonic_Roll_NoSlowDucking
+
 	btst	#button_down,(Ctrl_1_Held_Logical).w ; is down being pressed?
 	beq.s   Obj_Sonic_NoRoll               ; if not, branch
 	move.b	(Ctrl_1_Held_Logical).w,d0
@@ -1204,17 +1226,28 @@ Sonic_Roll:
 Obj_Sonic_NoRoll:
 	rts
 
+Sonic_Roll_NoSlowDucking:
+	mvabs.w	inertia(a0),d0
+	cmpi.w	#$80,d0		; is Sonic moving at $80 speed or faster?
+	blo.s	Obj_Sonic_NoRoll	; if not, branch
+	move.b	(Ctrl_1_Held_Logical).w,d0
+	andi.b	#button_left_mask|button_right_mask,d0 ; is left/right being pressed?
+	bne.s	Obj_Sonic_NoRoll	; if yes, branch
+	btst	#button_down,(Ctrl_1_Held_Logical).w ; is down being pressed?
+	bne.s	Obj_Sonic_ChkRoll			; if yes, branch
+	rts
+
 ; ---------------------------------------------------------------------------
 ; loc_1A9FA:
 Obj_Sonic_ChkRoll:
-	btst	#2,status(a0)	; is Sonic already rolling?
+	btst	#Status_Roll,status(a0)	; is Sonic already rolling?
 	beq.s	Obj_Sonic_DoRoll	; if not, branch
 	rts
 
 ; ---------------------------------------------------------------------------
 ; loc_1AA04:
 Obj_Sonic_DoRoll:
-	bset	#2,status(a0)
+	bset	#Status_Roll,status(a0)
 	move.b	#$E,y_radius(a0)
 	move.b	#7,x_radius(a0)
 	move.b	#AniIDSonAni_Roll,anim(a0)	; use "rolling" animation
@@ -1279,11 +1312,11 @@ Sonic_Jump:
 	sfx	sfx_Jump	; play jumping sound
 	move.b	#$E,y_radius(a0)
 	move.b	#7,x_radius(a0)
-	btst	#2,status(a0)
+	btst	#Status_Roll,status(a0)
 	bne.s	Sonic_RollJump
 
 	move.b	#AniIDSonAni_Roll,anim(a0)	; use "jumping" animation
-	bset	#2,status(a0)
+	bset	#Status_Roll,status(a0)
 	addq.w	#5,y_pos(a0)
 
 return_1AAE6:
@@ -1291,7 +1324,10 @@ return_1AAE6:
 ; ---------------------------------------------------------------------------
 ; loc_1AAE8:
 Sonic_RollJump:
-	bset	#4,status(a0)	; set the rolling+jumping flag
+	cmpi.b	#3,(Option_PhysicsStyle).w
+	bge.s	+
+	bset	#Status_RollJump,status(a0)	; set the rolling+jumping flag
++
 	rts
 ; End of function Sonic_Jump
 
@@ -1364,6 +1400,10 @@ Sonic_PrimaryAbility:
 	bne.s	+
 	bsr.w	Sonic_HomingAttack
 +
+	cmpi.b	#5,(Option_SonicAbility).l
+	bne.s	+
+	bsr.w	Sonic_ShieldControl
++
 	btst	#Status_Shield,status_secondary(a0)	; does Sonic have a Shield
 	beq.w	Sonic_CheckGoSuper			; if not, branch
 	rts
@@ -1428,10 +1468,28 @@ Sonic_BubbleShield:
 
 Sonic_BubbleShieldDo:
 	move.b	#1,double_jump_flag(a0)
+	cmpi.b	#2,(Option_ShieldAbilityStyle).l
+	bne.s	+
+	cmpi.w	#$800,y_vel(a0)
+	blt.s	+
+	moveq	#0,d0
+	move.w	y_vel(a0),d0
+	asr.w	#3,d0
+	add.w	d0,y_vel(a0)
+	bra.s	++
++
+	move.w	#$800,y_vel(a0)		; force Sonic down
++
+	sfx		sfx_S3K_44			; play Bubble Shield attack sound
+
+	tst.b	(Option_ShieldAbilityStyle).l
+	bne.s	+
 	move.w	#0,x_vel(a0)		; halt horizontal speed...
 	move.w	#0,ground_vel(a0)	; ...both ground and air
-	move.w	#$800,y_vel(a0)		; force Sonic down
-	sfx		sfx_S3K_44			; play Bubble Shield attack sound
+	rts
++
+	asr.w	#1,x_vel(a0)
+	asr.w	#1,ground_vel(a0)
 	rts
 
 
@@ -1456,12 +1514,10 @@ loc_119E8:
 	bne.w	Sonic_Transform
 
 Sonic_MidInvinc:
-	bsr.s	Sonic_ShieldControl
 	bra.s	Sonic_DropDash
 
 Sonic_InstaAndDrop:
 	bsr.s	Sonic_InstaShield
-	bsr.s	Sonic_ShieldControl
 	bra.s	Sonic_DropDash
 
 Sonic_InstaShield:
@@ -1504,7 +1560,11 @@ Sonic_ShieldControlCont:
 	btst	#button_up,(Ctrl_1_Held_logical).w
 	bne.w	Sonic_LightningShieldDo
 	btst	#button_down,(Ctrl_1_Held_logical).w
-	bne.w	Sonic_BubbleShieldDo
+	beq.w	+
+	bsr.w	Sonic_BubbleShieldDo
+	move.b	#2,double_jump_flag(a0)
+	rts
++
 	bra.w	Sonic_FireShieldDo
 
 ; ---------------------------------------------------------------------------
@@ -1648,7 +1708,7 @@ Sonic_UpdateSpindash:
 	beq.s	+
 	neg.w	inertia(a0)
 +
-	bset	#2,status(a0)
+	bset	#Status_Roll,status(a0)
 	move.b	#0,(Sonic_Dust+anim).w
 	sfx	sfx_Dash
 	bra.s	Obj_Sonic_Spindash_ResetScr
@@ -1958,7 +2018,7 @@ loc_1AF5A:
 	move.w	#0,y_vel(a0)
 	move.w	x_vel(a0),inertia(a0)
 	bsr.w	Sonic_ResetOnFloor
-	bsr.w	Sonic_DropDashRelease
+	bsr.w	Sonic_ResetOnFloor_Ability
 	rts
 ; ===========================================================================
 
@@ -1975,7 +2035,7 @@ loc_1AF7C:
 	bpl.s	+
 	neg.w	inertia(a0)
 +
-	bsr.w	Sonic_DropDashRelease
+	bsr.w	Sonic_ResetOnFloor_Ability
 
 return_1AF8A:
 	rts
@@ -2015,7 +2075,7 @@ Sonic_HitFloor:
 	move.w	#0,y_vel(a0)
 	move.w	x_vel(a0),inertia(a0)
 	bsr.w	Sonic_ResetOnFloor
-	bsr.w	Sonic_DropDashRelease
+	bsr.w	Sonic_ResetOnFloor_Ability
 
 return_1AFE6:
 	rts
@@ -2054,7 +2114,7 @@ loc_1B02C:
 	bpl.s	+
 	neg.w	inertia(a0)
 +
-	bsr.w	Sonic_DropDashRelease
+	bsr.w	Sonic_ResetOnFloor_Ability
 
 return_1B042:
 	rts
@@ -2096,7 +2156,7 @@ Sonic_HitFloor2:
 	move.w	#0,y_vel(a0)
 	move.w	x_vel(a0),inertia(a0)
 	bsr.w	Sonic_ResetOnFloor
-	bsr.w	Sonic_DropDashRelease
+	bsr.w	Sonic_ResetOnFloor_Ability
 
 return_1B09E:
 	rts
@@ -2125,9 +2185,9 @@ Sonic_ResetOnFloor_Part2:
     cmpi.l	#Obj_Knuckles,id(a0)	; is this object ID Knuckles?
 	beq.w	Knuckles_ResetOnFloor_Part2	; if it is, branch to the Knuckles version of this code
 
-	btst	#2,status(a0)
+	btst	#Status_Roll,status(a0)
 	beq.s	Sonic_ResetOnFloor_Part3
-	bclr	#2,status(a0)
+	bclr	#Status_Roll,status(a0)
 	move.b	#$13,y_radius(a0) ; this increases Sonic's collision height to standing
 	move.b	#9,x_radius(a0)
 	move.b	#AniIDSonAni_Walk,anim(a0)	; use running/walking/standing animation
@@ -2144,21 +2204,18 @@ Sonic_ResetOnFloor_Part3:
 	move.b	#0,flips_remaining(a0)
 	move.w	#0,(Sonic_Look_delay_counter).w
 
-	tst.b	double_jump_flag(a0)
-	beq.s	return_1B11E
-	cmpi.l  #Obj_Sonic,id(a0)
-	bne.s	loc_1222A
-	tst.b	(Super_Sonic_flag).w
-	bne.s	loc_1222A
-	btst	#Status_BublShield,status_secondary(a0)	; does character have a bubble shield?
-	bne.w	BubbleShield_Bounce	; if so, branch
-
 loc_1222A:
 
 return_1B11E:
 	rts
 
 ; =============== S U B R O U T I N E =======================================
+
+Sonic_ResetOnFloor_Ability:
+	bsr.s	Sonic_DropDashRelease
+	bsr.w	BubbleShield_Bounce
+	clr.b	double_jump_flag(a0)
+	rts
 
 Sonic_DropDashRelease:
 	cmpi.b	#2,(Option_SonicAbility).l
@@ -2281,12 +2338,11 @@ Sonic_DropDashRelease_Release:
 	move.b	#7,x_radius(a0)
 	move.b	#AniIDSonAni_Roll,anim(a0)
 	addq.w	#5,y_pos(a0)	; add the difference between Sonic's rolling and standing heights
-	bset	#2,status(a0)
+	bset	#Status_Roll,status(a0)
 	move.b	#2,(Sonic_Dust+anim).w
 	sfx	sfx_Dash
 
 Sonic_DropDashRelease_Ret:
-	clr.b	double_jump_flag(a0)
 	rts
 ; End of function BubbleShield_Bounce
 
@@ -2294,44 +2350,71 @@ Sonic_DropDashRelease_Ret:
 ; =============== S U B R O U T I N E =======================================
 
 BubbleShield_Bounce:
-		movem.l	d1-d2,-(sp)
-		move.w	#$780,d2
-		btst	#Status_Underwater,status(a0)
-		beq.s	loc_12246
-		move.w	#$400,d2
+	tst.b	double_jump_flag(a0)
+	beq.s	++
+	cmpi.l  #Obj_Sonic,id(a0)
+	bne.s	++
+
+	cmpi.b	#5,(Option_SonicAbility).l
+	bne.s	+
+	cmpi.b	#2,double_jump_flag(a0)
+	beq.w	BubbleShield_Bounce_Start
++
+	tst.b	(Super_Sonic_flag).w
+	bne.s	+
+	btst	#Status_BublShield,status_secondary(a0)	; does character have a bubble shield?
+	bne.w	BubbleShield_Bounce_Start	; if so, branch
++
+	rts
+
+BubbleShield_Bounce_Start:
+	cmpi.b	#2,(Option_ShieldAbilityStyle).l
+	bne.s	+
+	cmpi.b	#32,angle(a0)	; approx 45 degrees
+	bgt.w	loc_122AA_ret
+	cmpi.b	#$FF-32,angle(a0)	; approx 45 degrees but the other way
+	blt.w	loc_122AA_ret
++
+	movem.l	d1-d2,-(sp)
+	move.w	#$780,d2
+	btst	#Status_Underwater,status(a0)
+	beq.s	loc_12246
+	move.w	#$400,d2
 
 loc_12246:
-		moveq	#0,d0
-		move.b	angle(a0),d0
-		subi.b	#$40,d0
-		jsr	(CalcSine).l
-		muls.w	d2,d1
-		asr.l	#8,d1
-		add.w	d1,x_vel(a0)
-		muls.w	d2,d0
-		asr.l	#8,d0
-		add.w	d0,y_vel(a0)
-		movem.l	(sp)+,d1-d2
-		bset	#1,status(a0)
-		bclr	#5,status(a0)
-		move.b	#1,jumping(a0)
-		clr.b	stick_to_convex(a0)
-		move.b	#$E,y_radius(a0)
-		move.b	#7,x_radius(a0)
-		move.b	#2,anim(a0)
-		bset	#2,status(a0)
-		move.b	y_radius(a0),d0
-		subi.b	#$13,d0 ; make variable to support tails/different sized chars (default_y_radius)
-		ext.w	d0
-		;tst.b	(Reverse_gravity_flag).w
-		;beq.s	loc_122AA
-		;neg.w	d0
+	moveq	#0,d0
+	move.b	angle(a0),d0
+	subi.b	#$40,d0
+	jsr	(CalcSine).l
+	muls.w	d2,d1
+	asr.l	#8,d1
+	add.w	d1,x_vel(a0)
+	muls.w	d2,d0
+	asr.l	#8,d0
+	add.w	d0,y_vel(a0)
+	movem.l	(sp)+,d1-d2
+	bset	#1,status(a0)
+	bclr	#5,status(a0)
+	move.b	#1,jumping(a0)
+	clr.b	stick_to_convex(a0)
+	move.b	#$E,y_radius(a0)
+	move.b	#7,x_radius(a0)
+	move.b	#2,anim(a0)
+	bset	#Status_Roll,status(a0)
+	move.b	y_radius(a0),d0
+	subi.b	#$13,d0 ; make variable to support tails/different sized chars (default_y_radius)
+	ext.w	d0
+	;tst.b	(Reverse_gravity_flag).w
+	;beq.s	loc_122AA
+	;neg.w	d0
 
 loc_122AA:
-		sub.w	d0,y_pos(a0)
-		move.b	#2,(Shield+anim).w
-		sfx		sfx_S3K_44
-		rts
+	sub.w	d0,y_pos(a0)
+	move.b	#2,(Shield+anim).w
+	sfx		sfx_S3K_44
+
+loc_122AA_ret:
+	rts
 ; End of function BubbleShield_Bounce
 
 ; ===========================================================================
@@ -2490,7 +2573,7 @@ Obj_Sonic_ResetLevel_Part2:
 	move.w	#0,x_vel(a0)
 	move.w	#0,y_vel(a0)
 	move.w	#0,inertia(a0)
-	move.b	#2,status(a0)
+	move.b	#Status_Roll,status(a0)
 	move.w	#0,move_lock(a0)
 	move.w	#0,restart_countdown(a0)
 

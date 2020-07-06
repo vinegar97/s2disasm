@@ -767,7 +767,6 @@ Sonic_Pos_Record_Buf:		ds.b $100
 Tails_Pos_Record_Buf:		ds.b $100
 CNZ_saucer_data:		ds.b $40	; the number of saucer bumpers in a group which have been destroyed. Used to decide when to give 500 points instead of 10
 CNZ_saucer_data_End:
-				ds.b $C0	; $FFFFE740-$FFFFE7FF ; unused as far as I can tell
 Max_Rings =			511
 Ring_Positions:			ds.w Max_Rings+1
 Ring_Positions_End:
@@ -779,18 +778,11 @@ Camera_BG_X_pos:		ds.l 1		; only used sometimes as the layer deformation makes i
 Camera_BG_Y_pos:		ds.l 1
 Camera_BG2_X_pos:		ds.l 1		; used in CPZ
 Camera_BG2_Y_pos:		ds.l 1		; used in CPZ
-Camera_BG3_X_pos:		ds.l 1		; unused (only initialised at beginning of level)?
-Camera_BG3_Y_pos:		ds.l 1		; unused (only initialised at beginning of level)?
 Camera_X_pos_P2:		ds.l 1
 Camera_Y_pos_P2:		ds.l 1
 Camera_BG_X_pos_P2:		ds.l 1		; only used sometimes as the layer deformation makes it sort of redundant
 Camera_BG_Y_pos_P2:		ds.l 1
-Camera_BG2_X_pos_P2:		ds.w 1		; unused (only initialised at beginning of level)?
-				ds.w 1		; $FFFFEE32-$FFFFEE33 ; seems unused
 Camera_BG2_Y_pos_P2:		ds.l 1
-Camera_BG3_X_pos_P2:		ds.w 1		; unused (only initialised at beginning of level)?
-				ds.w 1		; $FFFFEE3A-$FFFFEE3B ; seems unused
-Camera_BG3_Y_pos_P2:		ds.l 1
 Horiz_block_crossed_flag:	ds.b 1		; toggles between 0 and $10 when you cross a block boundary horizontally
 Verti_block_crossed_flag:	ds.b 1		; toggles between 0 and $10 when you cross a block boundary vertically
 Horiz_block_crossed_flag_BG:	ds.b 1		; toggles between 0 and $10 when background camera crosses a block boundary horizontally
@@ -801,7 +793,6 @@ Horiz_block_crossed_flag_BG3:	ds.b 1
 				ds.b 1		; $FFFFEE47 ; seems unused
 Horiz_block_crossed_flag_P2:	ds.b 1		; toggles between 0 and $10 when you cross a block boundary horizontally
 Verti_block_crossed_flag_P2:	ds.b 1		; toggles between 0 and $10 when you cross a block boundary vertically
-				ds.b 6		; $FFFFEE4A-$FFFFEE4F ; seems unused
 Scroll_flags:			ds.w 1		; bitfield ; bit 0 = redraw top row, bit 1 = redraw bottom row, bit 2 = redraw left-most column, bit 3 = redraw right-most column
 Scroll_flags_BG:		ds.w 1		; bitfield ; bits 0-3 as above, bit 4 = redraw top row (except leftmost block), bit 5 = redraw bottom row (except leftmost block), bits 6-7 = as bits 0-1
 Scroll_flags_BG2:		ds.w 1		; bitfield ; essentially unused; bit 0 = redraw left-most column, bit 1 = redraw right-most column
@@ -834,7 +825,6 @@ Screen_Shaking_Flag_HTZ:	ds.b 1		; activates screen shaking code in HTZ's layer 
 Screen_Shaking_Flag:		ds.b 1		; activates screen shaking code (if existent) in layer deformation routine
 Scroll_lock:			ds.b 1		; set to 1 to stop all scrolling for P1
 Scroll_lock_P2:			ds.b 1		; set to 1 to stop all scrolling for P2
-unk_EEC0:			ds.l 1		; unused, except on write in LevelSizeLoad...
 unk_EEC4:			ds.w 1		; same as above. The write being a long also overwrites the address below
 Camera_Max_Y_pos:		ds.w 1
 Camera_Min_X_pos:		ds.w 1
@@ -854,18 +844,17 @@ Deform_lock:			ds.b 1		; set to 1 to stop all deformation
 				ds.b 1		; $FFFFEEDD ; seems unused
 Camera_Max_Y_Pos_Changing:	ds.b 1
 Dynamic_Resize_Routine:		ds.b 1
-				ds.b 2		; $FFFFEEE0-$FFFFEEE1
 Camera_BG_X_offset:		ds.w 1		; Used to control background scrolling in X in WFZ ending and HTZ screen shake
 Camera_BG_Y_offset:		ds.w 1		; Used to control background scrolling in Y in WFZ ending and HTZ screen shake
 HTZ_Terrain_Delay:		ds.w 1		; During HTZ screen shake, this is a delay between rising and sinking terrain during which there is no shaking
 HTZ_Terrain_Direction:		ds.b 1		; During HTZ screen shake, 0 if terrain/lava is rising, 1 if lowering
-				ds.b 3		; $FFFFEEE9-$FFFFEEEB ; seems unused
+				ds.b 1
 Vscroll_Factor_P2_HInt:		ds.l 1
 Camera_X_pos_copy:		ds.l 1
 Camera_Y_pos_copy:		ds.l 1
 Tails_Min_X_pos:		ds.w 1
 Tails_Max_X_pos:		ds.w 1
-Tails_Min_Y_pos:		ds.w 1		; seems not actually implemented (only written to)
+Tails_Min_Y_pos:		ds.w 1		; seems not actually implemented (only written to) (unused)
 Tails_Max_Y_pos:		ds.w 1
 Camera_RAM_End:
 
@@ -902,7 +891,6 @@ Demo_Time_left:			ds.w 1		; 2 bytes
 Vscroll_Factor:
 Vscroll_Factor_FG:		ds.w 1
 Vscroll_Factor_BG:		ds.w 1
-unk_F61A:			ds.l 1		; Only ever cleared, never used
 Vscroll_Factor_P2:
 Vscroll_Factor_P2_FG:		ds.w 1
 Vscroll_Factor_P2_BG:		ds.w 1
@@ -919,15 +907,14 @@ VIntSubE_RunCount:		ds.b 1
 Vint_routine:			ds.b 1		; was "Delay_Time" ; routine counter for V-int
 				ds.b 1		; $FFFFF62B ; seems unused
 Sprite_count:			ds.b 1		; the number of sprites drawn in the current frame
-				ds.b 5		; $FFFFF62D-$FFFFF631 ; seems unused
+				ds.b 1
 PalCycle_Frame:			ds.w 1		; ColorID loaded in PalCycle
 PalCycle_Timer:			ds.w 1		; number of frames until next PalCycle call
 RNG_seed:			ds.l 1		; used for random number generation
 Game_paused:			ds.w 1
 Knuckles_GlideSomething:	ds.b	1
-				ds.b 3		; $FFFFF63C-$FFFFF63F ; seems unused
+				ds.b 1
 DMA_data_thunk:			ds.w 1		; Used as a RAM holder for the final DMA command word. Data will NOT be preserved across V-INTs, so consider this space reserved.
-				ds.w 1		; $FFFFF642-$FFFFF643 ; seems unused
 Hint_flag:			ds.w 1		; unless this is 1, H-int won't run
 
 Water_Level_1:			ds.w 1
@@ -942,7 +929,6 @@ PalCycle_Frame_CNZ:		ds.w 1
 PalCycle_Frame2:		ds.w 1
 PalCycle_Frame3:		ds.w 1
 PalCycle_Frame2_CNZ:		ds.w 1
-				ds.b 4		; $FFFFF658-$FFFFF65B ; seems unused
 Palette_frame:			ds.w 1
 Palette_timer:			ds.b 1		; was "Palette_frame_count"
 Super_Sonic_palette:		ds.b 1
@@ -959,7 +945,6 @@ Title_EnableTextBanner:
 SegaScr_VInt_Subrout:
 Ending_VInt_Subrout:
 WFZ_BG_Y_Speed:			ds.w 1
-SegaSonicVelocity:		ds.w 1		; $FFFFF664-$FFFFF665 ; seems unused
 PalCycle_Timer2:		ds.w 1
 PalCycle_Timer3:		ds.w 1
 
@@ -970,7 +955,6 @@ Sonic_Look_delay_counter:	ds.w 1		; 2 bytes
 Tails_Look_delay_counter:	ds.w 1		; 2 bytes
 Super_Sonic_frame_count:	ds.w 1
 Camera_ARZ_BG_X_pos:		ds.l 1
-				ds.b $A		; $FFFFF676-$FFFFF67F ; seems unused
 MiscLevelVariables_End
 
 Plc_Buffer:			ds.b $60	; Pattern load queue (each entry is 6 bytes)
@@ -984,17 +968,14 @@ Plc_Buffer_Reg10:		ds.l 1
 Plc_Buffer_Reg14:		ds.l 1
 Plc_Buffer_Reg18:		ds.w 1		; amount of current entry remaining to decompress
 Plc_Buffer_Reg1A:		ds.w 1
-				ds.b 4		; seems unused
 Plc_Buffer_End:
 
 
 Misc_Variables:
-				ds.w 1		; unused
 
 ; extra variables for the second player (CPU) in 1-player mode
 Tails_control_counter:		ds.w 1		; how long until the CPU takes control
 Tails_respawn_counter:		ds.w 1
-				ds.w 1		; unused
 Tails_CPU_routine:		ds.w 1
 Tails_CPU_target_x:		ds.w 1
 Tails_CPU_target_y:		ds.w 1
@@ -1140,7 +1121,7 @@ Current_ZoneAndAct:				; 2 bytes
 Current_Zone:			ds.b 1		; 1 byte
 Current_Act:			ds.b 1		; 1 byte
 Life_count:			ds.b 1
-				ds.b 3		; $FFFFFE13-$FFFFFE15 ; seems unused
+				ds.b 1
 
 Current_Special_StageAndAct:	; 2 bytes
 Current_Special_Stage:		ds.b 1
@@ -1166,7 +1147,6 @@ Timer_centisecond:				; inaccurate name (the seconds increase when this reaches 
 Timer_frame:			ds.b 1		; 1 byte
 
 Score:				ds.l 1		; 4 bytes
-				ds.b 6		; $FFFFFE2A-$FFFFFE2F ; seems unused
 Last_star_pole_hit:		ds.b 1		; 1 byte -- max activated starpole ID in this act
 Saved_Last_star_pole_hit:	ds.b 1
 Saved_x_pos:			ds.w 1
@@ -1191,7 +1171,7 @@ Saved_Extra_life_flags_2P:	ds.b 1		; stored, but never restored
 Saved_Camera_Max_Y_pos:		ds.w 1
 Saved_Dynamic_Resize_Routine:	ds.b 1
 
-				ds.b 5		; $FFFFFE59-$FFFFFE5D ; seems unused
+ 				ds.b 1
 Oscillating_Numbers:
 Oscillation_Control:		ds.w 1
 Oscillating_variables:
@@ -1202,14 +1182,10 @@ Logspike_anim_counter:		ds.b 1
 Logspike_anim_frame:		ds.b 1
 Rings_anim_counter:		ds.b 1
 Rings_anim_frame:		ds.b 1
-Unknown_anim_counter:		ds.b 1		; I think this was $FFFFFEC4 in the alpha (unused)
-Unknown_anim_frame:		ds.b 1 ; (unused)
 Ring_spill_anim_counter:	ds.b 1		; scattered rings
 Ring_spill_anim_frame:		ds.b 1
 Ring_spill_anim_accum:		ds.w 1
-				ds.b 6		; $FFFFFEA9-$FFFFFEAF ; seems unused, but cleared once
 Oscillating_variables_End
-				ds.b $10	; $FFFFFEB0-$FFFFFEBF ; seems unused
 
 ; values for the second player (some of these only apply to 2-player games)
 Tails_top_speed:		ds.w 1		; Tails_max_vel
@@ -1222,7 +1198,7 @@ Update_HUD_rings_2P:		ds.b 1
 Update_HUD_timer_2P:		ds.b 1
 Update_HUD_score_2P:		ds.b 1		; unused
 Time_Over_flag_2P:		ds.b 1
-				ds.b 3		; $FFFFFECD-$FFFFFECF ; seems unused
+				ds.b 1		; filler
 Ring_count_2P:			ds.w 1
 Timer_2P:					; 4 bytes
 Timer_minute_word_2P:				; 2 bytes
@@ -1232,7 +1208,6 @@ Timer_second_2P:		ds.b 1		; 1 byte
 Timer_centisecond_2P:				; inaccurate name (the seconds increase when this reaches 60)
 Timer_frame_2P:			ds.b 1		; 1 byte
 Score_2P:			ds.l 1
-				ds.b 6		; $FFFFFEDA-$FFFFFEDF ; seems unused
 Last_star_pole_hit_2P:		ds.b 1
 Saved_Last_star_pole_hit_2P:	ds.b 1
 Saved_x_pos_2P:			ds.w 1
@@ -1249,9 +1224,7 @@ Loser_Time_Left:				; 2 bytes
 				ds.b 1		; seconds
 				ds.b 1		; frames
 
-				ds.b $16	; $FFFFFEFA-$FFFFFF0F ; seems unused
 Results_Screen_2P:		ds.w 1		; 0 = act, 1 = zone, 2 = game, 3 = SS, 4 = SS all
-				ds.b $E		; $FFFFFF12-$FFFFFF1F ; seems unused
 
 Results_Data_2P:				; $18 (24) bytes
 EHZ_Results_2P:			ds.b 6		; 6 bytes
@@ -1261,10 +1234,8 @@ SS_Results_2P:			ds.b 6		; 6 bytes
 Results_Data_2P_End:
 
 SS_Total_Won:			ds.b 2		; 2 bytes (player 1 then player 2)
-				ds.b 6		; $FFFFFF3A-$FFFFFF3F ; seems unused
 Perfect_rings_left:		ds.w 1
 Perfect_rings_flag:		ds.w 1
-				ds.b 8		; $FFFFFF44-$FFFFFF4B ; seems unused
 
 CreditsScreenIndex:
 SlotMachineInUse:		ds.w 1
@@ -1284,21 +1255,13 @@ SlotMachine_Slot3Pos:		ds.w 1 ; unused?
 SlotMachine_Slot3Speed:		ds.b 1 ; unused?
 SlotMachine_Slot3Rout:		ds.b 1 ; unused?
 
-				ds.b $8	
 Player_MainChar:		ds.b 1
 Player_PartnerChar:		ds.b 1
 Player_mode:			ds.w 1		; 0 = Sonic and Tails, 1 = Sonic, 2 = Tails
 Player_option:			ds.b 1		; 0 = Sonic and Tails, 1 = Sonic, 2 = Tails
 Player_option_byte:			ds.b 1		; 0 = Sonic and Tails, 1 = Sonic, 2 = Tails
 
-Two_player_items:		ds.b 1
-Physics_Style:			ds.b 1
-Option_SonicAbility:	ds.b 1
-Option_AirCurling:		ds.b 1
-CharSprite_Style:		ds.b 1
-Unk2_Toggle:		ds.b 1
 HomingAttack_Object:	ds.l 1
-				ds.b $2		; $FFFFFF76-$FFFFFF7F ; seems unused
 
 LevSel_HoldTimer:		ds.w 1
 Level_select_zone:		ds.w 1
@@ -1309,23 +1272,20 @@ Title_screen_option:		ds.b 1
 Current_Zone_2P:		ds.b 1
 Current_Act_2P:			ds.b 1
 Two_player_mode_copy:		ds.w 1
+Options_menu_pointer:	ds.l 1
 Options_menu_selection:	ds.b 1
 Options_menu_scroll:	ds.b 1
 Total_Bonus_Countdown:		ds.w 1
 
 Level_Music:			ds.w 1
 Bonus_Countdown_3:		ds.w 1
-				ds.b 4		; $FFFFFF94-$FFFFFF97 ; seems unused
 Game_Over_2P:			ds.w 1
-Options_menu_pointer:	ds.l 1
-				ds.b 2
 
 SS2p_RingBuffer:		ds.w 6
-				ds.b 4		; $FFFFFFAC-$FFFFFFAF ; seems unused
 Got_Emerald:			ds.b 1
 Emerald_count:			ds.b 1
 Got_Emeralds_array:		ds.b 7		; 7 bytes
-				ds.b 7		; $FFFFFFB9-$FFFFFFBF ; filler
+		 				ds.b 1		; $FFFFFFB9-$FFFFFFBF ; filler
 Next_Extra_life_score:		ds.l 1
 Next_Extra_life_score_2P:	ds.l 1
 Level_Has_Signpost:		ds.w 1		; 1 = signpost, 0 = boss or nothing
@@ -1342,11 +1302,6 @@ Correct_cheat_entries:		ds.w 1
 Correct_cheat_entries_2:	ds.w 1		; for 14 continues or 7 emeralds codes
 
 Two_player_mode:		ds.w 1		; flag (0 for main game)
-unk_FFDA:			ds.w 1		; Written to once at title screen, never read from
-unk_FFDC:			ds.b 1		; Written to near loc_175EA, never read from
-unk_FFDD:			ds.b 1		; Written to near loc_175EA, never read from
-unk_FFDE:			ds.b 1		; Written to near loc_175EA, never read from
-unk_FFDF:			ds.b 1		; Written to near loc_175EA, never read from
 
 Demo_mode_flag:			ds.w 1		; 1 if a demo is playing (2 bytes)
 Demo_number:			ds.w 1		; which demo will play next (2 bytes)
@@ -1358,6 +1313,29 @@ Graphics_Flags:			ds.w 1		; misc. bitfield
 Debug_mode_flag:		ds.w 1		; (2 bytes)
 Checksum_fourcc:		ds.l 1		; (4 bytes)
 
+Water_Ripple_Counter:	ds.w 1
+
+Options_RAM_Start:
+Option_2PItems:		ds.b 1
+Option_PhysicsStyle:			ds.b 1 ; 0 = S2, 1 = S1, 2 = S3K, 3 = SM
+
+Option_SonicAbility:	ds.b 1
+Option_AirCurling:		ds.b 1 ; 0 = off
+
+Option_ShieldAbilityStyle:		ds.b 1
+Option_WaterRipple:		ds.b 1	; 0 = on
+
+Option_WaterSoundFilter:		ds.b 1
+Option_TailsAssist:				ds.b 1
+
+Options_TailsFlight:			ds.b 1
+Options_SpeedTrail:			ds.b 1
+Options_Emulator_Scaling:	ds.b 1
+Options_Emulator_MirrorMode:	ds.b 1
+
+Options_RAM_End:
+							ds.b 1
+
 RAM_End
 
     if * > 0	; Don't declare more space than the RAM can contain!
@@ -1367,9 +1345,9 @@ RAM_End
 
 ; RAM variables - SEGA screen
 	phase	Object_RAM	; Move back to the object RAM
-SegaScr_Object_RAM:
+; FREERAM SegaScr_Object_RAM:
 				; Unused slot
-				ds.b object_size
+; FREERAM 				ds.b object_size
 SegaScreenObject:		; Sega screen
 				ds.b object_size
 SegaHideTM:				; Object that hides TM symbol on JP region
