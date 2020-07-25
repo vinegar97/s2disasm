@@ -487,6 +487,7 @@ Vint_PCM_ptr:		offsetTableEntry.w Vint_PCM			; $14
 Vint_Menu_ptr:		offsetTableEntry.w Vint_Menu		; $16
 Vint_Ending_ptr:	offsetTableEntry.w Vint_Ending		; $18
 Vint_CtrlDMA_ptr:	offsetTableEntry.w Vint_CtrlDMA		; $1A
+;VInt_SaveScreen_ptr:	offsetTableEntry.w VInt_SaveScreen		; $1A
 ; ===========================================================================
 ;VintSub0
 Vint_Lag:
@@ -962,6 +963,14 @@ Vint_Menu:
 +
 	rts
 
+VInt_SaveScreen:
+		bsr.s	Do_ControllerPal
+		movea.l	(SaveScreen_Unk3).w,a0
+		jsr	(a0)
+		bsr.w	Process_Nem_Queue_2
+		rts
+		;jmp	(Set_Kos_Bookmark).l
+
 ; ||||||||||||||| S U B R O U T I N E |||||||||||||||||||||||||||||||||||||||
 
 ;sub_E98
@@ -1289,6 +1298,7 @@ Pause_SlowMo:
 ; ||||||||||||||| S U B R O U T I N E |||||||||||||||||||||||||||||||||||||||
 
 ; sub_140E: ShowVDPGraphics: PlaneMapToVRAM:
+Plane_Map_To_VRAM:
 PlaneMapToVRAM_H40:
 	lea	(VDP_data_port).l,a6
 	move.l	#vdpCommDelta(planeLocH40(0,1)),d4	; $800000
@@ -1309,6 +1319,7 @@ PlaneMapToVRAM_H40:
 ; ||||||||||||||| S U B R O U T I N E |||||||||||||||||||||||||||||||||||||||
 
 ; sub_142E: ShowVDPGraphics2: PlaneMapToVRAM2:
+Plane_Map_To_VRAM_2:
 PlaneMapToVRAM_H80_SpecialStage:
 	lea	(VDP_data_port).l,a6
 	move.l	#vdpCommDelta(planeLocH80(0,1)),d4	; $1000000
@@ -1332,6 +1343,7 @@ PlaneMapToVRAM_H80_SpecialStage:
 ; ||||||||||||||| S U B R O U T I N E |||||||||||||||||||||||||||||||||||||||
 
 ; sub_144E: DMA_68KtoVRAM: QueueCopyToVRAM: QueueVDPCommand: Add_To_DMA_Queue:
+Add_To_DMA_Queue:
 QueueDMATransfer:
 	movea.l	(VDP_Command_Buffer_Slot).w,a1
 	cmpa.w	#VDP_Command_Buffer_Slot,a1
@@ -1389,6 +1401,7 @@ QueueDMATransfer_Done:
 ; ||||||||||||||| S U B R O U T I N E |||||||||||||||||||||||||||||||||||||||
 
 ; sub_14AC: CopyToVRAM: IssueVDPCommands: Process_DMA: Process_DMA_Queue:
+Process_DMA_Queue:
 ProcessDMAQueue:
 	lea	(VDP_control_port).l,a5
 	lea	(VDP_Command_Buffer).w,a1
@@ -1425,6 +1438,7 @@ ProcessDMAQueue_Done:
 
 ; Nemesis decompression to VRAM
 ; sub_14DE: NemDecA:
+Nem_Decomp:
 NemDec:
 	movem.l	d0-a1/a3-a5,-(sp)
 	lea	(NemDec_WriteAndStay).l,a3 ; write all data to the same location
@@ -1436,12 +1450,14 @@ NemDec:
 ; Nemesis decompression to RAM
 ; input: a4 = starting address of destination
 ; sub_14F0: NemDecB:
+Nem_Decomp_To_RAM:
 NemDecToRAM:
 	movem.l	d0-a1/a3-a5,-(sp)
 	lea	(NemDec_WriteAndAdvance).l,a3 ; advance to the next location after each write
 
 
 ; sub_14FA:
+Nem_Decomp_Main:
 NemDecMain:
 	lea	(Decomp_Buffer).w,a1
 	move.w	(a0)+,d2
@@ -1468,6 +1484,7 @@ NemDecMain:
 
 ; part of the Nemesis decompressor
 ; sub_1528:
+Nem_Process_Compressed_Data:
 NemDecRun:
 	move.w	d6,d7
 	subq.w	#8,d7
@@ -1758,6 +1775,7 @@ RunPLC_RAM:
 ; Process one PLC from the queue
 
 ; sub_16E0:
+Process_Nem_Queue:
 ProcessDPLC:
 	tst.w	(Plc_Buffer_Reg18).w
 	beq.w	+	; rts
@@ -1771,6 +1789,7 @@ ProcessDPLC:
 ; Process one PLC from the queue
 
 ; loc_16FC:
+Process_Nem_Queue_2:
 ProcessDPLC2:
 	tst.w	(Plc_Buffer_Reg18).w
 	beq.s	+	; rts
@@ -1780,6 +1799,7 @@ ProcessDPLC2:
 	addi.w	#$60,(Plc_Buffer+4).w
 
 ; loc_1714:
+Process_Nem_Queue_Main:
 ProcessDPLC_Main:
 	lea	(VDP_control_port).l,a4
 	lsl.l	#2,d0		; set up target VRAM address
@@ -1870,6 +1890,7 @@ RunPLC_ROM:
 ; ||||||||||||||| S U B R O U T I N E |||||||||||||||||||||||||||||||||||||||
 
 ; EniDec_17BC:
+Eni_Decomp:
 EniDec:
 	movem.l	d0-d7/a1-a5,-(sp)
 	movea.w	d0,a3		; store starting art tile
@@ -2099,6 +2120,7 @@ EniDec_ChkGetNextByte:
 ; For format explanation see http://info.sonicretro.org/Kosinski_compression
 ; ---------------------------------------------------------------------------
 ; KozDec_193A:
+Kos_Decomp:
 KosDec:
 	subq.l	#2,sp
 	move.b	(a0)+,1(sp)
@@ -3358,6 +3380,7 @@ Pal_ARZ_K_U: palette ARZ Knux underwater.bin ; Aquatic Ruin Zone underwater pale
 ; ||||||||||||||| S U B R O U T I N E |||||||||||||||||||||||||||||||||||||||
 
 ; sub_3384: DelayProgram:
+Wait_VSync:
 WaitForVint:
 	move	#$2300,sr
 	if Debug_Lagometer
@@ -3888,6 +3911,8 @@ TitleScreen_Demo:
 	move.b	#GameModeID_Demo,(Game_Mode).w ; => Level (Demo mode)
 	cmpi.w	#emerald_hill_zone_act_1,(Current_ZoneAndAct).w
 	bne.s	+
+
+Set_Lives_and_Continues:
 	move.w	#1,(Two_player_mode).w
 +
 	move.b	#3,(Life_count).w
@@ -11294,584 +11319,9 @@ MenuScreenTextToRAM:
 	rts
 ; End of function MenuScreenTextToRAM
 
-	; set the character set for menu text
-	charset '@',"\27\30\31\32\33\34\35\36\37\38\39\40\41\42\43\44\45\46\47\48\49\50\51\52\53\54\55"
-	charset '0',"\16\17\18\19\20\21\22\23\24\25"
-	charset '*',$1A
-	charset ':',$1C
-	charset '.',$1D
-	charset ' ',0
-
-	; options screen menu text
-
-TextOptScr_NoDraw:			menutxt	"                 "	; byte_97CA:
-TextOptScr_Empty:			menutxt	"                   "	; byte_97CA:
-TextOptScr_Unknown:			menutxt	"            UNKNOWN"	; byte_97CA:
-TextOptScr_PlayerSelect:	menutxt	"* PLAYER SELECT *  "	; byte_97CA:
-TextOptScr_SonicAndMiles:	menutxt	"    SONIC AND MILES"	; byte_97DC:
-TextOptScr_SonicAndTails:	menutxt	"    SONIC AND TAILS"	; byte_97EC:
-TextOptScr_SonicAlone:		menutxt	"        SONIC ALONE"	; byte_97FC:
-TextOptScr_MilesAlone:		menutxt	"        MILES ALONE"	; byte_980C:
-TextOptScr_TailsAlone:		menutxt	"        TAILS ALONE"	; byte_981C:
-TextOptScr_KnuxAlone:		menutxt	"     KNUCKLES ALONE"	; byte_981C:
-TextOptScr_KnuxAndMiles:	menutxt	" KNUCKLES AND MILES"	; byte_981C:
-TextOptScr_KnuxAndTails:	menutxt	" KNUCKLES AND TAILS"	; byte_981C:
-
-TextOptScr_SonicOptions:	menutxt	"SONIC OPTIONS      "
-TextOptScr_TailsOptions:	menutxt	"SONIC OPTIONS      "
-TextOptScr_KnuxOptions:		menutxt	"KNUCKLES OPTIONS   "
-
-TextOptScr_None:			menutxt	"               NONE"
-TextOptScr_InstaShield:		menutxt	"       INSTA SHIELD"
-TextOptScr_DropDash:		menutxt	"          DROP DASH"
-TextOptScr_InstaAndDrop:	menutxt	"     INSTA AND DROP"
-TextOptScr_HomingAttack:	menutxt	"      HOMING ATTACK"
-TextOptScr_ShieldControl:	menutxt	"     SHIELD CONTROL"
-
-TextOptScr_PhysicsStyle:	menutxt	"PHYSICS STYLE      "
-TextOptScr_AirCurling:		menutxt	"AIR CURLING        "
-TextOptScr_AirAbility:		menutxt	"AIR ABILITY        "
-TextOptScr_ShieldAbilityStyle:		menutxt	"SHLD ABILITY STYLE "
-TextOptScr_CharStyle:		menutxt	"PLAYER SPRITES     "
-TextOptScr_S2:				menutxt	"            SONIC 2"
-TextOptScr_S1:				menutxt	"            SONIC 1"
-TextOptScr_SCD:				menutxt	"           SONIC CD"
-TextOptScr_S3K:				menutxt	"           SONIC 3K"
-TextOptScr_Mania:			menutxt	"        SONIC MANIA"
-TextOptScr_Original:		menutxt	"           ORIGINAL"
-TextOptScr_Joey:			menutxt	"               JOEY"
-
-TextOptScr_On:				menutxt	"                 ON"
-TextOptScr_Off:				menutxt	"                OFF"
-
-TextOptScr_VsModeItems:		menutxt	"* VS MODE ITEMS *  "	; byte_982C:
-TextOptScr_AllKindsItems:	menutxt	"    ALL KINDS ITEMS"	; byte_983E:
-TextOptScr_TeleportOnly:	menutxt	"      TELEPORT ONLY"	; byte_984E:
-
-TextOptScr_SoundTest:		menutxt	"*  SOUND TEST   *  "	; byte_985E:
-
-MenuItemLabel 		= 2
-MenuItemValue 		= 4
-MenuItemSub 		= 6
-MenuItemSound 		= 8
-MenuItemValuePlayer = 10
-MenuItemValue2P 	= 12
-MenuItemBack 	= 14
-
-menuitemdata_len	= 10
-menuitemdata macro type,txtlabel,otherdataptr
-	dc.w type
-	dc.l txtlabel,otherdataptr
-	endm
-
-menuitemdatavalue_len	= 10
-menuitemdatavalue macro maxval,address,txtlist
-	dc.w maxval
-	dc.l address,txtlist
-	endm
-
-TextOptScr_Back:			menutxt	"BACK               "
-
-TextOptScr_Options:			menutxt	"OPTIONS            "
-TextOptScr_GameplayOptions:	menutxt	"GAMEPLAY OPTIONS   "
-TextOptScr_StyleOptions:	menutxt	"STYLE OPTIONS      "
-TextOptScr_LevelOptions:	menutxt	"LEVEL OPTIONS      "
-
-;TextOptScr_Controlstyle:	menutxt	"CONTROL STYLE"
-;TextOptScr_Physicsstyle:	menutxt	"PHYSICS STYLE"
-
-TextOptScr_Playersprites:	menutxt	"PLAYER SPRITES     "
-TextOptScr_Itemsprites:		menutxt	"ITEM SPRITES       "
-TextOptScr_Titlecard:		menutxt	"TITLE CARD         "
-
-;TextOptScr_StyleOptions:	menutxt	"LAYOUTS"
-;TextOptScr_StyleOptions:	menutxt	"SHIELDS"
-
-; ===========================================================================
-OptScrValText_CharacterJ:
-	dc.l TextOptScr_SonicAndMiles
-	dc.l TextOptScr_SonicAlone
-	dc.l TextOptScr_MilesAlone
-	dc.l TextOptScr_KnuxAlone
-	dc.l TextOptScr_KnuxAndMiles
-
-OptScrValText_CharacterUE:
-	dc.l TextOptScr_SonicAndTails
-	dc.l TextOptScr_SonicAlone
-	dc.l TextOptScr_TailsAlone
-	dc.l TextOptScr_KnuxAlone
-	dc.l TextOptScr_KnuxAndTails
-
-OptScrValText_PhysicsStyle:
-	dc.l TextOptScr_S2
-	dc.l TextOptScr_S1
-	dc.l TextOptScr_S3K
-	dc.l TextOptScr_Mania
-
-OptScrValText_CharStyle:
-	dc.l TextOptScr_Original
-	dc.l TextOptScr_S2
-	dc.l TextOptScr_S1
-	dc.l TextOptScr_SCD
-	dc.l TextOptScr_S3K
-
-OptScrValText_2PItems:
-	dc.l TextOptScr_AllKindsItems
-	dc.l TextOptScr_TeleportOnly
-
-OptScrValText_OffOn:
-	dc.l TextOptScr_Off
-	dc.l TextOptScr_On
-
-OptScrValText_SonicAbility:
-	dc.l TextOptScr_None
-	dc.l TextOptScr_InstaShield
-	dc.l TextOptScr_DropDash
-	dc.l TextOptScr_InstaAndDrop
-	dc.l TextOptScr_HomingAttack
-	dc.l TextOptScr_ShieldControl
-
-OptScrValText_ShieldAbilityStyle:
-	dc.l TextOptScr_Original
-	dc.l TextOptScr_Mania
-	dc.l TextOptScr_Joey
-
-
-OptionsMenu_Main:
-	dc.w 4
-	menuitemdata MenuItemValuePlayer,	TextOptScr_PlayerSelect, 	OptionsMenu_Val_Player
-	menuitemdata MenuItemValue2P, 		TextOptScr_VsModeItems, 	OptionsMenu_Val_2P
-	menuitemdata MenuItemSound, 		TextOptScr_SoundTest,		OptionsMenu_Val_Sound
-	menuitemdata MenuItemSub,			TextOptScr_GameplayOptions, OptionsMenu_Gameplay
-	menuitemdata MenuItemSub,			TextOptScr_StyleOptions,    OptionsMenu_Style
-
-OptionsMenu_Val_Player: 	menuitemdatavalue	4, 			Player_option_byte,		OptScrValText_CharacterUE
-OptionsMenu_Val_2P:			menuitemdatavalue	1, 			Option_2PItems,		OptScrValText_2PItems
-OptionsMenu_Val_Sound:		menuitemdatavalue	SFXlast, 	Sound_test_sound_byte,	0
-
-
-OptionsMenu_Gameplay:
-	dc.w 3 ; max index
-	menuitemdata MenuItemBack,	TextOptScr_Back,    		OptionsMenu_Main
-	menuitemdata MenuItemSub,	TextOptScr_SonicOptions,   	OptionsMenu_GameplaySonic
-	menuitemdata MenuItemValue, TextOptScr_PhysicsStyle, 	OptionsMenu_Val_Physics
-	menuitemdata MenuItemValue, TextOptScr_AirCurling, 		OptionsMenu_Val_AirCurling
-
-OptionsMenu_Val_Physics: 	menuitemdatavalue	3, 			Option_PhysicsStyle,			OptScrValText_PhysicsStyle
-OptionsMenu_Val_AirCurling: menuitemdatavalue	1,	 		Option_AirCurling,		OptScrValText_OffOn
-
-
-OptionsMenu_GameplaySonic:
-	dc.w 2 ; max index
-	menuitemdata MenuItemBack,	TextOptScr_Back,    		OptionsMenu_Gameplay
-	menuitemdata MenuItemValue, TextOptScr_AirAbility, 		OptionsMenu_Val_SonicAbility
-	menuitemdata MenuItemValue, TextOptScr_ShieldAbilityStyle, 		OptionsMenu_Val_ShieldAbilityStyle
-
-OptionsMenu_Val_SonicAbility: menuitemdatavalue	5,	 		Option_SonicAbility,		OptScrValText_SonicAbility
-OptionsMenu_Val_ShieldAbilityStyle: menuitemdatavalue	2,	 		Option_ShieldAbilityStyle,		OptScrValText_ShieldAbilityStyle
-
-
-OptionsMenu_Style:
-	dc.w 0 ; max index
-	menuitemdata MenuItemBack,	TextOptScr_Back,    		OptionsMenu_Main
-;	menuitemdata MenuItemValue, TextOptScr_CharStyle, 		OptionsMenu_Val_Char
-
-;OptionsMenu_Val_Char: 		menuitemdatavalue	4, 			CharSprite_Style,		OptScrValText_CharStyle
-
-	charset ; reset character set
-	even
 ; ===========================================================================
 
-; ||||||||||||||| S U B R O U T I N E |||||||||||||||||||||||||||||||||||||||
-
-; a1 = Pointer to text
-OptionsScreen_DrawLabelDeselected:
-	move.w	#palette_line_1,d0
-	lea	(Chunk_Table+$160+(39*1*2)+(1*2)).l,a2 ; Label location
-	bra.w	MenuScreenTextToRAM
-
-; a1 = Pointer to text
-OptionsScreen_DrawLabelSelected:
-	move.w	#palette_line_3,d0
-	lea	(Chunk_Table+(39*1*2)+(1*2)).l,a2 ; Label location
-	bra.w	MenuScreenTextToRAM
-
-
-; a1 = Pointer to text
-OptionsScreen_DrawValueDeselected:
-	move.w	#palette_line_1,d0
-	lea	(Chunk_Table+$160+(39*1*2)+(18*2)).l,a2 ; Value location
-	bra.w	MenuScreenTextToRAM
-
-; a1 = Pointer to text
-OptionsScreen_DrawValueSelected:
-	move.w	#palette_line_3,d0
-	lea	(Chunk_Table+(39*1*2)+(18*2)).l,a2 ; Value location
-	bra.w	MenuScreenTextToRAM
-
-
-; d0 = #vdpComm(VRAM_Plane_A_Name_Table+planeLocH40(x,y),VRAM,WRITE) [long]
-OptionsScreen_DrawBoxDeselected:
-	lea		(Chunk_Table+$160).l,a1
-	bra.s	OptionsScreen_DrawBox
-
-; d0 = #vdpComm(VRAM_Plane_A_Name_Table+planeLocH40(x,y),VRAM,WRITE) [long]
-OptionsScreen_DrawBoxSelected:
-	lea		(Chunk_Table).l,a1
-
-; [internal]
-OptionsScreen_DrawBox:
-	moveq	#38,d1 ; Box width - 1
-	moveq	#3,d2 ; Box height - 1
-	jmpto	(PlaneMapToVRAM_H40).l, JmpTo_PlaneMapToVRAM_H40
-
-; ===========================================================================
-
-OptionsScreen_DrawMenu:
-	move.l	(Options_menu_pointer).l,a0
-	move.w	(a0)+,d5	; d5 = max list index
-	moveq	#0,d6	; d6 = current item to draw
--
-	bsr.s	OptionsScreen_DrawMenuItem
-
-	addi.w	#1,d6 ; increment current item
-
-	cmpi.w	#5,d6 ; limit number of items drawn
-	bge.s	+
-	cmp.b	d5,d6 ; make sure we don't overflow (TODO: scroll)
-	bhi.s	+
-	bra.s	-
-+
-	rts
-
-; ===========================================================================
-
-OptionsScreen_BoxLocations:
-	dc.l vdpComm(VRAM_Plane_A_Name_Table+planeLocH40(1,1),VRAM,WRITE)
-	dc.l vdpComm(VRAM_Plane_A_Name_Table+planeLocH40(1,5),VRAM,WRITE)
-	dc.l vdpComm(VRAM_Plane_A_Name_Table+planeLocH40(1,9),VRAM,WRITE)
-	dc.l vdpComm(VRAM_Plane_A_Name_Table+planeLocH40(1,13),VRAM,WRITE)
-	dc.l vdpComm(VRAM_Plane_A_Name_Table+planeLocH40(1,17),VRAM,WRITE)
-
-OptionsScreen_DrawMenuItem_GetLoc:
-	lea		(OptionsScreen_BoxLocations).l,a1
-	moveq	#0,d0
-	move.w	d6,d0
-	lsl.l	#2,d0
-	add.l	d0,a1
-	move.l	(a1),d0
-	rts
-
-OptionsScreen_DrawMenuItem:
-	move.w	(a0)+,d4	; d4 = item type
-	; Draw Label Text
-	move.l	(a0)+,a1 ; a1 = item label text
-	cmp.w	(Options_menu_selection).l,d6
-	bne.s	OptionsScreen_DrawMenuItemDeselected
-
-OptionsScreen_DrawMenuItemSelected:
-	bsr.w	OptionsScreen_DrawLabelSelected
-	bsr.w	OptionsScreen_GetValTextPtr
-	bsr.w	OptionsScreen_DrawValueSelected
-	bsr.s	OptionsScreen_DrawMenuItem_GetLoc
-	bra.w	OptionsScreen_DrawBoxSelected
-
-OptionsScreen_DrawMenuItemDeselected:
-	bsr.w	OptionsScreen_DrawLabelDeselected
-	bsr.w	OptionsScreen_GetValTextPtr
-	bsr.w	OptionsScreen_DrawValueDeselected
-	bsr.s	OptionsScreen_DrawMenuItem_GetLoc
-	bra.w	OptionsScreen_DrawBoxDeselected
-
-; ===========================================================================
-
-OptionsScreen_GetValTextPtr:
-	moveq	#0,d0
-	move.w	d4,d0
-	move.w	OptionsScreen_GetValTextPtr_Index(pc,d0.w),d1
-	jsr	OptionsScreen_GetValTextPtr_Index(pc,d1.w)
-	addi.l	#4,a0	; increment to next menu item pointer
-	rts
-
-OptionsScreen_GetValTextPtr_Index:	offsetTable
-	offsetTableEntry.w	OptionsScreen_GetValTextPtr_Null ; 0
-	offsetTableEntry.w	OptionsScreen_GetValTextPtr_Null ; 2 (MenuItemLabel)
-	offsetTableEntry.w	OptionsScreen_GetValTextPtr_MenuItemValue ; 4 (MenuItemValue)
-	offsetTableEntry.w	OptionsScreen_GetValTextPtr_Null ; 6 (MenuItemSub)
-	offsetTableEntry.w	OptionsScreen_GetValTextPtr_MenuItemSound ; 8 (MenuItemSound)
-	offsetTableEntry.w	OptionsScreen_GetValTextPtr_MenuItemValue ; 10 (MenuItemValuePlayer)
-	offsetTableEntry.w	OptionsScreen_GetValTextPtr_MenuItemValue ; 12 (MenuItemValue2P)
-	offsetTableEntry.w	OptionsScreen_GetValTextPtr_Null ; 14 (MenuItemBack)
-
-OptionsScreen_GetValTextPtr_Null:
-	move.l	#TextOptScr_Empty,a1
-	rts
-
-OptionsScreen_GetValTextPtr_MenuItemSound:
-	lea	(Chunk_Table+$160+(39*1*2)+(35*2)).l,a2
-	bsr.w	OptionScreen_HexDumpSoundTest
-	lea	(Chunk_Table+(39*1*2)+(35*2)).l,a2
-	move.w	#palette_line_3,d0
-	bsr.w	OptionScreen_HexDumpSoundTest
-	move.l	#TextOptScr_NoDraw,a1
-	rts
-
-OptionsScreen_GetValTextPtr_MenuItemValue:
-	move.l	(a0),a1	 ; (a0)/a1 = otherdataptr
-	moveq	#0,d0
-	move.w 	(a1)+,d0 ; d0 = max val
-	move.l	(a1)+,a2 ; a2 = value address
-	move.b	(a2),d1 ; d1 = current value
-
-	cmp.b	d0,d1
-	bhi.s	OptionsScreen_GetValTextPtr_MenuItemValue_UnkVal
-
-	lsl.l	#2,d1	; get relative address in text list
-	move.l	(a1),a1	; a1 = text list
-	add.l	d1,a1
-	move.l	(a1),a1	; a1 = text ptr
-	rts
-
-OptionsScreen_GetValTextPtr_MenuItemValue_UnkVal:
-	move.l	#TextOptScr_Unknown,a1
-	rts
-
-; ===========================================================================
-
-OptionsScreen_Input:
-	move.l	(Options_menu_pointer).l,a0
-	move.w	(a0)+,d1
-
-	move.b	(Ctrl_1_Press).w,d0
-	or.b	(Ctrl_2_Press).w,d0
-	btst	#button_up,d0
-	beq.s	+
-	subq.w	#1,(Options_menu_selection).l
-	bcc.s	++
-	move.w	d1,(Options_menu_selection).l
-+
-	btst	#button_down,d0
-	beq.s	+
-	addq.w	#1,(Options_menu_selection).l
-	move.w	(Options_menu_selection).l,d2
-	subi.w	#1,d2
-	cmp.w	d1,d2 ; Number of options
-	blo.s	+
-	move.w	#0,(Options_menu_selection).l
-+
-	moveq	#0,d0
-	move.w	(Options_menu_selection).l,d0
-	mulu.w	#menuitemdata_len,d0
-	add.l	d0,a0
-	moveq	#0,d0
-	move.w	(a0)+,d0 ; d0 = type
-	addi.l	#4,a0 ; increment past text label and padding
-	move.l	(a0),a0 ; a0 = other data pointer
-
-	move.w	OptionsScreen_Input_Index(pc,d0.w),d1
-	jmp	OptionsScreen_Input_Index(pc,d1.w)
-
-OptionsScreen_Input_Index:	offsetTable
-	offsetTableEntry.w	OptionsScreen_Input_Null ; 0
-	offsetTableEntry.w	OptionsScreen_Input_Null ; 2 (MenuItemLabel)
-	offsetTableEntry.w	OptionsScreen_Input_MenuItemValue ; 4 (MenuItemValue)
-	offsetTableEntry.w	OptionsScreen_Input_MenuItemSub ; 6 (MenuItemSub)
-	offsetTableEntry.w	OptionsScreen_Input_MenuItemSound ; 8 (MenuItemSound)
-	offsetTableEntry.w	OptionsScreen_Input_MenuItemValuePlayer ; 10 (MenuItemValuePlayer)
-	offsetTableEntry.w	OptionsScreen_Input_MenuItemValue2P ; 12 (MenuItemValue2P)
-	offsetTableEntry.w	OptionsScreen_Input_MenuItemBack ; 14 (MenuItemBack)
-
-OptionsScreen_Input_Null:
-	rts
-
-OptionsScreen_Input_MenuItemValuePlayer:
-	move.b	(Ctrl_1_Press).w,d0
-	or.b	(Ctrl_2_Press).w,d0
-	btst	#button_start,d0
-	beq.s	OptionsScreen_Input_MenuItemValue
-	; Start a single player game
-	move.w	#0,(Two_player_mode).w
-	move.w	#0,(Two_player_mode_copy).w
-
-	move.b	#1,(Level_select_flag).w	; REMOVE THIS
-	tst.b	(Level_select_flag).w	; has level select cheat been entered?
-	beq.s	+			; if not, branch
-	btst	#button_A,(Ctrl_1_Held).w ; is A held down?
-	beq.s	+	 		; if not, branch
-	move.b	#GameModeID_LevelSelect,(Game_Mode).w ; => LevelSelectMen
-	rts
-+
-	move.w	#0,(Current_ZoneAndAct).w	; emerald_hill_zone_act_1
-	move.b	#GameModeID_Level,(Game_Mode).w ; => Level (Zone play mode)
-	rts
-
-OptionsScreen_Input_MenuItemValue2P:
-	move.b	(Ctrl_1_Press).w,d0
-	or.b	(Ctrl_2_Press).w,d0
-	btst	#button_start,d0
-	beq.s	OptionsScreen_Input_MenuItemValue
-	; Start a 2P VS game
-	move.w	#1,(Two_player_mode).w
-	move.w	#1,(Two_player_mode_copy).w
-	move.b	#GameModeID_2PLevelSelect,(Game_Mode).w ; => LevelSelectMenu2P
-	move.b	#0,(Current_Zone_2P).w
-	move.b	#0,(Player_mode).w
-	rts
-
-OptionsScreen_Input_MenuItemValue:
-	moveq	#0,d1
-	move.w	(a0)+,d1 ; d1 = max val
-	move.l	(a0),a0
-
-	move.b	(Ctrl_1_Press).w,d0
-	or.b	(Ctrl_2_Press).w,d0
-	btst	#button_left,d0
-	beq.s	+
-	sfx		sfx_Beep
-	subq.b	#1,(a0)
-	bcc.s	++
-	move.b	d1,(a0)
-+
-	btst	#button_right,d0
-	beq.s	+
-	sfx		sfx_Beep
-	addq.b	#1,(a0)
-	move.b	(a0),d2
-	subi.b	#1,d2
-	cmp.b	d1,d2 ; Number of options
-	blo.s	+
-	move.b	#0,(a0)
-+
-	rts
-
-OptionsScreen_Input_MenuItemBack:
-	move.b	(Ctrl_1_Press).w,d0
-	or.b	(Ctrl_2_Press).w,d0
-	btst	#button_start,d0
-	beq.s	+
-	bsr.w	OptionsScreen_Input_MenuItemSubEnter
-	sfx		sfx_S3K_42
-+
-	rts
-
-OptionsScreen_Input_MenuItemSub:
-	move.b	(Ctrl_1_Press).w,d0
-	or.b	(Ctrl_2_Press).w,d0
-	btst	#button_start,d0
-	beq.s	+
-	bsr.w	OptionsScreen_Input_MenuItemSubEnter
-	sfx		sfx_Starpost
-+
-	rts
-
-OptionsScreen_Input_MenuItemSubEnter:
-	move.w	#0,(Options_menu_selection).l
-	move.l	a0,(Options_menu_pointer).l
-	dmaFillVRAM 0,VRAM_Plane_A_Name_Table,VRAM_Plane_Table_Size	; Clear Plane A pattern name table
-	bsr.w	OptionsScreen_DrawMenu
-+
-	rts
-
-OptionsScreen_Input_MenuItemSound:
-	move.b	(Ctrl_1_Press).w,d0
-	or.b	(Ctrl_2_Press).w,d0
-	btst	#button_start,d0
-	beq.s	+
-	move.b	#GameModeID_SegaScreen,(Game_Mode).w ; => SegaScreen
-+
-	bsr.w	OptionsScreen_Input_MenuItemValue
-
-	btst	#button_A,d0
-	beq.s	+
-	addi.b	#$10,(a0)
-	move.b	(a0),d2
-	subi.b	#1,d2
-	cmp.b	d1,d2 ; Number of options
-	blo.s	+
-	move.b	#0,(a0)
-+
-	andi.w	#button_B_mask|button_C_mask,d0
-	beq.s	+	; rts
-	move.w	(Sound_test_sound).w,d0
-	move.b	d0,mQueue+1.w
-	lea	(level_select_cheat).l,a0
-	lea	(continues_cheat).l,a2
-	lea	(Level_select_flag).w,a1	; Also Slow_motion_flag
-	moveq	#0,d2	; flag to tell the routine to enable the continues cheat
-	bsr.w	CheckCheats
-+
-	rts
-
-; ===========================================================================
-
-; loc_8FCC:
-MenuScreen_Options:
-	move.l	#OptionsMenu_Main,(Options_menu_pointer).l
-	clr.b	(Options_menu_selection).w
-
-	; Load tile graphics
-	lea	(Chunk_Table).l,a1
-	lea	(MapEng_Options).l,a0
-	move.w	#make_art_tile(ArtTile_ArtNem_MenuBox,0,0),d0
-	jsr		EniDec
-	lea	(Chunk_Table+$160).l,a1
-	lea	(MapEng_Options).l,a0
-	move.w	#make_art_tile(ArtTile_ArtNem_MenuBox,1,0),d0
-	jsr		EniDec
-	clr.b	(Level_started_flag).w
-	clr.w	(Anim_Counters).w
-	lea	(Anim_SonicMilesBG).l,a2
-	jsrto	(Dynamic_Normal).l, JmpTo2_Dynamic_Normal
-	moveq	#PalID_Menu,d0
-	bsr.w	PalLoad_ForFade
-	clr.w	(Two_player_mode).w
-	clr.l	(Camera_X_pos).w
-	clr.l	(Camera_Y_pos).w
-	clr.w	(Correct_cheat_entries).w
-	clr.w	(Correct_cheat_entries_2).w
-	bsr.w	OptionsScreen_DrawMenu
-	move.b	#VintID_Menu,(Vint_routine).w
-	bsr.w	WaitForVint
-	music	mus_Options
-
-	move.w	(VDP_Reg1_val).w,d0
-	ori.b	#$40,d0
-	move.w	d0,(VDP_control_port).l
-	bsr.w	Pal_FadeFromBlack
-; loc_9060:
-OptionScreen_Main:
-	move.b	#VintID_Menu,(Vint_routine).w
-	bsr.w	WaitForVint
-
-	bsr.w	OptionsScreen_Input
-	bsr.w	OptionsScreen_DrawMenu
-
-	; Animated BG
-	lea	(Anim_SonicMilesBG).l,a2
-	jsrto	(Dynamic_Normal).l, JmpTo2_Dynamic_Normal
-
-	cmpi.b	#GameModeID_OptionsMenu,(Game_Mode).w 
-	beq.w	OptionScreen_Main
-; ===========================================================================
-;loc_9296
-OptionScreen_HexDumpSoundTest:
-	move.w	(Sound_test_sound).w,d1
-	move.b	d1,d2
-	lsr.b	#4,d1
-	bsr.s	+
-	move.b	d2,d1
-
-+
-	andi.w	#$F,d1
-	cmpi.b	#$A,d1
-	blo.s	+
-	addi.b	#4,d1
-
-+
-	addi.b	#$10,d1
-	move.b	d1,d0
-	move.w	d0,(a2)+
-	rts
+	include "OptionsScreen/Main.asm"
 
 ; ===========================================================================
 ; loc_92F6:
@@ -12580,13 +12030,13 @@ EndingSequence:
 	move.w	#$100,objoff_3C(a1)
 +
 	move.b	#VintID_Ending,(Vint_routine).w
-	bsr.w	WaitForVint
+	jsr		WaitForVint
 	move.w	(VDP_Reg1_val).w,d0
 	ori.b	#$40,d0
 	move.w	d0,(VDP_control_port).l
 -
 	move.b	#VintID_Ending,(Vint_routine).w
-	bsr.w	WaitForVint
+	jsr		WaitForVint
 	addq.w	#1,(Timer_frames).w
 	jsr	(RandomNumber).l
 	jsr	(RunObjects).l
@@ -12674,7 +12124,7 @@ EndgameCredits:
 	move.w	#$144,d0
 
 /	move.b	#VintID_Ending,(Vint_routine).w
-	bsr.w	WaitForVint
+	jsr		WaitForVint
 	dbf	d0,-
 
 	jsr		Pal_FadeToBlack
@@ -12703,12 +12153,12 @@ EndgameCredits:
 
 	move.w	#$3B,d0
 -	move.b	#VintID_Ending,(Vint_routine).w
-	bsr.w	WaitForVint
+	jsr		WaitForVint
 	dbf	d0,-
 
 	move.w	#$257,d6
 -	move.b	#VintID_Ending,(Vint_routine).w
-	bsr.w	WaitForVint
+	jsr		WaitForVint
 	addq.w	#1,(CreditsScreenIndex).w
 	bsr.w	EndgameLogoFlash
 	cmpi.w	#$5E,(CreditsScreenIndex).w
@@ -16267,8 +15717,9 @@ loc_D34A:
 ; ===========================================================================
 ; https://info.sonicretro.org/SCHG_How-to:Insert_Labyrinth_Zone_water_ripple_effect_in_Sonic_2
 SwScrl_Water:
-	tst.b	(Option_WaterRipple).w
-	bne.s	+
+	; Skip if disabled
+	cmpi.b	#2,(Option_WaterRipple).w
+	beq.s	+
 	; this adds the LZ water ripple effect to any level
 	lea	(Deform_LZ_Data1).l,a3
 	lea	(Obj_SmallBubbles_WobbleData).l,a2
@@ -16301,10 +15752,16 @@ SwScrl_Water:
 
 ; does the LZ water ripple effect once the camera is below the water
 SwScrl_Water_doRipple:
+	; BG only option
+	cmpi.b	#1,(Option_WaterRipple).w
+	beq.s	+
+
 	move.b	(a3,d3.w),d4	; FG ripple effect
 	ext.w	d4
-	add.w	d4,(a1)+
+	add.w	d4,(a1)
 
++
+	addi.l	#2,a1
 	move.b	(a2,d2.w),d4	; BG ripple effect
 	ext.w	d4
 	add.w	d4,(a1)+
@@ -23010,6 +22467,9 @@ JmpTo_RandomNumber
     endif
 
 Obj_HyperSonicKnux_Trail:
+		tst.b	(Option_SpeedTrail).w
+		bne.w	DeleteObject
+
 		; init
 		move.b	#20,objoff_2B(a0)
 		move.l	#Mapunc_Knuckles,mappings(a0)	; Load Knuckles' mappings
@@ -23790,7 +23250,11 @@ SolidObject_Monitor_Sonic:
 	cmpi.l	#Obj_Knuckles,id(a1)
 	beq.s	SolidObject_Monitor_Knuckles
 	cmpi.b	#AniIDSonAni_Roll,anim(a1)		; is Sonic spinning?
-	bne.w	SolidObject_cont		; if not, branch
+	beq.w	+		; if so, branch
+	cmpi.b	#AniIDSonAni_DropDash,anim(a1)		; is Sonic spinning?
+	beq.w	+		; if so, branch
+	bra.w	SolidObject_cont
++
     addq.b    #pushing_bit_delta,d6
     btst    d6,status(a0)    ; check if we're pushing
     beq.s    +
@@ -28029,6 +27493,7 @@ FindClosestTargetInFront_FoundNew:
 ; ||||||||||||||| S U B R O U T I N E |||||||||||||||||||||||||||||||||||||||
 
 ; sub_15F9C: ObjectsLoad:
+Process_Sprites:
 RunObjects:
 	tst.b	(Teleport_flag).w
 	bne.s	RunObjects_End	; rts
@@ -28115,6 +27580,7 @@ ObjNull: ;;
 ; ||||||||||||||| S U B R O U T I N E |||||||||||||||||||||||||||||||||||||||
 
 ; sub_16380: ObjectFall:
+MoveSprite:
 ObjectMoveAndFall:
 	move.w	x_vel(a0),d0	; load horizontal speed
 	ext.l	d0
@@ -28139,6 +27605,7 @@ ObjectMoveAndFall:
 ; ||||||||||||||| S U B R O U T I N E |||||||||||||||||||||||||||||||||||||||
 
 ; sub_163AC: SpeedToPos:
+MoveSprite2:
 ObjectMove:
 	move.w	x_vel(a0),d0	; load horizontal speed
 	ext.l	d0
@@ -28289,6 +27756,7 @@ DeleteObject2:
 ; ||||||||||||||| S U B R O U T I N E |||||||||||||||||||||||||||||||||||||||
 
 ; sub_164F4:
+Draw_Sprite:
 DisplaySprite:
 	move.w	priority(a0),a1		; NAT: Priority is now the direct address
 
@@ -28424,6 +27892,7 @@ Anim_End:
 ; ||||||||||||||| S U B R O U T I N E |||||||||||||||||||||||||||||||||||||||
 
 ; sub_16604:
+Render_Sprites:
 BuildSprites:
 	tst.w	(Two_player_mode).w
 	bne.w	BuildSprites_2P
@@ -31418,6 +30887,7 @@ ObjPtr_RingPrize:	dc.l Obj_RingPrize		; $DC ; Ring prize from Casino Night Zone
 ; ||||||||||||||| S U B R O U T I N E |||||||||||||||||||||||||||||||||||||||
 
 ; loc_17FDA: ; allocObject:
+Create_New_Sprite:
 SingleObjLoad:
 	lea	(Dynamic_Object_RAM).w,a1 ; a1=object
 	move.w	#(Dynamic_Object_RAM_End-Dynamic_Object_RAM)/object_size-1,d0 ; search to end of table
@@ -31442,6 +30912,7 @@ return_17FF8:
 ; ||||||||||||||| S U B R O U T I N E |||||||||||||||||||||||||||||||||||||||
 
 ; loc_17FFA: ; allocObjectAfterCurrent:
+Create_New_Sprite3:
 SingleObjLoad2:
 	movea.l	a0,a1
 	move.w	#Dynamic_Object_RAM_End,d0; $D000
@@ -76839,7 +76310,11 @@ loc_3F768:
 	cmpi.b	#AniIDSonAni_Roll,anim(a0)
 	beq.s	Break_Monitor
 	cmpi.l	#Obj_Knuckles,id(a0)
-	bne.s	return_3F78A
+	beq.s	+
+	cmpi.b	#AniIDSonAni_DropDash,anim(a0)
+	beq.s	Break_Monitor
+	rts
++
 	cmp.b	#1,glidemode(a0)
 	beq.s	Break_Monitor
 	cmp.b	#3,glidemode(a0)
@@ -76865,6 +76340,8 @@ Touch_Enemy:
 	bsr.w	Touch_HomingAttack
 	btst	#status_sec_isInvincible,status_secondary(a0)	; is Sonic invincible?
 	bne.s	.checkhurtenemy			; if yes, branch
+	cmpi.b	#AniIDSonAni_Dropdash,anim(a0)
+	beq.s	.checkhurtenemy
 	cmpi.b	#AniIDSonAni_Spindash,anim(a0)
 	beq.s	.checkhurtenemy
 	cmpi.b	#AniIDSonAni_Roll,anim(a0)		; is Sonic rolling?
@@ -83766,7 +83243,7 @@ DualPCM_sz:
 		message "ROM size is $\{*} bytes (\{*/1024.0} kb)."
 	endif
 	; share these symbols externally (WARNING: don't rename, move or remove these labels!)
-	shared word_728C_user,Obj_EndingController_MapUnc_7240,off_3A294,MapRUnc_Sonic,mQueue,mFlags,Current_Zone,Current_Act
+	shared word_728C_user,Obj_EndingController_MapUnc_7240,off_3A294,MapRUnc_Sonic,mQueue,mFlags,Current_Zone,Current_Act,dPlaySnd
 
 ; --------------------------------------------------------------------
 	include	"ErrorDebugger/ErrorHandler.asm"

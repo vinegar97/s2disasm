@@ -350,6 +350,7 @@ Obj_Sonic_MdNormal_Checks:
 ; ---------------------------------------------------------------------------
 ; loc_1A2B8:
 Obj_Sonic_MdNormal:
+	bsr.w	Sonic_CheckPeelout
 	bsr.w	Sonic_CheckSpindash
 	bsr.w	Sonic_Jump
 	bsr.w	Sonic_SlopeResist
@@ -1549,6 +1550,7 @@ Sonic_DropDash:
 Sonic_DropDashCont:
 	sfx		sfx_DropDash
 	move.b	#1,double_jump_flag(a0)
+	move.b	#AniIDSonAni_DropDash,anim(a0)
 	rts
 
 Sonic_ShieldControl:
@@ -1638,6 +1640,105 @@ Sonic_RevertToNormal:
 return_1AC3C:
 	rts
 ; End of subroutine Sonic_Super
+
+Sonic_CheckPeelout:
+	cmpi.b	#1,(Option_PeelOut).w
+	beq.s	+
+	cmpi.b	#3,(Option_PeelOut).w
+	beq.s	+
+	rts
++
+	cmpi.b	#2,spindash_flag(a0)
+	beq.s	Sonic_UpdatePeelout
+	
+	; Don't start peelout if not looking up or not pressing ABC
+	cmpi.b	#AniIDSonAni_LookUp,anim(a0)
+	bne.s	return_Peelout1
+	
+	move.b	(Ctrl_1_Press_Logical).w,d0
+	andi.b	#button_B_mask|button_C_mask|button_A_mask,d0
+	beq.w	return_Peelout1
+	
+	; Play rev sound
+	sfx	sfx_Spindash
+	
+	; Start peelout state
+	move.b	#2,spindash_flag(a0)
+	move.w	#0,spindash_counter(a0)
+	
+	; Push stack pointer back so we don't return to the movement function
+	addq.l	#4,sp
+
+return_Peelout1:
+	rts
+
+Sonic_UpdatePeelout:
+	; Increment counter up to 30 (charge cap)
+	cmpi.w	#30,spindash_counter(a0)
+	bcc.s	Sonic_Charged
+	addi.w	#1,spindash_counter(a0)
+	
+	; Do a failed release if up is released
+	btst	#button_up,(Ctrl_1_Held_Logical).w
+	bne.s	Sonic_NoRelease
+	
+	move.b	#0,spindash_flag(a0)
+	move.w	#0,inertia(a0)
+	; TODO: Stop charging sound
+	rts
+
+Sonic_Charged:
+	; Do a proper release if up is released
+	btst	#button_up,(Ctrl_1_Held_Logical).w
+	bne.s	Sonic_NoRelease
+	
+	move.b	#0,spindash_flag(a0)
+	sfx	sfx_Dash
+	rts
+
+Sonic_NoRelease:
+	; Push stack pointer back so we don't return to the movement function
+	addq.l	#4,sp
+	
+	; Make sure we're playing the running animation
+	move.b	#AniIDSonAni_Walk,anim(a0)
+	bclr	#5,status(a0)
+	
+	; Get peelout speed cap
+	move.w	(Sonic_top_speed).w,d1
+	asl.w	d1
+	
+	; Reduce cap if using speed shoes
+	btst	#status_sec_hasSpeedShoes,status_secondary(a0)
+	beq.s	Sonic_NoSpeedShoes
+	move.w	(Sonic_top_speed).w,d0
+	asr.w	d0
+	sub.w	d0,d1
+
+Sonic_NoSpeedShoes:
+	; Accelerate left or right depending on our facing direction
+	move.w	#$64,d0
+	move.w	inertia(a0),d2
+	
+	btst	#0,status(a0)
+	beq.s	Sonic_PeeloutRight
+	
+	sub.w	d0,d2
+	neg.w	d1
+	cmp.w	d1,d2
+	bge.s	Sonic_CopySpeed
+	move.w	d1,d2
+	bra.s	Sonic_CopySpeed
+
+Sonic_PeeloutRight:
+	add.w	d0,d2
+	cmp.w	d1,d2
+	ble.s	Sonic_CopySpeed
+	move.w	d1,d2
+
+Sonic_CopySpeed:
+	move.w	d2,inertia(a0)
+	rts
 
 ; ---------------------------------------------------------------------------
 ; Subroutine to check for starting to charge a spindash
@@ -2727,6 +2828,16 @@ SAnim_WalkRun:
 +
 	tst.b	(Super_Sonic_flag).w
 	bne.s	SAnim_Super
+	
+	cmpi.b	#0,(Option_PeelOut).w
+	beq.s	+
+	cmpi.b	#3,(Option_PeelOut).w
+	beq.s	+
+
+	lea	(SonAni_PeelOut).l,a1	; use running animation
+	cmpi.w	#$A00,d2		; is Sonic at running speed?
+	bhs.s	++			; use running animation
++
 	lea	(SonAni_Run).l,a1	; use running animation
 	cmpi.w	#$600,d2		; is Sonic at running speed?
 	bhs.s	+			; use running animation
@@ -2934,6 +3045,8 @@ SonAni_Balance4_ptr:		offsetTableEntry.w SonAni_Balance4	; 30 ; $1E
 SupSonAni_Transform_ptr:	offsetTableEntry.w SupSonAni_Transform	; 31 ; $1F
 SonAni_Lying_ptr:		offsetTableEntry.w SonAni_Lying		; 32 ; $20
 SonAni_LieDown_ptr:		offsetTableEntry.w SonAni_LieDown	; 33 ; $21
+SonAni_PeelOut_ptr:		offsetTableEntry.w SonAni_PeelOut	
+SonAni_DropDash_ptr:		offsetTableEntry.w SonAni_DropDash
 
 SonAni_Walk:	dc.b $FF, $F,$10,$11,$12,$13,$14, $D, $E,$FF
 	rev02even
@@ -3011,6 +3124,10 @@ SonAni_Lying:	dc.b   9,  8,  9,$FF
 	rev02even
 SonAni_LieDown:	dc.b   3,  7,$FD,  0
 	even
+SonAni_PeelOut:	dc.b $FF,$D6,$D7,$D8,$D9,$FF,$FF,$FF,$FF,$FF
+	rev02even
+SonAni_DropDash: dc.b $00,$E6,$E8,$E7,$E9,$E6,$EA,$E7,$EB,$E6,$EC,$E7,$ED,$E6,$EE,$E7,$EF,$FF
+	rev02even
 
 ; ---------------------------------------------------------------------------
 ; Animation script - Super Sonic
@@ -3049,6 +3166,7 @@ SuperSonicAniData: offsetTable
 	offsetTableEntry.w SonAni_Balance3	; 29 ; $1D
 	offsetTableEntry.w SonAni_Balance4	; 30 ; $1E
 	offsetTableEntry.w SupSonAni_Transform	; 31 ; $1F
+	offsetTableEntry.w SupSonAni_Run	;  1 ;   1
 
 SupSonAni_Walk:		dc.b $FF,$77,$78,$79,$7A,$7B,$7C,$75,$76,$FF
 	rev02even

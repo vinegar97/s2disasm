@@ -1984,6 +1984,9 @@ Tails_Test_For_Flight_2P:
 		bne.s	Tails_DoFly
 
 Tails_Test_For_Flight_Assist:
+		cmpi.b	#1,(Option_TailsFlight).w
+		beq.s	locret_151A2
+
 		move.b	(Ctrl_1_Press_Logical).w,d0
 		andi.b	#button_A_mask|button_B_mask|button_C_mask,d0
 		beq.w	locret_151A2
@@ -2002,6 +2005,9 @@ Tails_Test_For_Flight_Assist:
 		;bne.s	Tails_Transform
 ;		bra.s	loc_1515C
 Tails_DoFly:
+		cmpi.b	#2,(Option_TailsFlight).w
+		beq.s	locret_151A2
+
 		btst	#2,status(a0)
 		beq.s	loc_1518C
 		bclr	#2,status(a0)

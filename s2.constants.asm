@@ -25,6 +25,7 @@ mappings		ds.l 1		; address of object mappings data
 x_pixel =		*		; x coordinate for objects using screen-space coordinate system
 x_pos			ds.l 1		; object x-position
 x_sub =			*-2		; object sub-pixel x-position
+;objoff_12 =			*		; object sub-pixel x-position
 y_pixel =		*-2		; y coordinate for objects using screen-space coordinate system
 boss_subtype =		*-2		;
 objoff_A =		*-2
@@ -72,6 +73,7 @@ flip_angle =		*-1		; angle about the x axis (360 degrees = 256) (twist/tumble)
 objoff_29 =		*-1
 
 objoff_2A =		*
+object_control =		*
 obj_control		ds.b 1		; 0 for normal, 1 for hanging or for resting on a flipper, $81 for going through CNZ/OOZ/MTZ tubes or stopped in CNZ cages or stoppers or flying if Tails
 objoff_2B =		*
 status_secondary	ds.b 1		;
@@ -393,6 +395,7 @@ VintID_PCM =		id(Vint_PCM_ptr) ; 14
 VintID_Menu =		id(Vint_Menu_ptr) ; 16
 VintID_Ending =		id(Vint_Ending_ptr) ; 18
 VintID_CtrlDMA =	id(Vint_CtrlDMA_ptr) ; 1A
+;VintID_SaveScreen =	id(VInt_SaveScreen_ptr) ; 1A
 
 ; Game modes
 offset :=	GameModesArray
@@ -589,6 +592,8 @@ AniIDSonAni_Balance4		= id(SonAni_Balance4_ptr)		; 30 ; $1E
 AniIDSupSonAni_Transform	= id(SupSonAni_Transform_ptr)	; 31 ; $1F
 AniIDSonAni_Lying			= id(SonAni_Lying_ptr)			; 32 ; $20
 AniIDSonAni_LieDown			= id(SonAni_LieDown_ptr)		; 33 ; $21
+AniIDSonAni_PeelOut			= id(SonAni_PeelOut_ptr)
+AniIDSonAni_DropDash		= id(SonAni_DropDash_ptr)
 
 
 offset :=	TailsAniData
@@ -674,8 +679,10 @@ Object_RAM:			; The various objects in the game are loaded in this area.
 				; The section below declares labels for the objects used in main gameplay.
 				; Objects for other game modes are declared further down.
 Reserved_Object_RAM:
+Player_1:
 MainCharacter:			; first object (usually Sonic except in a Tails Alone game)
 				ds.b object_size
+Player_2:
 Sidekick:			; second object (Tails in a Sonic and Tails game)
 				ds.b object_size
 TitleCard:
@@ -752,12 +759,16 @@ Object_RAM_End:
 
 Primary_Collision:		ds.b $300
 Secondary_Collision:		ds.b $300
+Sprite_table_buffer:
 Sprite_Table_2:			ds.b $280	; Sprite attribute table buffer for the bottom split screen in 2-player mode
 				ds.b $80	; unused, but SAT buffer can spill over into this area when there are too many sprites on-screen
 
+DMA_queue:
 VDP_Command_Buffer:		ds.w 7*$12	; stores 18 ($12) VDP commands to issue the next time ProcessDMAQueue is called
+DMA_queue_slot:
 VDP_Command_Buffer_Slot:	ds.l 1		; stores the address of the next open slot for a queued VDP command
 
+H_scroll_buffer:
 Horiz_Scroll_Buf:		ds.b $400
 Horiz_Scroll_Buf_End:
 Stat_table:
@@ -876,18 +887,23 @@ DrvMem:				ds.b $4C0	; memory used by AMPS
 Game_Mode:			ds.w 1		; 1 byte ; see GameModesArray (master level trigger, Mstr_Lvl_Trigger)
 Ctrl_1_Logical:					; 2 bytes
 Ctrl_1_Held_Logical:		ds.b 1		; 1 byte
+Ctrl_1_pressed_logical:
 Ctrl_1_Press_Logical:		ds.b 1		; 1 byte
 Ctrl_1:						; 2 bytes
 Ctrl_1_Held:			ds.b 1		; 1 byte ; (pressed and held were switched around before)
+Ctrl_1_pressed:
 Ctrl_1_Press:			ds.b 1		; 1 byte
 Ctrl_2:						; 2 bytes
 Ctrl_2_Held:			ds.b 1		; 1 byte
+Ctrl_2_pressed:
 Ctrl_2_Press:			ds.b 1		; 1 byte
 				ds.b 4		; $FFFFF608-$FFFFF60B ; seems unused
+VDP_reg_1_command:
 VDP_Reg1_val:			ds.w 1		; normal value of VDP register #1 when display is disabled
 				ds.b 6		; $FFFFF60E-$FFFFF613 ; seems unused
 Demo_Time_left:			ds.w 1		; 2 bytes
 
+V_scroll_value:
 Vscroll_Factor:
 Vscroll_Factor_FG:		ds.w 1
 Vscroll_Factor_BG:		ds.w 1
@@ -904,6 +920,7 @@ Palette_fade_length:		ds.b 1		; Number of entries to change in the palette fadin
 MiscLevelVariables:
 VIntSubE_RunCount:		ds.b 1
 				ds.b 1		; $FFFFF629 ; seems unused
+V_int_routine:
 Vint_routine:			ds.b 1		; was "Delay_Time" ; routine counter for V-int
 				ds.b 1		; $FFFFF62B ; seems unused
 Sprite_count:			ds.b 1		; the number of sprites drawn in the current frame
@@ -1087,14 +1104,20 @@ Sprite_Table_End:
 				ds.b $80	; unused, but SAT buffer can spill over into this area when there are too many sprites on-screen
 
 Normal_palette:			ds.b palette_line_size	; main palette for non-underwater parts of the screen
+Normal_palette_line_2:
 Normal_palette_line2:		ds.b palette_line_size
+Normal_palette_line_3:
 Normal_palette_line3:		ds.b palette_line_size
+Normal_palette_line_4:
 Normal_palette_line4:		ds.b palette_line_size
 Normal_palette_End:
 
 Target_palette:			ds.b palette_line_size	; This is used by the screen-fading subroutines.
+Target_palette_line_2:
 Target_palette_line2:		ds.b palette_line_size	; While Normal_palette contains the blacked-out palette caused by the fading,
+Target_palette_line_3:
 Target_palette_line3:		ds.b palette_line_size	; Target_palette will contain the palette the screen will ultimately fade in to.
+Target_palette_line_4:
 Target_palette_line4:		ds.b palette_line_size
 Target_palette_End:
 
@@ -1108,6 +1131,7 @@ System_Stack:
 SS_2p_Flag:			ds.w 1
 Level_Inactive_flag:		ds.b 1
 Level_Quick_Reset_flag:		ds.b 1
+Level_frame_counter:
 Timer_frames:			ds.w 1		; (2 bytes)
 Debug_object:			ds.b 1
 Level_Quick_Reset_timer:	ds.b 1
@@ -1117,8 +1141,12 @@ Debug_Accel_Timer:		ds.b 1
 Debug_Speed:			ds.b 1
 Vint_runcount:			ds.l 1
 
+Apparent_zone_and_act:
+Current_zone_and_act:
 Current_ZoneAndAct:				; 2 bytes
+Apparent_zone:
 Current_Zone:			ds.b 1		; 1 byte
+Apparent_act:
 Current_Act:			ds.b 1		; 1 byte
 Life_count:			ds.b 1
 				ds.b 1
@@ -1284,8 +1312,9 @@ Game_Over_2P:			ds.w 1
 SS2p_RingBuffer:		ds.w 6
 Got_Emerald:			ds.b 1
 Emerald_count:			ds.b 1
+Collected_emeralds_array:
 Got_Emeralds_array:		ds.b 7		; 7 bytes
-		 				ds.b 1		; $FFFFFFB9-$FFFFFFBF ; filler
+Super_Emerald_count:			ds.b 1
 Next_Extra_life_score:		ds.l 1
 Next_Extra_life_score_2P:	ds.l 1
 Level_Has_Signpost:		ds.w 1		; 1 = signpost, 0 = boss or nothing
@@ -1326,15 +1355,24 @@ Option_ShieldAbilityStyle:		ds.b 1
 Option_WaterRipple:		ds.b 1	; 0 = on
 
 Option_WaterSoundFilter:		ds.b 1
-Option_TailsAssist:				ds.b 1
+Option_TailsFlight:				ds.b 1 ; 0 = on + assist, 1 = on, 2 = off
 
-Options_TailsFlight:			ds.b 1
-Options_SpeedTrail:			ds.b 1
-Options_Emulator_Scaling:	ds.b 1
-Options_Emulator_MirrorMode:	ds.b 1
+Option_SpeedTrail:			ds.b 1
+Option_PeelOut:			ds.b 1 ; 0 = off, 1 = ability + anim, 3 = anim, 2 = ability
 
 Options_RAM_End:
-							ds.b 1
+
+Option_Emulator_Scaling:	ds.b 1
+Option_Emulator_MirrorMode:	ds.b 1
+
+Save_pointer:				ds.l	1
+Saved_data:					ds.b	$54
+SRAM_mask_interrupts_flag:	ds.w	1
+
+SaveScreen_Unk1:			ds.w 1
+SaveScreen_Unk2:			ds.w 1
+SaveScreen_Unk3:			ds.l 1 ; Some function pointer ran in Vint???
+SaveScreen_Unk4:			ds.b 1 ; FFFFFE05: Bitfield of some sort?
 
 RAM_End
 
@@ -1432,6 +1470,12 @@ SpecialStageResults2:
 SS_Dynamic_Object_RAM_End:
 				ds.b object_size
 SS_Object_RAM_End:
+
+; RAM variables - Save Screen
+	phase	Object_RAM	; Move back to the object RAM
+SaveScreen_MiniChar:		
+				ds.b object_size
+SaveScreen_Object_RAM_End:
 
 				; The special stage mode also uses the rest of the RAM for
 				; different purposes.
@@ -2062,6 +2106,10 @@ ArtTile_ArtNem_life_counter_lives     = ArtTile_ArtNem_life_counter + 9
 ; 2p-mode HUD.
 ArtTile_Art_HUD_Text_2P               = ArtTile_ArtNem_HUD
 ArtTile_Art_HUD_Numbers_2P            = ArtTile_HUD_Score_E
+
+; Save screen.
+ArtTile_ArtKos_Save_Misc              = $029F
+ArtTile_ArtKos_Save_Extra             = $0454
 
 ; ---------------------------------------------------------------------------
 ; Unused objects, objects with mappings never loaded, objects with
