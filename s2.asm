@@ -389,7 +389,6 @@ MainGameLoop:
 ; ===========================================================================
 ; loc_3A2:
 GameModesArray: ;;
-;GameMode_SegaScreen:	bra.w	TitleScreen_ChoseOptions		; SEGA screen mode
 GameMode_SegaScreen:	bra.w	SegaScreen		; SEGA screen mode
 GameMode_TitleScreen:	bra.w	TitleScreen		; Title screen mode
 GameMode_Demo:		bra.w	Level			; Demo mode
@@ -5993,7 +5992,7 @@ SpecialStage:
 	bsr.w	SSPlaneB_Background
 	bsr.w	SSDecompressPlayerArt
 	bsr.w	SSInitPalAndData
-	move.l	#$C0000,(SS_New_Speed_Factor).w
+	move.l	#$C0000*2/3,(SS_New_Speed_Factor).w
 	clr.w	(Ctrl_1_Logical).w
 	clr.w	(Ctrl_2_Logical).w
 
@@ -8580,14 +8579,15 @@ off_6DEE:	offsetTable
 byte_6E04:	dc.b   2,  2,  2,  2,  2
 byte_6E09:	dc.b   4,  4,  5,  4,  5
 byte_6E0E:	dc.b  $B, $B, $B, $B, $C
-byte_6E13:	dc.b   0,  0,  1,  0,  0
-byte_6E18:	dc.b   1,  1,  1,  1,  1
+byte_6E13:	dc.b   0,  0,  0,  0,  0
+byte_6E18:	dc.b   0,  0,  1,  0,  0
 byte_6E1D:	dc.b   9,  9,  8,  9,  9
 byte_6E22:	dc.b   9,  9,  9,  9, $A
 byte_6E27:	dc.b   7,  7,  6,  7,  7
 byte_6E2C:	dc.b   0,  1,  1,  1,  0
 byte_6E31:	dc.b   4,  3,  3,  3,  4
 byte_6E36:	dc.b   0,  0,$FF,  0,  0
+			dc.b   0,  0,  0,  0,  0
 	even
 
 ; ||||||||||||||| S U B R O U T I N E |||||||||||||||||||||||||||||||||||||||
@@ -8931,6 +8931,13 @@ loc_710A:
 	muls.w	objoff_14(a0),d1
 	asr.w	#8,d0
 	asr.w	#8,d1
+
+	asl.w	#1,d0
+	divs.w	#3,d0
+
+	asl.w	#1,d1
+	divs.w	#3,d1
+	
 	add.w	d1,x_pos(a0)
 	add.w	d0,y_pos(a0)
 	cmpi.w	#0,x_pos(a0)
@@ -8955,7 +8962,7 @@ Obj_EndingController_Init:
 	jsrto	(Obj_SSMessage_PrintPhrase).l, JmpTo_Obj_SSMessage_PrintPhrase
 +	move.w	#$80,x_pos(a0)
 	move.w	#-$40,y_pos(a0)
-	move.w	#$100,y_vel(a0)
+	move.w	#$100*2/3,y_vel(a0)
 	move.l	#Obj_EndingController_MapUnc_7240,mappings(a0)
 	move.w	#make_art_tile(ArtTile_ArtNem_SpecialStart,0,0),art_tile(a0)
 	move.b	#4,render_flags(a0)
@@ -60722,7 +60729,7 @@ SSPlayer_Jump:
 	move.b	(a2),d0
 	andi.b	#button_B_mask|button_C_mask|button_A_mask,d0
 	beq.w	return_33BAC
-	move.w	#$780,d2
+	move.w	#($780/3)*2,d2
 	moveq	#0,d0
 	move.b	angle(a0),d0
 	addi.b	#$80,d0
@@ -60790,7 +60797,7 @@ SSObjectMoveAndFall:
 	asl.l	#8,d0
 	add.l	d0,d2
 	move.w	y_vel(a0),d0
-	addi.w	#$A8,y_vel(a0)	; Apply gravity
+	addi.w	#($A8/3)*2,y_vel(a0)	; Apply gravity
 	ext.l	d0
 	asl.l	#8,d0
 	add.l	d0,d3
@@ -60808,11 +60815,11 @@ SSPlayer_ChgJumpDir:
 	rts
 ; ===========================================================================
 +
-	subi.w	#$40,x_vel(a0)
+	subi.w	#($40/3)*2,x_vel(a0)
 	rts
 ; ===========================================================================
 +
-	addi.w	#$40,x_vel(a0)
+	addi.w	#($40/3)*2,x_vel(a0)
 	rts
 ; ===========================================================================
 
@@ -61137,11 +61144,11 @@ SSPlayer_Move:
 	bne.w	SSPlayer_MoveRight
 	bset	#6,status(a0)
 	bne.s	+
-	move.b	#$1E,ss_slide_timer(a0)
+	move.b	#($1E/2)*3,ss_slide_timer(a0)
 +
 	move.b	angle(a0),d0
 	bmi.s	+
-	subi.b	#$38,d0
+	subi.b	#($38/3)*2,d0
 	cmpi.b	#$10,d0
 	bhs.s	+
 	move.w	d2,d1
@@ -61164,18 +61171,18 @@ SSPlayer_Move:
 ; ===========================================================================
 
 SSPlayer_MoveLeft:
-	addi.w	#$60,d2
-	cmpi.w	#$600,d2
+	addi.w	#($60/3)*2,d2
+	cmpi.w	#($600/3)*2,d2
 	ble.s	+
-	move.w	#$600,d2
+	move.w	#($600/3)*2,d2
 	bra.s	+
 ; ===========================================================================
 
 SSPlayer_MoveRight:
-	subi.w	#$60,d2
-	cmpi.w	#-$600,d2
+	subi.w	#($60/3)*2,d2
+	cmpi.w	#(-$600/3)*2,d2
 	bge.s	+
-	move.w	#-$600,d2
+	move.w	#(-$600/3)*2,d2
 +
 	move.w	d2,inertia(a0)
 	bclr	#6,status(a0)
@@ -61188,7 +61195,7 @@ SSPlayer_Traction:
 	bne.s	+
 	move.b	angle(a0),d0
 	jsr	(CalcSine).l
-	muls.w	#$50,d1
+	muls.w	#($50/3)*2,d1
 	asr.l	#8,d1
 	add.w	d1,inertia(a0)
 +
@@ -61985,18 +61992,19 @@ loc_35120:
 	rts
 ; ===========================================================================
 
+; Move items on track?
 loc_3512A:
 	btst	#7,status(a0)
 	bne.s	loc_3516C
 	cmpi.b	#4,(SSTrack_drawing_index).w
 	bne.s	loc_35146
-	subi.l	#$CCCC,objoff_30(a0)
+	subi.l	#$CCCC*2/3,objoff_30(a0)
 	ble.s	loc_3516C
 	bra.s	loc_35150
 ; ===========================================================================
 
 loc_35146:
-	subi.l	#$CCCD,objoff_30(a0)
+	subi.l	#$CCCD*2/3,objoff_30(a0)
 	ble.s	loc_3516C
 
 loc_35150:
@@ -62393,10 +62401,10 @@ loc_3547E:
 	addi.b	#$40,d0
 	add.b	(a2)+,d0
 	jsr	(CalcSine).l
-	muls.w	#$400,d1
+	muls.w	#$400*2/3,d1
 	asr.l	#8,d1
 	move.w	d1,x_vel(a1)
-	muls.w	#$1000,d0
+	muls.w	#$1000*2/3,d0
 	asr.l	#8,d0
 	move.w	d0,y_vel(a1)
 
@@ -62407,7 +62415,7 @@ loc_354DE:
 ; loc_354E4:
 Obj_SSRingSpill_Main:
 	jsrto	(ObjectMoveAndFall).l, JmpTo7_ObjectMoveAndFall
-	addi.w	#$80,y_vel(a0)
+	addi.w	#$80*2/3,y_vel(a0)
 	bsr.w	loc_3551C
 	tst.w	x_pos(a0)
 	bmi.w	JmpTo63_DeleteObject
@@ -62642,7 +62650,7 @@ Obj_SSMessage_RingsNeeded:
 	moveq	#0,d0
 	moveq	#1,d2
 	addi_.w	#1,(SS_NoRingsTogoLifetime).w
-	cmpi.w	#$C,(SS_NoRingsTogoLifetime).w
+	cmpi.w	#$C*3/2,(SS_NoRingsTogoLifetime).w
 	blo.s	loc_3577A
 	st.b	(SS_HideRingsToGo).w
 	bra.s	loc_3577A
@@ -63046,6 +63054,13 @@ Obj_SSMessage_TextFlyout:
 	muls.w	objoff_14(a0),d1
 	asr.w	#8,d0
 	asr.w	#8,d1
+
+	asl.w	#1,d0
+	divs.w	#3,d0
+
+	asl.w	#1,d1
+	divs.w	#3,d1
+
 	add.w	d1,x_pos(a0)
 	add.w	d0,y_pos(a0)
 	cmpi.w	#0,x_pos(a0)
@@ -83243,7 +83258,9 @@ DualPCM_sz:
 		message "ROM size is $\{*} bytes (\{*/1024.0} kb)."
 	endif
 	; share these symbols externally (WARNING: don't rename, move or remove these labels!)
-	shared word_728C_user,Obj_EndingController_MapUnc_7240,off_3A294,MapRUnc_Sonic,mQueue,mFlags,Current_Zone,Current_Act,dPlaySnd
+	shared word_728C_user,Obj_EndingController_MapUnc_7240,off_3A294,MapRUnc_Sonic
+	; these are used for emulator hacks
+	shared mQueue,mFlags,Current_Zone,Current_Act,dPlaySnd,Game_Mode,SSTrack_anim,SS_Cur_Speed_Factor
 
 ; --------------------------------------------------------------------
 	include	"ErrorDebugger/ErrorHandler.asm"

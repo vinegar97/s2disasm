@@ -1392,6 +1392,11 @@ SegaHideTM:				; Object that hides TM symbol on JP region
 				ds.b object_size
 SegaScr_Object_RAM_End:
 
+; RAM variables - Save Screen
+;	phase	Object_RAM	; Move back to the object RAM
+;SaveScreen_MiniChar:		
+;				ds.b object_size
+;SaveScreen_Object_RAM_End:
 
 ; RAM variables - Title screen
 	phase	Object_RAM	; Move back to the object RAM
@@ -1470,12 +1475,6 @@ SpecialStageResults2:
 SS_Dynamic_Object_RAM_End:
 				ds.b object_size
 SS_Object_RAM_End:
-
-; RAM variables - Save Screen
-	phase	Object_RAM	; Move back to the object RAM
-SaveScreen_MiniChar:		
-				ds.b object_size
-SaveScreen_Object_RAM_End:
 
 				; The special stage mode also uses the rest of the RAM for
 				; different purposes.
