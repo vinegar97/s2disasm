@@ -14216,7 +14216,14 @@ SwScrl_EHZ:
 	dbf	d1,-
 
 	move.w	d2,d0
+
+	move.w	d0,d1
+	asr.w	#1,d1
+	sub.w	d1,d0
+
 	asr.w	#6,d0
+
+	subi.w	#40,d0
 
 	moveq	#58-1,d1			; NAT: Num of scanlines, instead of bytes
 -	move.l	d0,(a1)+
@@ -14364,6 +14371,7 @@ sub_C71A:
 
 	move.w	d2,d0
 	asr.w	#6,d0
+	subi.w	#40,d0
 
 	move.w	#bytesToLcnt($74),d1
 -	move.l	d0,(a1)+
@@ -15997,6 +16005,7 @@ SwScrl_ARZ:
 
 	; Set up the speed of each row (there are 16 rows in total)
 	move.w	(Camera_X_pos).w,d0
+
 	ext.l	d0
 	asl.l	#4,d0
 	divs.w	#$A,d0
@@ -19007,12 +19016,12 @@ LevEvents_OOZ2_Routine1:
 ; ===========================================================================
 ; loc_F0A8:
 LevEvents_OOZ2_Routine2:
-	cmpi.w	#$2880,(Camera_X_pos).w
+	cmpi.w	#$28A0,(Camera_X_pos).w
 	blo.s	+	; rts
-	move.w	#$2880+40,(Camera_Min_X_pos).w
-	move.w	#$28C0-40,(Camera_Max_X_pos).w
-	move.w	#$2880+40,(Tails_Min_X_pos).w
-	move.w	#$28C0-40,(Tails_Max_X_pos).w
+	move.w	#$28A0,(Camera_Min_X_pos).w
+	move.w	#$28A0,(Camera_Max_X_pos).w
+	move.w	#$28A0,(Tails_Min_X_pos).w
+	move.w	#$28A0,(Tails_Max_X_pos).w
 	addq.b	#2,(Dynamic_Resize_Routine).w
 	command	Mus_FadeOut
 	clr.b	(ScreenShift).w
@@ -19269,6 +19278,8 @@ LevEvents_CPZ2_Index: offsetTable
 LevEvents_CPZ2_Routine1:
 	cmpi.w	#$2680,(Camera_X_pos).w
 	blo.s	+	; rts
+	cmpi.w	#$440,(Camera_Y_pos).w
+	blo.s	+
 	move.w	(Camera_X_pos).w,(Camera_Min_X_pos).w
 	move.w	(Camera_X_pos).w,(Tails_Min_X_pos).w
 	move.w	#$450,(Camera_Max_Y_pos).w
@@ -26425,25 +26436,25 @@ word_14DA0:	dc.w 7
 	dc.w 5,	$85D8, $82EC, 8
 	dc.w 5,	$85B8, $82DC, $18
 	dc.w 5,	$85BC, $82DE, $28
-word_14DDA:	dc.w 3
+word_14DDA:	dc.w 3 ; ACT
 	dc.w 5,	$85B0, $82D8, 0
 	dc.w 5,	$85B4, $82DA, $10
 	dc.w 5,	$85D4, $82EA, $1F
-word_14DF4:	dc.w 5
+word_14DF4:	dc.w 5 ; TOTAL SCORE
 	dc.w 9,	$A5E6, $A2F3, $FFB8
 	dc.w 5,	$A5EC, $A2F6, $FFD0
 	dc.w 5,	$85F0, $82F8, $FFD4
 	dc.w $D, $8520,	$8290, $38
 	dc.w 1,	$86F0, $8378, $58
-word_14E1E:	dc.w 6
-	dc.w $D, $A6DA,	$A36D, $FFA4
+word_14E1E:	dc.w 6 ; TIME BONUS
+	dc.w $D, $A6DA-2,$A36D, $FFA4
 	dc.w $D, $A5DE,	$A2EF, $FFCC
 	dc.w 1,	$A6CA, $A365, $FFEC
 	dc.w 5,	$85F0, $82F8, $FFE8
 	dc.w $D, $8528,	$8294, $38
 	dc.w 1,	$86F0, $8378, $58
-word_14E50:	dc.w 6
-	dc.w $D, $A6D2,	$A369, $FFA4
+word_14E50:	dc.w 6 ; RING BONUS
+	dc.w $D, $A6D2-2,	$A369, $FFA4
 	dc.w $D, $A5DE,	$A2EF, $FFCC
 	dc.w 1,	$A6CA, $A365, $FFEC
 	dc.w 5,	$85F0, $82F8, $FFE8
@@ -26493,7 +26504,8 @@ word_311BF6:	dc.w $B
 	dc.w 5, $8588, $82C4, $20
 	dc.w 5, $85D4, $82EA, $2F
 
-Obj_SSResults_MapUnc_14ED0:	BINCLUDE "mappings/sprite/Obj_SSResults.bin"
+Obj_SSResults_MapUnc_14ED0:
+	INCLUDE "mappings/sprite/Obj_SSResults.asm"
 ; ===========================================================================
 
 ;loc_15584: ; level title card drawing function called from Vint
@@ -78633,10 +78645,12 @@ BuildHUD_P2_Continued:
 HUD_MapUnc_40A9A:	BINCLUDE "mappings/sprite/hud_a.bin"
 
 
-HUD_MapUnc_40BEA:	BINCLUDE "mappings/sprite/hud_b.bin"
+HUD_MapUnc_40BEA:	
+	INCLUDE "mappings/sprite/hud_b.asm"
 
 
-HUD_MapUnc_40C82:	BINCLUDE "mappings/sprite/hud_c.bin"
+HUD_MapUnc_40C82:
+	INCLUDE "mappings/sprite/hud_c.asm"
 
 ; ---------------------------------------------------------------------------
 ; Add points subroutine
@@ -80090,7 +80104,7 @@ LevelArtPointers:
 	levartptrs PLCID_Mtz1,     PLCID_Mtz2,      PalID_MTZ,  ArtKos_MTZ, BM16_MTZ, BM128_MTZ ;   4 ; MTZ  ; METROPOLIS ZONE ACTS 1 & 2
 	levartptrs PLCID_Mtz1,     PLCID_Mtz2,      PalID_MTZ,  ArtKos_MTZ, BM16_MTZ, BM128_MTZ ;   5 ; MTZ3 ; METROPOLIS ZONE ACT 3
 	levartptrs PLCID_Wfz1,     PLCID_Wfz2,      PalID_WFZ,  ArtKos_SCZ, BM16_WFZ, BM128_WFZ ;   6 ; WFZ  ; WING FORTRESS ZONE
-	levartptrs PLCID_Htz1,     PLCID_Htz2,      PalID_HTZ,  ArtKos_EHZ, BM16_EHZ, BM128_EHZ ;   7 ; HTZ  ; HILL TOP ZONE
+	levartptrs PLCID_Htz1,     PLCID_Htz2,      PalID_HTZ,  ArtKos_EHZ, BM16_EHZ, BM128_HTZ ;   7 ; HTZ  ; HILL TOP ZONE
 	levartptrs PLCID_Hpz1,     PLCID_Hpz2,      PalID_HPZ,  ArtKos_HPZ, BM16_HPZ, BM128_HPZ ;   8 ; HPZ  ; HIDDEN PALACE ZONE (UNUSED)
 	levartptrs PLCID_Unused3,  PLCID_Unused4,   PalID_EHZ4, ArtKos_EHZ, BM16_EHZ, BM128_EHZ ;   9 ; LEV9 ; LEVEL 9 (UNUSED)
 	levartptrs PLCID_Ooz1,     PLCID_Ooz2,      PalID_OOZ,  ArtKos_OOZ, BM16_OOZ, BM128_OOZ ;  $A ; OOZ  ; OIL OCEAN ZONE
@@ -82475,8 +82489,11 @@ BM16_HTZ:	BINCLUDE	"mappings/16x16/HTZ.bin"
 ; ArtKoz_98AB4:
 ArtKos_HTZ:	BINCLUDE	"art/kosinski/HTZ_Supp.bin"
 ;-----------------------------------------------------------------------------------
+; EHZ 128x128 block mappings (Kosinski compression)
+BM128_EHZ:	BINCLUDE	"mappings/128x128/EHZ.bin"
+;-----------------------------------------------------------------------------------
 ; EHZ/HTZ 128x128 block mappings (Kosinski compression)
-BM128_EHZ:	BINCLUDE	"mappings/128x128/EHZ_HTZ.bin"
+BM128_HTZ:	BINCLUDE	"mappings/128x128/HTZ.bin"
 ;-----------------------------------------------------------------------------------
 ; MTZ 16x16 block mappings (Kosinski compression)
 BM16_MTZ:	BINCLUDE	"mappings/16x16/MTZ.bin"
@@ -82924,22 +82941,22 @@ Off_Rings: zoneOrderedOffsetTable 2,2
 
 Rings_EHZ_1:	BINCLUDE	"level/rings/EHZ_1.bin"
 Rings_EHZ_2:	BINCLUDE	"level/rings/EHZ_2.bin"
-Rings_Lev1_1:	BINCLUDE	"level/rings/01_1.bin"
-Rings_Lev1_2:	BINCLUDE	"level/rings/01_2.bin"
-Rings_Lev2_1:	BINCLUDE	"level/rings/02_1.bin"
-Rings_Lev2_2:	BINCLUDE	"level/rings/02_2.bin"
-Rings_Lev3_1:	BINCLUDE	"level/rings/03_1.bin"
-Rings_Lev3_2:	BINCLUDE	"level/rings/03_2.bin"
+Rings_Lev1_1:	;BINCLUDE	"level/rings/01_1.bin"
+Rings_Lev1_2:	;BINCLUDE	"level/rings/01_2.bin"
+Rings_Lev2_1:	;BINCLUDE	"level/rings/02_1.bin"
+Rings_Lev2_2:	;BINCLUDE	"level/rings/02_2.bin"
+Rings_Lev3_1:	;BINCLUDE	"level/rings/03_1.bin"
+Rings_Lev3_2:	;BINCLUDE	"level/rings/03_2.bin"
 Rings_MTZ_1:	BINCLUDE	"level/rings/MTZ_1.bin"
 Rings_MTZ_2:	BINCLUDE	"level/rings/MTZ_2.bin"
 Rings_MTZ_3:	BINCLUDE	"level/rings/MTZ_3.bin"
 Rings_MTZ_4:	BINCLUDE	"level/rings/MTZ_4.bin"
 Rings_HTZ_1:	BINCLUDE	"level/rings/HTZ_1.bin"
 Rings_HTZ_2:	BINCLUDE	"level/rings/HTZ_2.bin"
-Rings_HPZ_1:	BINCLUDE	"level/rings/HPZ_1.bin"
-Rings_HPZ_2:	BINCLUDE	"level/rings/HPZ_2.bin"
-Rings_Lev9_1:	BINCLUDE	"level/rings/09_1.bin"
-Rings_Lev9_2:	BINCLUDE	"level/rings/09_2.bin"
+Rings_HPZ_1:	;BINCLUDE	"level/rings/HPZ_1.bin"
+Rings_HPZ_2:	;BINCLUDE	"level/rings/HPZ_2.bin"
+Rings_Lev9_1:	;BINCLUDE	"level/rings/09_1.bin"
+Rings_Lev9_2:	;BINCLUDE	"level/rings/09_2.bin"
 Rings_OOZ_1:	BINCLUDE	"level/rings/OOZ_1.bin"
 Rings_OOZ_2:	BINCLUDE	"level/rings/OOZ_2.bin"
 Rings_MCZ_1:	BINCLUDE	"level/rings/MCZ_1.bin"

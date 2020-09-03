@@ -994,6 +994,12 @@ Sonic_SetRollSpeeds:
 	move.w	d0,y_vel(a0)	; set y velocity based on $14 and angle
 	muls.w	inertia(a0),d1
 	asr.l	#8,d1
+	; HJW: Mania doesn't cap this, however things obviously get buggy w/o it
+	; However if there's gonna be a cap anyway why isn't it global?
+	; Whatever
+	cmpi.b	#3,(Option_PhysicsStyle).w
+	bge.s	++
+
 	cmpi.w	#$1000,d1
 	ble.s	+
 	move.w	#$1000,d1	; limit Sonic's speed rolling right
@@ -1002,6 +1008,7 @@ Sonic_SetRollSpeeds:
 	bge.s	+
 	move.w	#-$1000,d1	; limit Sonic's speed rolling left
 +
+
 	move.w	d1,x_vel(a0)	; set x velocity based on $14 and angle
 	bra.w	Obj_Sonic_CheckWallsOnGround
 ; End of function Sonic_RollSpeed
@@ -2125,6 +2132,9 @@ loc_1AF5A:
 
 loc_1AF68:
 	move.w	#0,x_vel(a0) ; stop Sonic since he hit a wall
+	; HJW: Mania doesn't cap this
+	cmpi.b	#3,(Option_PhysicsStyle).w
+	blt.s	loc_1AF7C
 	cmpi.w	#$FC0,y_vel(a0)
 	ble.s	loc_1AF7C
 	move.w	#$FC0,y_vel(a0)
