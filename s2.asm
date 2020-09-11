@@ -34033,6 +34033,7 @@ Obj_Splash_DisplayModes: offsetTable
 	offsetTableEntry.w Obj_Splash_MdSplash	; 2
 	offsetTableEntry.w Obj_Splash_MdSpindashDust	; 4
 	offsetTableEntry.w Obj_Splash_MdSkidDust	; 6
+	offsetTableEntry.w Obj_Splash_MdDropdashDust	; 8
 ; ===========================================================================
 ; loc_1DDAC:
 Obj_Splash_MdSplash:
@@ -34137,6 +34138,12 @@ loc_1DEE0:
 	bsr.s	Obj_Splash_LoadDustOrSplashArt
 	rts
 ; ===========================================================================
+Obj_Splash_MdDropdashDust:
+	tst.b	next_anim(a0)
+	jne		Obj_Splash_Display
+	andi.w	#drawing_mask,art_tile(a0)
+	jmp		Obj_Splash_Display
+; ===========================================================================
 ; loc_1DEE4:
 Obj_Splash_LoadDustOrSplashArt:
 	moveq	#0,d0
@@ -34177,6 +34184,7 @@ Ani_Obj_Splash:	offsetTable
 		offsetTableEntry.w Obj_SplashAni_Splash	; 1
 		offsetTableEntry.w Obj_SplashAni_Dash	; 2
 		offsetTableEntry.w Obj_SplashAni_Skid	; 3
+		offsetTableEntry.w Obj_SplashAni_Dropdash	; 4
 Obj_SplashAni_Null:	dc.b $1F,  0,$FF
 	rev02even
 Obj_SplashAni_Splash:dc.b   3,  1,  2,  3,  4,  5,  6,  7,  8,  9,$FD,  0
@@ -34184,6 +34192,8 @@ Obj_SplashAni_Splash:dc.b   3,  1,  2,  3,  4,  5,  6,  7,  8,  9,$FD,  0
 Obj_SplashAni_Dash:	dc.b   1, $A, $B, $C, $D, $E, $F,$10,$FF
 	rev02even
 Obj_SplashAni_Skid:	dc.b   3,$11,$12,$13,$14,$FC
+	even
+Obj_SplashAni_Dropdash:	dc.b   1, $16, $17,$17, $18, $19, $1A, $1B,$1C,$1D,$FD,0
 	even
 ; -------------------------------------------------------------------------------
 ; sprite mappings

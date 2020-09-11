@@ -1628,6 +1628,12 @@ Tails_SetRollSpeed:
 	move.w	d0,y_vel(a0)	; set y velocity based on $14 and angle
 	muls.w	inertia(a0),d1
 	asr.l	#8,d1
+	; HJW: Mania doesn't cap this, however things obviously get buggy w/o it
+	; However if there's gonna be a cap anyway why isn't it global?
+	; Whatever
+	cmpi.b	#3,(Option_PhysicsStyle).w
+	bge.s	++
+	
 	cmpi.w	#$1000,d1
 	ble.s	+
 	move.w	#$1000,d1	; limit Tails' speed rolling right
@@ -2330,10 +2336,13 @@ loc_1CA0A:
 
 loc_1CA18:
 	move.w	#0,x_vel(a0)	; stop Tails since he hit a wall
+	; HJW: Mania doesn't cap this
+	cmpi.b	#3,(Option_PhysicsStyle).w
+	blt.s	loc_1CA2C
 	cmpi.w	#$FC0,y_vel(a0)
 	ble.s	loc_1CA2C
 	move.w	#$FC0,y_vel(a0)
-
+	
 loc_1CA2C:
 	move.w	y_vel(a0),inertia(a0)
 	tst.b	d3

@@ -428,6 +428,7 @@ Obj_Sonic_MdRoll:
 Obj_Sonic_MdJump:
 	tst.l	(HomingAttack_Object).l
 	bne.s	Sonic_HomingAttackMove
+	bsr.w	Sonic_DropDash
 	bsr.w	Sonic_JumpHeight
 	bsr.w	Sonic_AirCurl
 	bsr.w	Sonic_ChgJumpDir
@@ -470,6 +471,46 @@ Sonic_HomingAttackMove:
 	move.w	d1,x_vel(a0)
 
 	jmp	(ObjectMove).l
+
+; ---------------------------------------------------------------------------
+
+Sonic_DropDash:
+	cmpi.b	#2,(Option_SonicAbility).l
+	beq.s	Sonic_DropDashCont
+	cmpi.b	#3,(Option_SonicAbility).l
+	beq.s	Sonic_DropDashCont
+	rts
+
+Sonic_DropDashCont:
+	tst.b	double_jump_flag(a0)	; Have we started a double jump?
+	beq.s	++						; If not, stop
+
+	move.b	(Ctrl_1_Held_Logical).w,d0
+	andi.b	#button_B_mask|button_C_mask|button_A_mask,d0 ; is a jump button pressed?
+	beq.s	Sonic_DropDashCancel		; if not, branch
+
+	tst.b	glidemode(a0)		; Has the timer hit 0?
+	beq.s	+					; If so, branch
+	subi.b	#1,glidemode(a0)
+	rts
+
++
+	cmpi.b	#2,double_jump_flag(a0)
+	beq.s	+
+	sfx		sfx_DropDash
+	move.b	#2,double_jump_flag(a0)
+	move.b	#AniIDSonAni_DropDash,anim(a0)
++
+	rts
+
+Sonic_DropDashCancel:
+	cmpi.b	#1,double_jump_flag(a0)
+	beq.s	+
+	move.b	#1,double_jump_flag(a0)
+	move.b	#20,glidemode(a0)
+	move.b	#AniIDSonAni_Roll,anim(a0)
++
+	rts
 
 ; ---------------------------------------------------------------------------
 ; Subroutine to make Sonic walk/run
@@ -1008,7 +1049,6 @@ Sonic_SetRollSpeeds:
 	bge.s	+
 	move.w	#-$1000,d1	; limit Sonic's speed rolling left
 +
-
 	move.w	d1,x_vel(a0)	; set x velocity based on $14 and angle
 	bra.w	Obj_Sonic_CheckWallsOnGround
 ; End of function Sonic_RollSpeed
@@ -1521,12 +1561,22 @@ loc_119E8:
 	tst.b	(Update_HUD_timer).w
 	bne.w	Sonic_Transform
 
-Sonic_MidInvinc:
-	bra.s	Sonic_DropDash
 
 Sonic_InstaAndDrop:
 	bsr.s	Sonic_InstaShield
-	bra.s	Sonic_DropDash
+
+Sonic_MidInvinc:
+
+Sonic_DropDashStart:
+	cmpi.b	#2,(Option_SonicAbility).l
+	beq.s	+
+	cmpi.b	#3,(Option_SonicAbility).l
+	beq.s	+
+	rts
++
+	move.b	#1,double_jump_flag(a0)
+	move.b	#20,glidemode(a0)
+	rts
 
 Sonic_InstaShield:
 	cmpi.b	#1,(Option_SonicAbility).l
@@ -1546,19 +1596,6 @@ Sonic_InstaShieldCont:
 
 locret_11A14:
 		rts
-
-Sonic_DropDash:
-	cmpi.b	#2,(Option_SonicAbility).l
-	beq.s	Sonic_DropDashCont
-	cmpi.b	#3,(Option_SonicAbility).l
-	beq.s	Sonic_DropDashCont
-	rts
-
-Sonic_DropDashCont:
-	sfx		sfx_DropDash
-	move.b	#1,double_jump_flag(a0)
-	move.b	#AniIDSonAni_DropDash,anim(a0)
-	rts
 
 Sonic_ShieldControl:
 	cmpi.b	#5,(Option_SonicAbility).l
@@ -2339,8 +2376,8 @@ Sonic_DropDashRelease_Start:
 	cmpi.l	#Obj_Sonic,id(a0)
 	bne.w	Sonic_DropDashRelease_Ret
 
-	tst.b	double_jump_flag(a0)
-	beq.w	Sonic_DropDashRelease_Ret
+	cmpi.b	#2,double_jump_flag(a0)
+	bne.w	Sonic_DropDashRelease_Ret
 
 	move.w	#$800,d0	; [ dashspeed = 0x80000 ]
 	move.w	#$C00,d1	; [ maxspeed = 0xC0000 ]
@@ -2450,7 +2487,14 @@ Sonic_DropDashRelease_Release:
 	move.b	#AniIDSonAni_Roll,anim(a0)
 	addq.w	#5,y_pos(a0)	; add the difference between Sonic's rolling and standing heights
 	bset	#Status_Roll,status(a0)
-	move.b	#2,(Sonic_Dust+anim).w
+
+	move.w	#Sonic_Dust,a2
+	move.b	#4,anim(a2)
+	move.w	x_pos(a0),x_pos(a2)
+	move.w	y_pos(a0),y_pos(a2)
+	move.b	status(a0),status(a2)
+	andi.b	#1,status(a2)
+
 	sfx	sfx_Dash
 
 Sonic_DropDashRelease_Ret:
