@@ -1333,9 +1333,8 @@ PlaneMapToVRAM_H80_SpecialStage:
 	rts
 ; End of function PlaneMapToVRAM_H80_SpecialStage
 
-
 	include "misc/DMA-Queue.asm"
-	align $20
+	align $20 ; fucking AS
 
 ; ---------------------------------------------------------------------------
 ; START OF NEMESIS DECOMPRESSOR
@@ -33651,6 +33650,8 @@ Obj_Shield_Main:
 	move.b	#$18,width_pixels(a0)
 	move.w	#make_art_tile(ArtTile_ArtNem_Shield,0,0),art_tile(a0)
 	bsr.w	Adjust2PArtPointer
+	bsr.w	RestoreShieldGFX
+
 ; loc_1D92C:
 Obj_Shield_Shield:
 	movea.w	parent(a0),a2 ; a2=character
@@ -33678,6 +33679,17 @@ return_1D976:
 
 JmpTo7_DeleteObject
 	jmp	(DeleteObject).l
+
+RestoreShieldGFX:
+	movea.w	parent(a0),a2 ; a2=character
+	btst	#status_sec_isInvincible,status_secondary(a2)
+	bne.s	+
+	move.l	#ArtUnc_Shield,d1
+	move.l	#ArtTile_ArtNem_Shield*32,d2
+	move.w	#(ArtUnc_ShieldEnd - ArtUnc_Shield), d3
+	jsr		QueueDMATransfer
++
+	rts
 ; ===========================================================================
 ; ----------------------------------------------------------------------------
 ; Object 35 - Invincibility Stars
@@ -33705,6 +33717,11 @@ off_1D992:
 ; ===========================================================================
 
 loc_1D9A4:
+	move.l	#ArtUnc_Invincible_stars,d1
+	move.l	#ArtTile_ArtNem_Invincible_stars*32,d2
+	move.w	#(ArtUnc_Invincible_starsEnd - ArtUnc_Invincible_stars), d3
+	jsr		QueueDMATransfer
+
 	moveq	#0,d2
 	lea	off_1D992-6(pc),a2
 	lea	(a0),a1
@@ -33777,7 +33794,7 @@ loc_1DA74:
 loc_1DA80:
 	movea.w	parent(a0),a1 ; a1=character
 	btst	#status_sec_isInvincible,status_secondary(a1)
-	jeq		DeleteObject
+	beq.w	Obj_InvincibilityStars_Delete
 	cmpi.w	#2,(Player_mode).w
 	beq.s	loc_1DAA4
 	lea	(Sonic_Pos_Record_Index).w,a5
@@ -33850,6 +33867,11 @@ loc_1DB2C:
 	add.w	d0,d2
 	add.w	d1,d3
 	rts
+
+Obj_InvincibilityStars_Delete:
+	bsr.w	RestoreShieldGFX
+	jmp		DeleteObject
+
 ; ===========================================================================
 ; unknown
 byte_1DB42:	dc.w   $F00,  $F03,  $E06,  $D08,  $B0B,  $80D,  $60E,  $30F
@@ -80177,8 +80199,8 @@ PlrList_Std1_End
 PlrList_Std2: plrlistheader
 	plreq ArtTile_ArtNem_Checkpoint, ArtNem_Checkpoint
 	plreq ArtTile_ArtNem_Powerups, ArtNem_Powerups
-	plreq ArtTile_ArtNem_Shield, ArtNem_Shield
-	plreq ArtTile_ArtNem_Invincible_stars, ArtNem_Invincible_stars
+	;plreq ArtTile_ArtNem_Shield, ArtNem_Shield
+	;plreq ArtTile_ArtNem_Invincible_stars, ArtNem_Invincible_stars
 PlrList_Std2_End
 ;---------------------------------------------------------------------------------------
 ; PATTERN LOAD REQUEST LIST
@@ -80802,7 +80824,7 @@ PlrList_Std2Knuckles: plrlistheader
 	plreq ArtTile_ArtNem_Checkpoint, ArtNem_Checkpoint
 	plreq ArtTile_ArtNem_Powerups, ArtNem_Powerups
 	plreq ArtTile_ArtNem_Powerups+$2C, ArtNem_MonitorIconsMod
-	plreq ArtTile_ArtNem_Shield, ArtNem_InvincibilityShield
+	;plreq ArtTile_ArtNem_Shield, ArtNem_InvincibilityShield
 PlrList_Std2Knuckles_End
 ;---------------------------------------------------------------------------------------
 ; Pattern load queue
@@ -81437,12 +81459,16 @@ MapRUnc_Knuckles:	include	"knuckles/DPLC.asm"
 ;--------------------------------------------------------------------------------------
 ; Nemesis compressed art (32 blocks)
 ; Shield			; ArtNem_71D8E:
-ArtNem_Shield:	BINCLUDE	"art/nemesis/Shield.bin"
+;ArtNem_Shield:	BINCLUDE	"art/nemesis/Shield.bin"
+ArtUnc_Shield:	BINCLUDE	"art/uncompressed/Shield.bin"
+ArtUnc_ShieldEnd:
 	even
 ;--------------------------------------------------------------------------------------
 ; Nemesis compressed art (34 blocks)
 ; Invincibility stars		; ArtNem_71F14:
-ArtNem_Invincible_stars:	BINCLUDE	"art/nemesis/Invincibility stars.bin"
+;ArtNem_Invincible_stars:	BINCLUDE	"art/nemesis/Invincibility stars.bin"
+ArtUnc_Invincible_stars:	BINCLUDE	"art/uncompressed/Invincibility stars.bin"
+ArtUnc_Invincible_starsEnd:
 	even
 ;--------------------------------------------------------------------------------------
 ; Uncompressed art
