@@ -766,8 +766,8 @@ Sprite_Table_2:			ds.b $280	; Sprite attribute table buffer for the bottom split
 DMA_queue:
 VDP_Command_Buffer:		ds.w 7*$12	; stores 18 ($12) VDP commands to issue the next time ProcessDMAQueue is called
 DMA_queue_slot:
-VDP_Command_Buffer_Slot:	ds.l 1		; stores the address of the next open slot for a queued VDP command
-
+VDP_Command_Buffer_Slot:	ds.w 1		; stores the address of the next open slot for a queued VDP command
+	ds.w 1 ; Padding, remove me!
 H_scroll_buffer:
 Horiz_Scroll_Buf:		ds.b $400
 Horiz_Scroll_Buf_End:
