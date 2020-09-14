@@ -53,6 +53,7 @@ mapping_frame		ds.b 1		; the frame the object is currently intending to display
 anim_frame		ds.b 1		; offset into animation script. Yes, it has nothing to do with frames as such.
 anim			ds.b 1		; animation ID
 next_anim		ds.b 1		; animation to be played next. If same as anim, animation will not reset
+anim_frame_timer =		*
 anim_frame_duration	ds.b 1		; how long until next frame of animation must be played
 width_pixels		ds.b 1		; object's width / 2, often used for determining when object is offscreen (no need to draw sprites)
 
@@ -71,6 +72,7 @@ routine			ds.b 1		; objects routine counter
 routine_secondary	ds.b 1		; secondary object routine counter
 flip_angle =		*-1		; angle about the x axis (360 degrees = 256) (twist/tumble)
 objoff_29 =		*-1
+vram_art =		*
 
 objoff_2A =		*
 object_control =		*
@@ -297,6 +299,12 @@ status_sec_hasShield_mask:	EQU	1<<status_sec_hasShield		; $01
 status_sec_isInvincible_mask:	EQU	1<<status_sec_isInvincible	; $02
 status_sec_hasSpeedShoes_mask:	EQU	1<<status_sec_hasSpeedShoes	; $04
 status_sec_isSliding_mask:	EQU	1<<status_sec_isSliding		; $80
+
+; ---------------------------------------------------------------------------
+; Elemental Shield DPLC variables
+LastLoadedDPLC      = $34
+Art_Address         = $38
+DPLC_Address        = $3C
 
 ; ---------------------------------------------------------------------------
 ; Constants that can be used instead of hard-coded IDs for various things.
@@ -738,9 +746,9 @@ Sonic_Dust:			; Sonic's spin dash dust
 				ds.b object_size
 Tails_Dust:			; Tails' spin dash dust
 				ds.b object_size
+Shield:
 Sonic_Shield:
 				ds.b object_size
-Shield = *
 Tails_Shield:
 				ds.b object_size
 Sonic_InvincibilityStars:
@@ -873,11 +881,13 @@ Block_cache:			ds.b $80
 Ring_consumption_table:		ds.b $80	; contains RAM addresses of rings currently being consumed
 Ring_consumption_table_End:
 
+Target_water_palette:
 Underwater_target_palette:	ds.b palette_line_size	; This is used by the screen-fading subroutines.
 Underwater_target_palette_line2:ds.b palette_line_size	; While Underwater_palette contains the blacked-out palette caused by the fading,
 Underwater_target_palette_line3:ds.b palette_line_size	; Underwater_target_palette will contain the palette the screen will ultimately fade in to.
 Underwater_target_palette_line4:ds.b palette_line_size
 
+Water_palette:
 Underwater_palette:		ds.b palette_line_size	; main palette for underwater parts of the screen
 Underwater_palette_line2:	ds.b palette_line_size
 Underwater_palette_line3:	ds.b palette_line_size
@@ -2075,8 +2085,11 @@ ArtTile_ArtNem_Checkpoint             = $047C
 ArtTile_ArtNem_TailsDust              = $048C
 ArtTile_ArtNem_SonicDust              = $049C
 ArtTile_ArtNem_Numbers                = $04AC
-ArtTile_ArtNem_Shield                 = $04BE
+ArtTile_Shield                		  = $04BE
 ArtTile_ArtNem_Invincible_stars       = $04BE
+
+ArtTile_Shield_Sparks                 = $04DD ; ArtTile_Shield + $1F
+
 ArtTile_ArtNem_Powerups               = $0680
 ArtTile_ArtNem_Ring                   = $06BC - 6
 ArtTile_ArtNem_HUD                    = ArtTile_ArtNem_Powerups + $4A

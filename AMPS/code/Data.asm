@@ -91,8 +91,9 @@ SoundIndex:
 	ptrSFX	0, Chain, Bonus, BigRing, ActionBlock, Diamonds
 	ptrSFX	0, QuickDoor, Electricity, Unk2B, Unk38, Unk51, Unk52
 
-	ptrSFX  0, S3K_42, S3K_43, S3K_44, S3K_45, S3K_4A
-	ptrSFX  0, S3K_4C, S3K_7E, S3K_BA, S3K_BB, Thok, DropDash
+	ptrSFX  0, FireShield, BubbleShield, ElectricShield
+	ptrSFX  0, InstaAttack, FireAttack, BubbleAttack, ElectricAttack, Grab
+	ptrSFX  0, GlideLand, GroundSlide, Flying, FlyTired, Thok, DropDash
 
 SFXcount =	__sfx-SFXoff		; number of intalled sound effects
 SFXlast =	__sfx

@@ -285,7 +285,7 @@ loc_315804:			  ; ...
 	move.b	#0,anim_frame(a0)
 	move.b	#3,glideunk(a0)
 	move.w	x_pos(a0),2+x_pos(a0)
-	sfx		sfx_S3K_4A
+	sfx		sfx_Grab
 	rts
 ; ---------------------------------------------------------------------------
 
@@ -355,7 +355,7 @@ loc_3158F0:			  ; ...
 	bsr.w	Knuckles_ResetOnFloor_Part2
 	move.w	#$F,move_lock(a0)
 	move.b	#$23,anim(a0)
-	sfx		sfx_S3K_4C
+	sfx		sfx_GlideLand
 
 return_315900:			  ; ...
 	rts
@@ -408,7 +408,7 @@ loc_315958:			  ; ...
 	move.b	(Timer_frames+1).w,d0
 	andi.b	#7,d0
 	bne.s	+
-	sfx		sfx_S3K_7E
+	sfx		sfx_GroundSlide
 +	rts
 ; ---------------------------------------------------------------------------
 

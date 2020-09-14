@@ -23115,7 +23115,7 @@ Obj_Monitor_Init:
 	btst	#0,(a2)		; if this bit is set it means the monitor is already broken
 	beq.s	+
 	move.b	#8,routine(a0)	; set monitor to 'broken' state
-	move.b	#$B,mapping_frame(a0)
+	move.b	#$F,mapping_frame(a0)
 	rts
 ; ---------------------------------------------------------------------------
 +
@@ -23297,7 +23297,7 @@ Obj_Monitor_SpawnSmoke:
 +
 	move.w	respawn_index(a0),a2
 	bset	#0,(a2)		; mark monitor as destroyed
-	move.b	#$A,anim(a0)
+	move.b	#$E,anim(a0)
 	bra.w	DisplaySprite
 ; ===========================================================================
 ; ----------------------------------------------------------------------------
@@ -23517,6 +23517,7 @@ super_shoes_Tails:
 shield_monitor:
 	addq.w	#1,(a2)
 	bset	#status_sec_hasShield,status_secondary(a1)	; give shield status
+	bsr.w	ResetShieldType
 	sfx	sfx_Shield
 	tst.b	parent+1(a0)
 	bne.s	+
@@ -23733,38 +23734,47 @@ qmark_monitor:
 	addq.w	#1,(a2)
 	rts
 
+ResetShieldType:
+	bclr	#Status_FireShield,status_secondary(a1)
+	bclr	#Status_BublShield,status_secondary(a1)
+	bclr	#Status_LtngShield,status_secondary(a1)
+	rts
+
 fireshield_monitor:
 	addq.w	#1,(a2)
 	bset	#status_sec_hasShield,status_secondary(a1)	; give shield status
+	bsr.w	ResetShieldType
 	bset	#Status_FireShield,status_secondary(a1)
-	;sfx	sfx_FireShield
-	;tst.b	parent+1(a0)
-	;bne.s	+
-	;move.l	#Obj_Fire_Shield,(Sonic_Shield+id).w ; load Obj_Shield (shield) at $FFFFD180
-	;move.w	a1,(Sonic_Shield+parent).w
+	sfx		sfx_FireShield
+	tst.b	parent+1(a0)
+	bne.s	+
+	move.l	#Obj_Fire_Shield,(Sonic_Shield+id).w ; load Obj_Shield (shield) at $FFFFD180
+	move.w	a1,(Sonic_Shield+parent).w
 +	rts
 ; ---------------------------------------------------------------------------
 
 lightningshield_monitor:
 	addq.w	#1,(a2)
 	bset	#status_sec_hasShield,status_secondary(a1)	; give shield status
+	bsr.w	ResetShieldType
 	bset	#Status_LtngShield,status_secondary(a1)
-	;sfx	sfx_LtngShield
-	;tst.b	parent+1(a0)
-	;bne.s	+
-	;move.l	#Obj_Lightning_Shield,(Sonic_Shield+id).w ; load Obj_Shield (shield) at $FFFFD180
-	;move.w	a1,(Sonic_Shield+parent).w
+	sfx		sfx_ElectricShield
+	tst.b	parent+1(a0)
+	bne.s	+
+	move.l	#Obj_Lightning_Shield,(Sonic_Shield+id).w ; load Obj_Shield (shield) at $FFFFD180
+	move.w	a1,(Sonic_Shield+parent).w
 +	rts
 
 bubbleshield_monitor:
 	addq.w	#1,(a2)
 	bset	#status_sec_hasShield,status_secondary(a1)	; give shield status
+	bsr.w	ResetShieldType
 	bset	#Status_BublShield,status_secondary(a1)
-	;sfx	sfx_BubblShield
-	;tst.b	parent+1(a0)
-	;bne.s	+
-	;move.l	#Obj_Bubble_Shield,(Sonic_Shield+id).w ; load Obj_Shield (shield) at $FFFFD180
-	;move.w	a1,(Sonic_Shield+parent).w
+	sfx		sfx_BubbleShield
+	tst.b	parent+1(a0)
+	bne.s	+
+	move.l	#Obj_Bubble_Shield,(Sonic_Shield+id).w ; load Obj_Shield (shield) at $FFFFD180
+	move.w	a1,(Sonic_Shield+parent).w
 +	rts
 
 super_monitor:
@@ -23794,7 +23804,11 @@ Ani_Obj_Monitor:	offsetTable
 		offsetTableEntry.w Ani_Obj_Monitor_Invincibility	;  7
 		offsetTableEntry.w Ani_Obj_Monitor_Teleport		;  8
 		offsetTableEntry.w Ani_Obj_Monitor_QuestionMark	;  9
-		offsetTableEntry.w Ani_Obj_Monitor_Broken		; $A
+		offsetTableEntry.w Ani_Obj_Monitor_FireShield
+		offsetTableEntry.w Ani_Obj_Monitor_LightningShield
+		offsetTableEntry.w Ani_Obj_Monitor_BubbleShield
+		offsetTableEntry.w Ani_Obj_Monitor_Super
+		offsetTableEntry.w Ani_Obj_Monitor_Broken		; $D
 ; byte_12CE4:
 Ani_Obj_Monitor_Static:
 	dc.b	$01	; duration
@@ -23828,9 +23842,17 @@ Ani_Obj_Monitor_Teleport:
 ; byte_12D28:
 Ani_Obj_Monitor_QuestionMark:
 	dc.b   1,  0, $A, $A,  1, $A, $A,$FF
+Ani_Obj_Monitor_FireShield:
+	dc.b   1,  0, $B, $B,  1, $B, $B,$FF
+Ani_Obj_Monitor_LightningShield:
+	dc.b   1,  0, $C, $C,  1, $C, $C,$FF
+Ani_Obj_Monitor_BubbleShield:
+	dc.b   1,  0, $D, $D,  1, $D, $D,$FF
+Ani_Obj_Monitor_Super:
+	dc.b   1,  0, $E, $E,  1, $E, $E,$FF
 ; byte_12D30:
 Ani_Obj_Monitor_Broken:
-	dc.b   2,  0,  1, $B,$FE,  1
+	dc.b   2,  0,  1, $F,$FE,  1
 	even
 ; ---------------------------------------------------------------------------------
 ; Sprite Mappings - Sprite table for monitor and monitor contents (26, ??)
@@ -27655,6 +27677,7 @@ MarkObjGone_P2:
 ; ||||||||||||||| S U B R O U T I N E |||||||||||||||||||||||||||||||||||||||
 
 ; freeObject:
+Delete_Current_Sprite:
 DeleteObject:
 	movea.l	a0,a1
 
@@ -27717,6 +27740,7 @@ return_1652E:
 ; ||||||||||||||| S U B R O U T I N E |||||||||||||||||||||||||||||||||||||||
 
 ; sub_16544:
+Animate_Sprite:
 AnimateSprite:
 	moveq	#0,d0
 	move.b	anim(a0),d0		; move animation number to d0
@@ -33416,6 +33440,8 @@ Obj_SmallBubbles_WarnSound:
 
 ; loc_1D69C:
 Obj_SmallBubbles_ReduceAir:
+	btst	#Status_BublShield,status_secondary(a2)	; does character have a Bubble Shield
+	jne		ResumeMusic ; if so, branch
 	subq.b	#1,air_left(a2)		; subtract 1 from air remaining
 	bcc.w	BranchTo_Obj_SmallBubbles_MakeItem	; if air is above 0, branch
 	move.b	#$81,obj_control(a2)	; lock controls
@@ -33468,6 +33494,8 @@ loc_1D72C:
 
 ; loc_1D73C:
 Obj_SmallBubbles_MakeItem:
+	btst	#Status_BublShield,status_secondary(a2)	; does character have a Bubble Shield
+	bne.w	return_1D81C ; if so, branch
 	jsr	(RandomNumber).l
 	andi.w	#$F,d0
 	addq.w	#8,d0
@@ -33631,26 +33659,17 @@ byte_1D8EB:	dc.b  $E,  1,  2,  3,  4,$FC
 ; ----------------------------------------------------------------------------
 ; Sprite_1D8F2:
 Obj_Shield:
-	moveq	#0,d0
-	move.b	routine(a0),d0
-	move.w	Obj_Shield_Index(pc,d0.w),d1
-	jmp	Obj_Shield_Index(pc,d1.w)
-; ===========================================================================
-; off_1D900:
-Obj_Shield_Index:	offsetTable
-		offsetTableEntry.w Obj_Shield_Main	; 0
-		offsetTableEntry.w Obj_Shield_Shield	; 2
-; ===========================================================================
-; loc_1D904:
-Obj_Shield_Main:
-	addq.b	#2,routine(a0)
 	move.l	#Obj_Shield_MapUnc_1DBE4,mappings(a0)
 	move.b	#4,render_flags(a0)
 	move.w	#prio(1),priority(a0)
 	move.b	#$18,width_pixels(a0)
-	move.w	#make_art_tile(ArtTile_ArtNem_Shield,0,0),art_tile(a0)
+	move.w	#make_art_tile(ArtTile_Shield,0,0),art_tile(a0)
 	bsr.w	Adjust2PArtPointer
 	bsr.w	RestoreShieldGFX
+	move.l	#Obj_Shield_Shield,(a0)
+	move.b	#0,anim(a0)
+	move.b	#0,anim_frame(a0)
+	rts
 
 ; loc_1D92C:
 Obj_Shield_Shield:
@@ -33685,8 +33704,8 @@ RestoreShieldGFX:
 	btst	#status_sec_isInvincible,status_secondary(a2)
 	bne.s	+
 	move.l	#ArtUnc_Shield,d1
-	move.l	#ArtTile_ArtNem_Shield*32,d2
-	move.w	#(ArtUnc_ShieldEnd - ArtUnc_Shield), d3
+	move.l	#ArtTile_Shield*32,d2
+	move.w	#(ArtUnc_Shield_end - ArtUnc_Shield), d3
 	jsr		QueueDMATransfer
 +
 	rts
@@ -34220,7 +34239,439 @@ Obj_SuperSonicStars_MapUnc_1E1BE:	BINCLUDE "mappings/sprite/Obj_SuperSonicStars.
     endif
 
 
+Obj_Insta_Shield:
+		; Init
+		move.l	#Map_InstaShield,mappings(a0)
+		move.l	#DPLC_InstaShield,DPLC_Address(a0)			; Used by PLCLoad_Shields
+		move.l	#ArtUnc_InstaShield,Art_Address(a0)			; Used by PLCLoad_Shields
+		move.b	#4,render_flags(a0)
+		move.w	#$80,priority(a0)
+		move.b	#$18,width_pixels(a0)
+;		move.b	#$18,height_pixels(a0)
+		move.w	#ArtTile_Shield,art_tile(a0)
+		move.w	#tiles_to_bytes(ArtTile_Shield),vram_art(a0)	; Used by PLCLoad_Shields
+		btst	#7,(Player_1+art_tile).w
+		beq.s	.nothighpriority
+		bset	#7,art_tile(a0)
 
+	.nothighpriority:
+		move.w	#1,anim(a0)			; Clear anim and set prev_anim to 1
+		move.b	#-1,LastLoadedDPLC(a0)		; Reset LastLoadedDPLC (used by PLCLoad_Shields)
+		move.l	#Obj_Insta_Shield_Main,(a0)
+
+Obj_Insta_Shield_Main:
+		movea.w	parent(a0),a2
+		btst	#Status_Invincible,status_secondary(a2) ; Is the player invincible?
+		bne.s	locret_195A4			; If so, return
+		move.w	x_pos(a2),x_pos(a0)		; Inherit player's x_pos
+		move.w	y_pos(a2),y_pos(a0)		; Inherit player's y_pos
+		move.b	status(a2),status(a0)		; Inherit status
+		andi.b	#1,status(a0)			; Limit inheritance to 'orientation' bit
+		;tst.b	(Reverse_gravity_flag).w
+		;beq.s	.normalgravity
+		;ori.b	#2,status(a0)			; Reverse the vertical mirror render_flag bit (On if Off beforehand and vice versa)
+
+	;.normalgravity:
+		andi.w	#drawing_mask,art_tile(a0)
+		tst.w	art_tile(a2)
+		bpl.s	.nothighpriority
+		ori.w	#high_priority,art_tile(a0)
+
+	.nothighpriority:
+		lea	(Ani_InstaShield).l,a1
+		jsr	(Animate_Sprite).l
+		cmpi.b	#7,mapping_frame(a0)		; Has it reached then end of its animation?
+		bne.s	.notover			; If not, branch
+		tst.b	double_jump_flag(a2)		; Is it in its attacking state?
+		beq.s	.notover			; If not, branch
+		move.b	#2,double_jump_flag(a2)		; Mark attack as over
+
+	.notover:
+		tst.b	mapping_frame(a0)		; Is this the first frame?
+		beq.s	.loadnewDPLC			; If so, branch and load the DPLC for this and the next few frames
+		cmpi.b	#3,mapping_frame(a0)		; Is this the third frame?
+		bne.s	.skipDPLC			; If not, branch as we don't need to load another DPLC yet
+
+	.loadnewDPLC:
+		bsr.w	PLCLoad_Shields
+
+	.skipDPLC:
+		jmp	(Draw_Sprite).l
+; ---------------------------------------------------------------------------
+
+locret_195A4:
+		rts
+; ---------------------------------------------------------------------------
+
+Obj_Fire_Shield:
+		; Init
+		move.l	#Map_FireShield,mappings(a0)
+		move.l	#DPLC_FireShield,DPLC_Address(a0)			; Used by PLCLoad_Shields
+		move.l	#ArtUnc_FireShield,Art_Address(a0)			; Used by PLCLoad_Shields
+		move.b	#4,render_flags(a0)
+		move.w	#prio(1),priority(a0)
+		move.b	#$18,width_pixels(a0)
+;		move.b	#$18,height_pixels(a0)
+		move.w	#ArtTile_Shield,art_tile(a0)
+		move.w	#tiles_to_bytes(ArtTile_Shield),vram_art(a0)	; Used by PLCLoad_Shields
+		btst	#7,(Player_1+art_tile).w
+		beq.s	loc_195F0
+		bset	#7,art_tile(a0)
+
+loc_195F0:
+		move.w	#1,anim(a0)				; Clear anim and set prev_anim to 1
+		move.b	#-1,LastLoadedDPLC(a0)			; Reset LastLoadedDPLC (used by PLCLoad_Shields)
+		move.l	#Obj_Fire_Shield_Main,(a0)
+
+Obj_Fire_Shield_Main:
+		movea.w	parent(a0),a2
+		btst	#Status_Invincible,status_secondary(a2) ; Is player invincible?
+		bne.w	locret_19690				; If so, do not display and do not update variables
+		cmpi.b	#$1C,anim(a2)				; Is player in their 'blank' animation?
+		beq.s	locret_19690				; If so, do not display and do not update variables
+		btst	#Status_Shield,status_secondary(a2) 	; Should the player still have a shield?
+		beq.w	Obj_Fire_Shield_Destroy			; If not, change to Insta-Shield
+		btst	#Status_Underwater,status(a2)		; Is player underwater?
+		bne.s	Obj_Fire_Shield_DestroyUnderwater	; If so, branch
+		move.w	x_pos(a2),x_pos(a0)
+		move.w	y_pos(a2),y_pos(a0)
+		tst.b	anim(a0)				; Is shield in its 'dashing' state?
+		bne.s	.nothighpriority			; If so, do not update orientation or allow changing of the priority art_tile bit
+		move.b	status(a2),status(a0)			; Inherit status
+		andi.b	#1,status(a0)				; Limit inheritance to 'orientation' bit
+		;tst.b	(Reverse_gravity_flag).w
+		;beq.s	.normalgravity
+		;ori.b	#2,status(a0)				; If in reverse gravity, reverse the vertical mirror render_flag bit (On if Off beforehand and vice versa)
+
+;	.normalgravity:
+		andi.w	#drawing_mask,art_tile(a0)
+		tst.w	art_tile(a2)
+		bpl.s	.nothighpriority
+		ori.w	#high_priority,art_tile(a0)
+
+	.nothighpriority:
+		lea	(Ani_FireShield).l,a1
+		jsr	(Animate_Sprite).l
+		move.w	#prio(1),priority(a0)		; Layer shield over player sprite
+		cmpi.b	#$F,mapping_frame(a0)		; Are these the frames that display in front of the player?
+		blo.s	.overplayer			; If so, branch
+		move.w	#prio(2),priority(a0)		; If not, layer shield behind player sprite
+
+	.overplayer:
+		bsr.w	PLCLoad_Shields
+		jmp	(Draw_Sprite).l
+; ---------------------------------------------------------------------------
+
+locret_19690:
+		rts
+; ---------------------------------------------------------------------------
+
+Obj_Fire_Shield_DestroyUnderwater:
+		;andi.b	#$8E,status_secondary(a2)	; Sets Status_Shield, Status_FireShield, Status_LtngShield, and Status_BublShield to 0
+		;jsr	(Create_New_Sprite).l		; Set up for a new object
+		;bne.w	Obj_Fire_Shield_Destroy		; If that can't happen, branch
+		;move.l	#Obj_FireShield_Dissipate,(a1)	; Create dissipate object
+		;move.w	x_pos(a0),x_pos(a1)		; Put it at shields' x_pos
+		;move.w	y_pos(a0),y_pos(a1)		; Put it at shields' y_pos
+
+Obj_Fire_Shield_Destroy:
+		andi.b	#$8E,status_secondary(a2)	; Sets Status_Shield, Status_FireShield, Status_LtngShield, and Status_BublShield to 0
+		move.l	#Obj_Insta_Shield,(a0)		; Replace the Fire Shield with the Insta-Shield
+		rts
+; ---------------------------------------------------------------------------
+
+Obj_Lightning_Shield:
+		; init
+		; Load Spark art
+		move.l	#ArtUnc_Obj_Lightning_Shield_Sparks,d1			; Load art source
+		move.w	#tiles_to_bytes(ArtTile_Shield_Sparks),d2		; Load art destination
+		move.w	#(ArtUnc_Obj_Lightning_Shield_Sparks_end-ArtUnc_Obj_Lightning_Shield_Sparks)/2,d3	; Size of art (in words)
+		jsr	(Add_To_DMA_Queue).l
+
+		move.l	#Map_LightningShield,mappings(a0)
+		move.l	#DPLC_LightningShield,DPLC_Address(a0)			; Used by PLCLoad_Shields
+		move.l	#ArtUnc_LightningShield,Art_Address(a0)			; Used by PLCLoad_Shields
+		move.b	#4,render_flags(a0)
+		move.w	#prio(1),priority(a0)
+		move.b	#$18,width_pixels(a0)
+;		move.b	#$18,height_pixels(a0)
+		move.w	#ArtTile_Shield,art_tile(a0)
+		move.w	#tiles_to_bytes(ArtTile_Shield),vram_art(a0)	; Used by PLCLoad_Shields
+		btst	#7,(Player_1+art_tile).w
+		beq.s	.nothighpriority
+		bset	#7,art_tile(a0)
+
+	.nothighpriority:
+		move.w	#1,anim(a0)				; Clear anim and set prev_anim to 1
+		move.b	#-1,LastLoadedDPLC(a0)			; Reset LastLoadedDPLC (used by PLCLoad_Shields)
+		move.l	#Obj_Lightning_Shield_Main,(a0)
+
+Obj_Lightning_Shield_Main:
+		movea.w	parent(a0),a2
+		btst	#Status_Invincible,status_secondary(a2)	; Is player invincible?
+		bne.w	locret_197C4				; If so, do not display and do not update variables
+		cmpi.b	#$1C,anim(a2)				; Is player in their 'blank' animation?
+		beq.s	locret_197C4				; If so, do not display and do not update variables
+		btst	#Status_Shield,status_secondary(a2)	; Should the player still have a shield?
+		beq.s	Obj_Lightning_Shield_Destroy		; If not, change to Insta-Shield
+		btst	#Status_Underwater,status(a2)		; Is player underwater?
+		bne.s	Obj_Lightning_Shield_DestroyUnderwater	; If so, branch
+		move.w	x_pos(a2),x_pos(a0)
+		move.w	y_pos(a2),y_pos(a0)
+		move.b	status(a2),status(a0)			; Inherit status
+		andi.b	#1,status(a0)				; Limit inheritance to 'orientation' bit
+		;tst.b	(Reverse_gravity_flag).w
+		;beq.s	.normalgravity
+		;ori.b	#2,status(a0)				; If in reverse gravity, reverse the vertical mirror render_flag bit (On if Off beforehand and vice versa)
+
+	;.normalgravity:
+		andi.w	#drawing_mask,art_tile(a0)
+		tst.w	art_tile(a2)
+		bpl.s	.nothighpriority
+		ori.w	#high_priority,art_tile(a0)
+
+	.nothighpriority:
+		tst.b	anim(a0)				; Is shield in its 'double jump' state?
+		beq.s	Obj_Lightning_Shield_Display		; Is not, branch and display
+		bsr.s	Obj_Lightning_Shield_Create_Spark	; Create sparks
+		clr.b	anim(a0)				; Once done, return to non-'double jump' state
+
+Obj_Lightning_Shield_Display:
+		lea	(Ani_LightningShield).l,a1
+		jsr	(Animate_Sprite).l
+		move.w	#prio(1),priority(a0)			; Layer shield over player sprite
+		cmpi.b	#$E,mapping_frame(a0)			; Are these the frames that display in front of the player?
+		blo.s	.overplayer				; If so, branch
+		move.w	#prio(2),priority(a0)			; If not, layer shield behind player sprite
+
+	.overplayer:
+		bsr.w	PLCLoad_Shields
+		jmp	(Draw_Sprite).l
+; ---------------------------------------------------------------------------
+
+locret_197C4:
+		rts
+; ---------------------------------------------------------------------------
+
+Obj_Lightning_Shield_DestroyUnderwater:
+		;tst.w	(Palette_fade_timer).w
+		;beq.s	Obj_Lightning_Shield_FlashWater
+
+Obj_Lightning_Shield_Destroy:
+		andi.b	#$8E,status_secondary(a2)	; Sets Status_Shield, Status_FireShield, Status_LtngShield, and Status_BublShield to 0
+		move.l	#Obj_Insta_Shield,(a0)		; Replace the Lightning Shield with the Insta-Shield
+		rts
+; ---------------------------------------------------------------------------
+
+Obj_Lightning_Shield_FlashWater:
+		move.l	#Obj_Lightning_Shield_DestroyUnderwater2,(a0)
+		andi.b	#$8E,status_secondary(a2)	; Sets Status_Shield, Status_FireShield, Status_LtngShield, and Status_BublShield to 0
+
+		; Flashes the underwater palette white
+		lea	(Water_palette).w,a1
+		lea	(Target_water_palette).w,a2
+		move.w	#($80/4)-1,d0			; Size of Water_palette/4-1
+
+loc_197F2:
+		move.l	(a1),(a2)+			; Backup palette entries
+		move.l	#$0EEE0EEE,(a1)+		; Overwrite palette entries with white
+		dbf	d0,loc_197F2			; Loop until entire thing is overwritten
+
+		move.w	#0,-$40(a1)			; Set the first colour in the third palette line to black
+		move.b	#3,anim_frame_timer(a0)
+		rts
+
+; =============== S U B R O U T I N E =======================================
+
+
+Obj_Lightning_Shield_Create_Spark:
+		moveq	#1,d2
+
+Obj_Lightning_Shield_Create_Spark_Part2:
+		lea	(SparkVelocities).l,a2
+		moveq	#3,d1
+
+loc_19816:
+		bsr.w	Create_New_Sprite		; Find free object slot
+		bne.s	locret_19862			; If one can't be found, return
+		move.l	#Obj_Lightning_Shield_Spark,(a1)	; Make new object a Spark
+		move.w	x_pos(a0),x_pos(a1)		; (Spark) Inherit x_pos from source object (Lightning Shield, Hyper Sonic Stars)
+		move.w	y_pos(a0),y_pos(a1)		; (Spark) Inherit y_pos from source object (Lightning Shield, Hyper Sonic Stars)
+		move.l	mappings(a0),mappings(a1)	; (Spark) Inherit mappings from source object (Lightning Shield, Hyper Sonic Stars)
+		move.w	#ArtTile_Shield_Sparks,art_tile(a1)	; (Spark) Inherit art_tile from source object (Lightning Shield, Hyper Sonic Stars)
+		move.b	#4,render_flags(a1)
+		move.w	#prio(1),priority(a1)
+		move.b	#8,width_pixels(a1)
+
+;		move.b	#8,height_pixels(a1)
+		move.b	d2,anim(a1)
+		move.w	(a2)+,x_vel(a1)			; (Spark) Give x_vel (unique to each of the four Sparks)
+		move.w	(a2)+,y_vel(a1)			; (Spark) Give y_vel (unique to each of the four Sparks)
+		dbf	d1,loc_19816
+
+locret_19862:
+		rts
+; End of function Obj_Lightning_Shield_Create_Spark
+
+; ---------------------------------------------------------------------------
+SparkVelocities:dc.w  -$200, -$200
+		dc.w   $200, -$200
+		dc.w  -$200,  $200
+		dc.w   $200,  $200
+; ---------------------------------------------------------------------------
+
+Obj_Lightning_Shield_Spark:
+		jsr	(MoveSprite2).l
+		addi.w	#$18,y_vel(a0)
+		lea	(Ani_LightningShield).l,a1
+		jsr	(Animate_Sprite).l
+		tst.b	routine(a0)			; Changed by Animate_Sprite
+		bne.s	Obj_Lightning_Shield_Spark_Delete
+		jmp	(Draw_Sprite).l
+; ---------------------------------------------------------------------------
+
+Obj_Lightning_Shield_Spark_Delete:
+		jmp	(Delete_Current_Sprite).l
+; ---------------------------------------------------------------------------
+
+Obj_Lightning_Shield_DestroyUnderwater2:
+		subq.b	#1,anim_frame_timer(a0)		; Is it time to end the white flash?
+		bpl.s	locret_198BC			; If not, return
+		move.l	#Obj_Insta_Shield,(a0)		; Replace Lightning Shield with Insta-Shield
+		lea	(Target_water_palette).w,a1
+		lea	(Water_palette).w,a2
+		move.w	#($80/4)-1,d0			; Size of Water_palette/4-1
+
+loc_198B6:
+		move.l	(a1)+,(a2)+			; Restore backed-up underwater palette
+		dbf	d0,loc_198B6			; Loop until entire thing is restored
+
+locret_198BC:
+		rts
+; ---------------------------------------------------------------------------
+
+Obj_Bubble_Shield:
+		; Init
+		move.l	#Map_BubbleShield,mappings(a0)
+		move.l	#DPLC_BubbleShield,DPLC_Address(a0)			; Used by PLCLoad_Shields
+		move.l	#ArtUnc_BubbleShield,Art_Address(a0)			; Used by PLCLoad_Shields
+		move.b	#4,render_flags(a0)
+		move.w	#prio(1),priority(a0)
+		move.b	#$18,width_pixels(a0)
+;		move.b	#$18,height_pixels(a0)
+		move.w	#ArtTile_Shield,art_tile(a0)
+		move.w	#tiles_to_bytes(ArtTile_Shield),vram_art(a0)	; Used by PLCLoad_Shields
+		btst	#7,(Player_1+art_tile).w
+		beq.s	.nothighpriority
+		bset	#7,art_tile(a0)
+
+	.nothighpriority:
+		move.w	#1,anim(a0)				; Clear anim and set prev_anim to 1
+		move.b	#-1,LastLoadedDPLC(a0)			; Reset LastLoadedDPLC (used by PLCLoad_Shields)
+		movea.w	parent(a0),a1
+		move.b	#$1E,air_left(a1)	; reset air to full
+		bsr.w	ResumeMusic
+		move.l	#Obj_Bubble_Shield_Main,(a0)
+
+Obj_Bubble_Shield_Main:
+		movea.w	parent(a0),a2
+		btst	#Status_Invincible,status_secondary(a2)	; Is player invincible?
+		bne.s	locret_1998A				; If so, do not display and do not update variables
+		cmpi.b	#$1C,anim(a2)				; Is player in their 'blank' animation?
+		beq.s	locret_1998A				; If so, do not display and do not update variables
+		btst	#Status_Shield,status_secondary(a2)	; Should the player still have a shield?
+		beq.s	Obj_Bubble_Shield_Destroy		; If not, change to Insta-Shield
+		move.w	x_pos(a2),x_pos(a0)
+		move.w	y_pos(a2),y_pos(a0)
+		move.b	status(a2),status(a0)			; Inherit status
+		andi.b	#1,status(a0)				; Limit inheritance to 'orientation' bit
+		;tst.b	(Reverse_gravity_flag).w
+		;beq.s	.normalgravity
+		;ori.b	#2,status(a0)				; Reverse the vertical mirror render_flag bit (On if Off beforehand and vice versa)
+
+	;.normalgravity:
+		andi.w	#drawing_mask,art_tile(a0)
+		tst.w	art_tile(a2)
+		bpl.s	.nothighpriority
+		ori.w	#high_priority,art_tile(a0)
+
+	.nothighpriority:
+		lea	(Ani_BubbleShield).l,a1
+		jsr	(Animate_Sprite).l
+		bsr.w	PLCLoad_Shields
+		jmp	(Draw_Sprite).l
+; ---------------------------------------------------------------------------
+
+locret_1998A:
+		rts
+; ---------------------------------------------------------------------------
+
+Obj_Bubble_Shield_Destroy:
+		andi.b	#$8E,status_secondary(a2)	; Sets Status_Shield, Status_FireShield, Status_LtngShield, and Status_BublShield to 0
+		move.l	#Obj_Insta_Shield,(a0)		; Replace the Bubble Shield with the Insta-Shield
+		rts
+
+; =============== S U B R O U T I N E =======================================
+
+
+PLCLoad_Shields:
+		moveq	#0,d0
+		move.b	mapping_frame(a0),d0
+		cmp.b	LastLoadedDPLC(a0),d0
+		beq.s	locret_199E8
+		move.b	d0,LastLoadedDPLC(a0)
+		movea.l	DPLC_Address(a0),a2
+		add.w	d0,d0
+		adda.w	(a2,d0.w),a2
+		move.w	(a2)+,d5
+		subq.w	#1,d5
+		bmi.s	locret_199E8
+		move.w	vram_art(a0),d4
+
+PLCLoad_Shields_ReadEntry:
+		moveq	#0,d1
+		move.w	(a2)+,d1
+		move.w	d1,d3
+		lsr.w	#8,d3
+		andi.w	#$F0,d3
+		addi.w	#$10,d3
+		andi.w	#$FFF,d1
+		lsl.l	#5,d1
+		add.l	Art_Address(a0),d1
+		move.w	d4,d2
+		add.w	d3,d4
+		add.w	d3,d4
+		jsr	(Add_To_DMA_Queue).l
+		dbf	d5,PLCLoad_Shields_ReadEntry
+
+locret_199E8:
+		rts
+; End of function PLCLoad_Shields
+
+; ---------------------------------------------------------------------------
+Ani_InstaShield:include "anim/Anim - Insta-Shield.asm"
+
+Ani_FireShield:	include "anim/Anim - Fire Shield.asm"
+
+Ani_LightningShield:include "anim/Anim - Lightning Shield.asm"
+
+Ani_BubbleShield:include "anim/Anim - Bubble Shield.asm"
+
+Map_FireShield:	include "mappings/sprite/Map - Fire Shield.asm"
+
+DPLC_FireShield:include "mappings/spriteDPLC/DPLC - Fire Shield.asm"
+
+Map_LightningShield:include "mappings/sprite/Map - Lightning Shield.asm"
+
+DPLC_LightningShield:include "mappings/spriteDPLC/DPLC - Lightning Shield.asm"
+
+Map_BubbleShield:include "mappings/sprite/Map - Bubble Shield.asm"
+
+DPLC_BubbleShield:include "mappings/spriteDPLC/DPLC - Bubble Shield.asm"
+
+Map_InstaShield:include "mappings/sprite/Map - Insta-Shield.asm"
+
+DPLC_InstaShield:include "mappings/spriteDPLC/DPLC - Insta-Shield.asm"
 
 ; ---------------------------------------------------------------------------
 ; Subroutine to change Sonic's angle & position as he walks along the floor
@@ -36611,6 +37062,9 @@ loc_1FB02:
 	lea	(Sidekick).w,a1 ; a1=character
 
 loc_1FB0C:
+	btst	#Status_BublShield,status_secondary(a1)	; does character have a Bubble Shield
+	bne.w	return_1FBCA ; if so, branch
+
 	tst.b	obj_control(a1)
 	bmi.w	return_1FBCA
 	move.w	x_pos(a1),d0
@@ -48403,7 +48857,7 @@ loc_29B5E:
 	move.b	#1,obj_control(a1)
 	clr.b 	double_jump_flag(a1)
 	clr.b 	glidemode(a1)
-	sfx		sfx_S3K_4A ; HJW: Added to make grabbing more consistent
+	sfx		sfx_Grab ; HJW: Added to make grabbing more consistent
 	move.b	#1,(a2)
 	tst.b	objoff_34(a0)
 	beq.s	return_29BF8
@@ -52089,7 +52543,7 @@ loc_2C9A0:
 	move.b	#AniIDSonAni_Hang2,anim(a1)
 	clr.b 	double_jump_flag(a1)
 	clr.b 	glidemode(a1)
-	sfx		sfx_S3K_4A ; HJW: Added to make grabbing more consistent
+	sfx		sfx_Grab ; HJW: Added to make grabbing more consistent
 	move.b	#1,obj_control(a1)
 	move.b	#1,(a2)
 ; return_2CA08:
@@ -70202,7 +70656,7 @@ loc_3ACC8:
 	move.b	#AniIDSonAni_Hang,anim(a1)
 	clr.b 	double_jump_flag(a1)
 	clr.b 	glidemode(a1)
-	sfx		sfx_S3K_4A ; HJW: Added to make grabbing more consistent
+	sfx		sfx_Grab ; HJW: Added to make grabbing more consistent
 	move.b	#1,(MainCharacter+obj_control).w
 	move.b	#1,(WindTunnel_holding_flag).w
 	clr.w	(Ctrl_1_Logical).w
@@ -71942,7 +72396,7 @@ loc_3C140:
 	move.b	#AniIDSonAni_Hang,anim(a1)
 	clr.b 	double_jump_flag(a1)
 	clr.b 	glidemode(a1)
-	sfx		sfx_S3K_4A ; HJW: Added to make grabbing more consistent
+	sfx		sfx_Grab ; HJW: Added to make grabbing more consistent
 	move.b	#1,(MainCharacter+obj_control).w
 	move.b	#1,(WindTunnel_holding_flag).w
 	move.b	#1,objoff_32(a0)
@@ -76428,7 +76882,23 @@ loc_3F85C:
 ; loc_3F862:
 Touch_ChkHurt:
 	btst	#status_sec_isInvincible,status_secondary(a0)	; is Sonic invincible?
-	beq.s	Touch_Hurt		; if not, branch
+	bne.s	Touch_NoHurt		; if so, branch
+
+Touch_ChkHurt_FireShield:
+	btst	#Status_FireShield,status_secondary(a0)	; does Sonic have a Fire Shield?
+	beq.s	Touch_ChkHurt_Cont			; if not, branch
+
+	; This is VERY BAD but i dont understand collision flags so TOO BAD
+	cmpi.l	#Obj_LavaMarker,id(a1)
+	beq.s	Touch_NoHurt
+	cmpi.l	#Obj_LavaBubble,id(a1)
+	beq.s	Touch_NoHurt
+	cmpi.l	#Obj_RisingLava,id(a1)
+	beq.s	Touch_NoHurt
+
+Touch_ChkHurt_Cont:
+	bra.s	Touch_Hurt
+
 ; loc_3F86A:
 Touch_NoHurt:
 	moveq	#-1,d0
@@ -79683,14 +80153,21 @@ dbglistobj macro   obj, mapaddr, subtype, frame, vram
 	dc.l -1
     endm
 
+dbglistobjuni macro	
+	dbglistobj Obj_Ring,		Obj_Ring_MapUnc_12382,   0,   0, make_art_tile(ArtTile_ArtNem_Ring,1,0)
+	dbglistobj Obj_Monitor,		Obj_Monitor_MapUnc_12D36,   $A,   $B, make_art_tile(ArtTile_ArtNem_Powerups,0,0)
+	dbglistobj Obj_Monitor,		Obj_Monitor_MapUnc_12D36,   $B,   $C, make_art_tile(ArtTile_ArtNem_Powerups,0,0)
+	dbglistobj Obj_Monitor,		Obj_Monitor_MapUnc_12D36,   $C,   $D, make_art_tile(ArtTile_ArtNem_Powerups,0,0)
+	dbglistobj Obj_Monitor,		Obj_Monitor_MapUnc_12D36,   $D,   $E, make_art_tile(ArtTile_ArtNem_Powerups,0,0)
+	endm
+
 DbgObjList_Def: dbglistheader
 	dbglistobj Obj_Ring,		Obj_Ring_MapUnc_12382,   0,   0, make_art_tile(ArtTile_ArtNem_Ring,1,0) ; Obj_Ring = ring
 	dbglistobj Obj_Monitor,		Obj_Monitor_MapUnc_12D36,   8,   0, make_art_tile(ArtTile_ArtNem_Powerups,0,0) ; Obj_Monitor = monitor
 DbgObjList_Def_End
 
 DbgObjList_EHZ: dbglistheader
-	dbglistobj Obj_Ring,		Obj_Ring_MapUnc_12382,   0,   0, make_art_tile(ArtTile_ArtNem_Ring,1,0)
-	dbglistobj Obj_Monitor,		Obj_Monitor_MapUnc_12D36,   8,   0, make_art_tile(ArtTile_ArtNem_Powerups,0,0)
+	dbglistobjuni
 	dbglistobj Obj_Starpost,	Obj_Starpost_MapUnc_1F424,   1,   0, make_art_tile(ArtTile_ArtNem_Checkpoint,0,0)
 	dbglistobj Obj_PlaneSwitcher,	Obj_PlaneSwitcher_MapUnc_1FFB8,   9,   1, make_art_tile(ArtTile_ArtNem_Ring,1,0)
 	dbglistobj Obj_EHZWaterfall,	Obj_EHZWaterfall_MapUnc_20C50,   0,   0, make_art_tile(ArtTile_ArtNem_Waterfall,1,0)
@@ -79711,8 +80188,7 @@ DbgObjList_EHZ: dbglistheader
 DbgObjList_EHZ_End
 
 DbgObjList_MTZ: dbglistheader
-	dbglistobj Obj_Ring,		Obj_Ring_MapUnc_12382,   0,   0, make_art_tile(ArtTile_ArtNem_Ring,1,0)
-	dbglistobj Obj_Monitor,		Obj_Monitor_MapUnc_12D36,   8,   0, make_art_tile(ArtTile_ArtNem_Powerups,0,0)
+	dbglistobjuni
 	dbglistobj Obj_Starpost,	Obj_Starpost_MapUnc_1F424,   1,   0, make_art_tile(ArtTile_ArtNem_Checkpoint,0,0)
 	dbglistobj Obj_PlaneSwitcher,	Obj_PlaneSwitcher_MapUnc_1FFB8,   9,   1, make_art_tile(ArtTile_ArtNem_Ring,1,0)
 	dbglistobj Obj_SteamSpring,	Obj_SteamSpring_MapUnc_2686C,   1,   7, make_art_tile(ArtTile_ArtKos_LevelArt,3,0)
@@ -79748,8 +80224,7 @@ DbgObjList_MTZ: dbglistheader
 DbgObjList_MTZ_End
 
 DbgObjList_WFZ: dbglistheader
-	dbglistobj Obj_Ring,		Obj_Ring_MapUnc_12382,   0,   0, make_art_tile(ArtTile_ArtNem_Ring,1,0)
-	dbglistobj Obj_Monitor,		Obj_Monitor_MapUnc_12D36,   8,   0, make_art_tile(ArtTile_ArtNem_Powerups,0,0)
+	dbglistobjuni
 	dbglistobj Obj_WFZPalSwitcher, Obj_PlaneSwitcher_MapUnc_1FFB8,   0,   0, make_art_tile(ArtTile_ArtNem_Ring,0,0)
 	dbglistobj Obj_Starpost,	Obj_Starpost_MapUnc_1F424,   1,   0, make_art_tile(ArtTile_ArtNem_Checkpoint,0,0)
 	dbglistobj Obj_Cloud,		Obj_Cloud_MapUnc_3B32C, $5E,   0, make_art_tile(ArtTile_ArtNem_Clouds,2,0)
@@ -79783,8 +80258,7 @@ DbgObjList_WFZ: dbglistheader
 DbgObjList_WFZ_End
 
 DbgObjList_HTZ: dbglistheader
-	dbglistobj Obj_Ring,		Obj_Ring_MapUnc_12382,   0,   0, make_art_tile(ArtTile_ArtNem_Ring,1,0)
-	dbglistobj Obj_Monitor,		Obj_Monitor_MapUnc_12D36,   8,   0, make_art_tile(ArtTile_ArtNem_Powerups,0,0)
+	dbglistobjuni
 	dbglistobj Obj_Starpost,	Obj_Starpost_MapUnc_1F424,   1,   0, make_art_tile(ArtTile_ArtNem_Checkpoint,0,0)
 	dbglistobj Obj_ForcedSpin,	Obj_PlaneSwitcher_MapUnc_1FFB8,   0,   0, make_art_tile(ArtTile_ArtNem_Ring,0,0)
 	dbglistobj Obj_ForcedSpin,	Obj_PlaneSwitcher_MapUnc_1FFB8,   4,   4, make_art_tile(ArtTile_ArtNem_Ring,0,0)
@@ -79822,8 +80296,7 @@ DbgObjList_HPZ:; dbglistheader
 ;DbgObjList_HPZ_End
 
 DbgObjList_OOZ: dbglistheader
-	dbglistobj Obj_Ring,		Obj_Ring_MapUnc_12382,   0,   0, make_art_tile(ArtTile_ArtNem_Ring,1,0)
-	dbglistobj Obj_Monitor,		Obj_Monitor_MapUnc_12D36,   8,   0, make_art_tile(ArtTile_ArtNem_Powerups,0,0)
+	dbglistobjuni
 	dbglistobj Obj_Starpost,	Obj_Starpost_MapUnc_1F424,   1,   0, make_art_tile(ArtTile_ArtNem_Checkpoint,0,0)
 	dbglistobj Obj_OOZPoppingPlatform,Obj_OOZPoppingPlatform_MapUnc_23DDC,   1,   0, make_art_tile(ArtTile_ArtNem_BurnerLid,3,0)
 	dbglistobj Obj_SlidingSpike,	Obj_SlidingSpike_MapUnc_23FE0,   0,   0, make_art_tile(ArtTile_ArtNem_SpikyThing,2,1)
@@ -79858,8 +80331,7 @@ DbgObjList_OOZ: dbglistheader
 DbgObjList_OOZ_End
 
 DbgObjList_MCZ: dbglistheader
-	dbglistobj Obj_Ring,		Obj_Ring_MapUnc_12382,   0,   0, make_art_tile(ArtTile_ArtNem_Ring,1,0)
-	dbglistobj Obj_Monitor,		Obj_Monitor_MapUnc_12D36,   8,   0, make_art_tile(ArtTile_ArtNem_Powerups,0,0)
+	dbglistobjuni
 	dbglistobj Obj_Starpost,	Obj_Starpost_MapUnc_1F424,   1,   0, make_art_tile(ArtTile_ArtNem_Checkpoint,0,0)
 	dbglistobj Obj_SwingingPlatform, Obj_SwingingPlatform_Obj_SidewaysPlatform_MapUnc_10256, $48,   2, make_art_tile(ArtTile_ArtKos_LevelArt,0,0)
 	dbglistobj Obj_CollapsingPlatform,Obj_CollapsingPlatform_MapUnc_11106,   0,   0, make_art_tile(ArtTile_ArtNem_MCZCollapsePlat,3,0)
@@ -79885,8 +80357,7 @@ DbgObjList_MCZ: dbglistheader
 DbgObjList_MCZ_End
 
 DbgObjList_CNZ: dbglistheader
-	dbglistobj Obj_Ring,		Obj_Ring_MapUnc_12382,   0,   0, make_art_tile(ArtTile_ArtNem_Ring,1,0)
-	dbglistobj Obj_Monitor,		Obj_Monitor_MapUnc_12D36,   8,   0, make_art_tile(ArtTile_ArtNem_Powerups,0,0)
+	dbglistobjuni
 	dbglistobj Obj_Starpost,	Obj_Starpost_MapUnc_1F424,   1,   0, make_art_tile(ArtTile_ArtNem_Checkpoint,0,0)
 	dbglistobj Obj_PinballMode,	Obj_PlaneSwitcher_MapUnc_1FFB8,   0,   0, make_art_tile(ArtTile_ArtNem_Ring,0,0)
 	dbglistobj Obj_PinballMode,	Obj_PlaneSwitcher_MapUnc_1FFB8,   4,   4, make_art_tile(ArtTile_ArtNem_Ring,0,0)
@@ -79912,8 +80383,7 @@ DbgObjList_CNZ: dbglistheader
 DbgObjList_CNZ_End
 
 DbgObjList_CPZ: dbglistheader
-	dbglistobj Obj_Ring,		Obj_Ring_MapUnc_12382,   0,   0, make_art_tile(ArtTile_ArtNem_Ring,1,0)
-	dbglistobj Obj_Monitor,		Obj_Monitor_MapUnc_12D36,   8,   0, make_art_tile(ArtTile_ArtNem_Powerups,0,0)
+	dbglistobjuni
 	dbglistobj Obj_Starpost,	Obj_Starpost_MapUnc_1F424,   1,   0, make_art_tile(ArtTile_ArtNem_Checkpoint,0,0)
 	dbglistobj Obj_TippingFloor,	Obj_TippingFloor_MapUnc_201A0, $70,   0, make_art_tile(ArtTile_ArtNem_CPZAnimatedBits,3,1)
 	dbglistobj Obj_SpeedBooster,	Obj_SpeedBooster_MapUnc_223E2,   0,   0, make_art_tile(ArtTile_ArtNem_CPZBooster,3,1)
@@ -79939,8 +80409,7 @@ DbgObjList_CPZ: dbglistheader
 DbgObjList_CPZ_End
 
 DbgObjList_ARZ: dbglistheader
-	dbglistobj Obj_Ring,		Obj_Ring_MapUnc_12382,   0,   0, make_art_tile(ArtTile_ArtNem_Ring,1,0)
-	dbglistobj Obj_Monitor,		Obj_Monitor_MapUnc_12D36,   8,   0, make_art_tile(ArtTile_ArtNem_Powerups,0,0)
+	dbglistobjuni
 	dbglistobj Obj_Starpost,	Obj_Starpost_MapUnc_1F424,   1,   0, make_art_tile(ArtTile_ArtNem_Checkpoint,0,0)
 	dbglistobj Obj_SwingingPlatform,Obj_SwingingPlatform_Obj_ARZRotPlatforms_MapUnc_1021E, $88,   2, make_art_tile(ArtTile_ArtKos_LevelArt,0,0)
 	dbglistobj Obj_ARZPlatform,	Obj_FloatingPlatform_MapUnc_1084E,   1,   0, make_art_tile(ArtTile_ArtKos_LevelArt,2,0)
@@ -79971,8 +80440,7 @@ DbgObjList_ARZ: dbglistheader
 DbgObjList_ARZ_End
 
 DbgObjList_SCZ: dbglistheader
-	dbglistobj Obj_Ring,		Obj_Ring_MapUnc_12382,   0,   0, make_art_tile(ArtTile_ArtNem_Ring,1,0)
-	dbglistobj Obj_Monitor,		Obj_Monitor_MapUnc_12D36,   8,   0, make_art_tile(ArtTile_ArtNem_Powerups,0,0)
+	dbglistobjuni
 	dbglistobj Obj_WFZPalSwitcher,	Obj_PlaneSwitcher_MapUnc_1FFB8,   0,   0, make_art_tile(ArtTile_ArtNem_Ring,0,0)
 	dbglistobj Obj_Cloud,		Obj_Cloud_MapUnc_3B32C, $5E,   0, make_art_tile(ArtTile_ArtNem_Clouds,2,0)
 	dbglistobj Obj_Cloud,		Obj_Cloud_MapUnc_3B32C, $60,   1, make_art_tile(ArtTile_ArtNem_Clouds,2,0)
@@ -80199,8 +80667,6 @@ PlrList_Std1_End
 PlrList_Std2: plrlistheader
 	plreq ArtTile_ArtNem_Checkpoint, ArtNem_Checkpoint
 	plreq ArtTile_ArtNem_Powerups, ArtNem_Powerups
-	;plreq ArtTile_ArtNem_Shield, ArtNem_Shield
-	;plreq ArtTile_ArtNem_Invincible_stars, ArtNem_Invincible_stars
 PlrList_Std2_End
 ;---------------------------------------------------------------------------------------
 ; PATTERN LOAD REQUEST LIST
@@ -80824,7 +81290,6 @@ PlrList_Std2Knuckles: plrlistheader
 	plreq ArtTile_ArtNem_Checkpoint, ArtNem_Checkpoint
 	plreq ArtTile_ArtNem_Powerups, ArtNem_Powerups
 	plreq ArtTile_ArtNem_Powerups+$2C, ArtNem_MonitorIconsMod
-	;plreq ArtTile_ArtNem_Shield, ArtNem_InvincibilityShield
 PlrList_Std2Knuckles_End
 ;---------------------------------------------------------------------------------------
 ; Pattern load queue
@@ -81457,16 +81922,44 @@ MapRUnc_Sonic:	BINCLUDE	"mappings/spriteDPLC/Sonic.bin"
 ;--------------------------------------------------------------------------------------
 MapRUnc_Knuckles:	include	"knuckles/DPLC.asm"
 ;--------------------------------------------------------------------------------------
-; Nemesis compressed art (32 blocks)
-; Shield			; ArtNem_71D8E:
-;ArtNem_Shield:	BINCLUDE	"art/nemesis/Shield.bin"
+; Uncompressed art
+; Normal Shield			; ArtNem_71D8E:
 ArtUnc_Shield:	BINCLUDE	"art/uncompressed/Shield.bin"
-ArtUnc_ShieldEnd:
+ArtUnc_Shield_end:
 	even
 ;--------------------------------------------------------------------------------------
-; Nemesis compressed art (34 blocks)
+; Uncompressed art
+; Fire Shield
+ArtUnc_FireShield:	BINCLUDE	"art/uncompressed/Fire Shield.bin"
+ArtUnc_FireShield_end:
+	even
+;--------------------------------------------------------------------------------------
+; Uncompressed art
+; Lightning Shield
+ArtUnc_LightningShield:	BINCLUDE	"art/uncompressed/Lightning Shield.bin"
+ArtUnc_LightningShield_end:
+	even
+;--------------------------------------------------------------------------------------
+; Uncompressed art
+; Lightning Shield Sparks
+ArtUnc_Obj_Lightning_Shield_Sparks:	BINCLUDE	"art/uncompressed/Sparks.bin"
+ArtUnc_Obj_Lightning_Shield_Sparks_end:
+	even
+;--------------------------------------------------------------------------------------
+; Uncompressed art
+; Bubble Shield
+ArtUnc_BubbleShield:	BINCLUDE	"art/uncompressed/Bubble Shield.bin"
+ArtUnc_BubbleShield_end:
+	even
+;--------------------------------------------------------------------------------------
+; Uncompressed art
+; Insta-Shield
+ArtUnc_InstaShield:	BINCLUDE	"art/uncompressed/Insta-Shield.bin"
+ArtUnc_InstaShield_end:
+	even
+;--------------------------------------------------------------------------------------
+; Uncompressed art
 ; Invincibility stars		; ArtNem_71F14:
-;ArtNem_Invincible_stars:	BINCLUDE	"art/nemesis/Invincibility stars.bin"
 ArtUnc_Invincible_stars:	BINCLUDE	"art/uncompressed/Invincibility stars.bin"
 ArtUnc_Invincible_starsEnd:
 	even

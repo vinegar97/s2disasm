@@ -269,7 +269,7 @@ OptionsScreen_Input_MenuItemBack:
 	btst	#button_start,d0
 	beq.s	+
 	bsr.w	OptionsScreen_Input_MenuItemSubEnter
-	sfx		sfx_S3K_42
+	sfx		sfx_InstaAttack
 +
 	rts
 

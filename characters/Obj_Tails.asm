@@ -842,7 +842,7 @@ loc_1456C:
 		clr.b 	double_jump_flag(a1)
 		clr.b 	glidemode(a1)
         ; Play grabbing sound (is this even in S2? [no, it's not])
-		sfx		sfx_S3K_4A
+		sfx		sfx_Grab
 		move.b	#AniIDSonAni_Hang2,anim(a1)
 		move.b	#1,(a2) ; ???
 
@@ -1121,7 +1121,7 @@ Tails_FlyAnim_Tired:
 		andi.b	#$F,d0
 		bne.s	+
 
-		sfx		sfx_S3K_BB
+		sfx		sfx_FlyTired
 
 +		rts
 ; ---------------------------------------------------------------------------
@@ -1146,7 +1146,7 @@ Tails_FlyAnim_NotTired:
 		andi.b	#$F,d0
 		bne.s	+
 
-		sfx		sfx_S3K_BA
+		sfx		sfx_Flying
 
 +		rts
 ; ---------------------------------------------------------------------------
