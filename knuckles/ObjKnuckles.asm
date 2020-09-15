@@ -65,6 +65,7 @@ Obj_Knuckles_Init_Continued:				  ; ...
 
 Obj_Knuckles_Control:					  ; ...
     ;jmp Obj_Sonic_Control
+	jsr		PanCamera
 	tst.w	(Debug_mode_flag).w	; is debug cheat enabled?
 	beq.s	+			; if not, branch
 	btst	#button_B,(Ctrl_1_Press).w	; is button B pressed?

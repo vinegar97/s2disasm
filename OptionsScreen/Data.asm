@@ -53,7 +53,7 @@ Txt_AnimOnly:           menutxt	"          ANIM ONLY"
 Txt_AbilityOnly:        menutxt	"       ABILITY ONLY"
 
 Txt_VsModeItems:        menutxt	"* VS MODE ITEMS *  "	; byte_982C:
-Txt_AllKindsItems:	    menutxt	"    ALL KINDS ITEMS"	; byte_983E:
+Txt_AllKindsItems:	    menutxt	" ALL KINDS OF ITEMS"	; byte_983E:
 Txt_TeleportOnly:	    menutxt	"      TELEPORT ONLY"	; byte_984E:
 
 Txt_SoundTest:		    menutxt	"*  SOUND TEST   *  "	; byte_985E:
@@ -64,6 +64,7 @@ Txt_Options:			menutxt	"OPTIONS            "
 Txt_GameplayOptions:	menutxt	"GAMEPLAY OPTIONS   "
 Txt_StyleOptions:       menutxt	"STYLE OPTIONS      "
 Txt_LevelOptions:       menutxt	"LEVEL OPTIONS      "
+Txt_SystemOptions:		menutxt "SYSTEM OPTIONS     "
 
 Txt_Playersprites:      menutxt	"PLAYER SPRITES     "
 Txt_Itemsprites:		menutxt	"ITEM SPRITES       "
@@ -76,7 +77,6 @@ Txt_PeelOut:	        menutxt "PEEL OUT           "
 Txt_Flight:		        menutxt "FLIGHT             "
 Txt_OnWithAssist:       menutxt "     ON WITH ASSIST"
 Txt_SpeedTrail:     	menutxt "SPEED TRAIL        "
-Txt_SystemOptions:		menutxt "SYSTEM OPTIONS     "
 
 Txt_Scaling:			menutxt "SCALING            "
 Txt_Integer:			menutxt "            INTEGER"
@@ -84,6 +84,20 @@ Txt_Fit:				menutxt "                FIT"
 Txt_Stretch:			menutxt "            STRETCH"
 
 Txt_MirrorMode:			menutxt "MIRROR MODE        "
+
+Txt_Shields:			 menutxt "SHIELDS            "
+Txt_NormalOnly:			 menutxt "        NORMAL ONLY"
+Txt_ElementalAndNormal:  menutxt "ELEMENTAL AND NRMAL"
+Txt_ElementalAndRandom:  menutxt "  ELEMENTAL AND RND"
+Txt_RandomizedElemental: menutxt " RNDMIZED ELEMENTAL"
+Txt_RandomizedAll:		 menutxt "     RANDOMIZED ALL"
+Txt_FireOnly:			 menutxt "          FIRE ONLY"
+Txt_ElectricOnly:		 menutxt "      ELECTRIC ONLY"
+Txt_BubbleOnly:			 menutxt "        BUBBLE ONLY"
+
+Txt_CameraStyle:		 menutxt "CAMERA STYLE       "
+Txt_Normal:				 menutxt "             NORMAL"
+Txt_Extended:			 menutxt "           EXTENDED"
 
 ; =============================================================================
 
@@ -182,15 +196,31 @@ TxtList_Scaling:
 	dc.l Txt_Fit
 	dc.l Txt_Stretch
 
+TxtList_CameraStyle:
+	dc.l Txt_Normal
+	dc.l Txt_Extended
+	dc.l Txt_SCD
+
+TxtList_Shields:
+	dc.l Txt_NormalOnly
+	dc.l Txt_ElementalAndNormal
+	dc.l Txt_ElementalAndRandom
+	dc.l Txt_RandomizedElemental
+	dc.l Txt_RandomizedAll
+	dc.l Txt_FireOnly
+	dc.l Txt_ElectricOnly
+	dc.l Txt_BubbleOnly
+
 ; =============================================================================
 
 OptionsMenu_Main:
-	dc.w 4
+	dc.w 6
 	menuitemdata MenuItemValuePlayer,	Txt_PlayerSelect,       OptionsMenu_Val_Player
 	menuitemdata MenuItemValue2P, 		Txt_VsModeItems,        OptionsMenu_Val_2P
 	menuitemdata MenuItemSound, 		Txt_SoundTest,          OptionsMenu_Val_Sound
 	menuitemdata MenuItemSub,			Txt_GameplayOptions,    OptionsMenu_Gameplay
 	menuitemdata MenuItemSub,			Txt_StyleOptions,       OptionsMenu_Style
+	menuitemdata MenuItemSub,			Txt_LevelOptions,       OptionsMenu_Level
 	menuitemdata MenuItemSub,			Txt_SystemOptions,		OptionsMenu_Emulator
 
 OptionsMenu_Val_Player: 	        menuitemdatavalue	4,          Player_option_byte,     TxtList_CharacterUE
@@ -235,15 +265,26 @@ OptionsMenu_Val_TailsFlight:		menuitemdatavalue	2,          Option_TailsFlight, 
 ; =============================================================================
 
 OptionsMenu_Style:
-	dc.w 3 ; max index
+	dc.w 4 ; max index
 	menuitemdata MenuItemBack,	Txt_Back,                OptionsMenu_Main
 	menuitemdata MenuItemValue, Txt_WaterSoundFilter,    OptionsMenu_Val_WaterSoundFilter
 	menuitemdata MenuItemValue, Txt_WaterRipple,         OptionsMenu_Val_WaterRipple
 	menuitemdata MenuItemValue, Txt_SpeedTrail,          OptionsMenu_Val_SpeedTrail
+	menuitemdata MenuItemValue, Txt_CameraStyle,         OptionsMenu_Val_CameraStyle
 
 OptionsMenu_Val_WaterSoundFilter:   menuitemdatavalue	1,          Option_WaterSoundFilter,		TxtList_OffOn
 OptionsMenu_Val_WaterRipple:        menuitemdatavalue	2,          Option_WaterRipple,		        TxtList_WaterRipple
 OptionsMenu_Val_SpeedTrail:         menuitemdatavalue	1,          Option_SpeedTrail,		        TxtList_OnOff
+OptionsMenu_Val_CameraStyle:   		menuitemdatavalue	2,          Option_CameraStyle,				TxtList_CameraStyle
+
+; =============================================================================
+
+OptionsMenu_Level:
+	dc.w 1 ; max index
+	menuitemdata MenuItemBack,	Txt_Back,               OptionsMenu_Main
+	menuitemdata MenuItemValue, Txt_Shields,			OptionsMenu_Val_Shields
+
+OptionsMenu_Val_Shields:   menuitemdatavalue	7,      Option_Shields,		TxtList_Shields
 
 ; =============================================================================
 

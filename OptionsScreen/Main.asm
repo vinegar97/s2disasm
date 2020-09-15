@@ -55,7 +55,7 @@ OptionsScreen_DrawMenu:
 
 	addi.w	#1,d6 ; increment current item
 
-	cmpi.w	#5,d6 ; limit number of items drawn
+	cmpi.w	#7,d6 ; limit number of items drawn
 	bge.s	+
 	cmp.b	d5,d6 ; make sure we don't overflow (TODO: scroll)
 	bhi.s	+
@@ -71,6 +71,8 @@ OptionsScreen_BoxLocations:
 	dc.l vdpComm(VRAM_Plane_A_Name_Table+planeLocH40(1,9),VRAM,WRITE)
 	dc.l vdpComm(VRAM_Plane_A_Name_Table+planeLocH40(1,13),VRAM,WRITE)
 	dc.l vdpComm(VRAM_Plane_A_Name_Table+planeLocH40(1,17),VRAM,WRITE)
+	dc.l vdpComm(VRAM_Plane_A_Name_Table+planeLocH40(1,21),VRAM,WRITE)
+	dc.l vdpComm(VRAM_Plane_A_Name_Table+planeLocH40(1,25),VRAM,WRITE)
 
 OptionsScreen_DrawMenuItem_GetLoc:
 	lea		(OptionsScreen_BoxLocations).l,a1

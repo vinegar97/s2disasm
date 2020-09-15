@@ -16165,6 +16165,16 @@ ScrollHoriz:
 ; loc_D732:
 .checkIfShouldScroll:
 	sub.w	(a1),d0
+	cmpi.b	#1,(Option_CameraStyle).w
+	blt.s 	.normalcam
+	sub.w   (Camera_Pan).w,d0    ; Horizontal camera pan value
+	cmpi.b	#2,(Option_CameraStyle).w
+	bne.s 	.normalcam
+	subi.w	#(320/2),d0		; is the player less than 144 pixels from the screen edge?
+	blt.s	.scrollLeft	; if he is, scroll left
+	bra.s	.scrollRight	; if he is, scroll right
+
+.normalcam:
 	subi.w	#(320/2)-16,d0		; is the player less than 144 pixels from the screen edge?
 	blt.s	.scrollLeft	; if he is, scroll left
 	subi.w	#16,d0		; is the player more than 159 pixels from the screen edge?
@@ -33045,6 +33055,7 @@ loc_19F4C:
 
 ; ===========================================================================
 
+	include "characters/PanCamera.asm"
 	include "characters/Obj_Sonic.asm"
 	include "characters/Obj_Tails.asm"
 
@@ -79132,7 +79143,7 @@ HudUpdate:
 	lea	(VDP_data_port).l,a6
 	tst.w	(Two_player_mode).w
 	bne.w	loc_40F50
-	tst.w	(Debug_mode_flag).w	; is debug mode on?
+	tst.w	(Debug_placement_mode).w	; is debug mode on?
 
 	if Debug_Lagometer
     		bra.w	loc_40E9A

@@ -875,6 +875,8 @@ Tails_Min_X_pos:		ds.w 1
 Tails_Max_X_pos:		ds.w 1
 Tails_Min_Y_pos:		ds.w 1		; seems not actually implemented (only written to) (unused)
 Tails_Max_Y_pos:		ds.w 1
+Camera_Pan:				ds.w 1
+Camera_Pan_2P:			ds.w 1
 Camera_RAM_End:
 
 Block_cache:			ds.b $80
@@ -1369,6 +1371,9 @@ Option_TailsFlight:				ds.b 1 ; 0 = on + assist, 1 = on, 2 = off
 
 Option_SpeedTrail:			ds.b 1
 Option_PeelOut:			ds.b 1 ; 0 = off, 1 = ability + anim, 3 = anim, 2 = ability
+
+Option_Shields:			ds.b 1 ; see OptionsScreen/Data.asm, i probably got way too granular with these choices lmao
+Option_CameraStyle:		ds.b 1; 0 = normal, 1 = extended, 2 = full scd
 
 Options_RAM_End:
 

@@ -81,6 +81,7 @@ Obj_Tails_Init_Continued:
 Obj_Tails_Control:
 	cmpa.w	#MainCharacter,a0
 	bne.s	Obj_Tails_Control_Joypad2
+	jsr		PanCamera
 	move.w	(Ctrl_1_Logical).w,(Ctrl_2_Logical).w
 	tst.b	(Control_Locked).w	; are controls locked?
 	bne.s	Obj_Tails_Control_Part2	; if yes, branch
