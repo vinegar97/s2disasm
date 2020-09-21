@@ -85,19 +85,21 @@ Txt_Stretch:			menutxt "            STRETCH"
 
 Txt_MirrorMode:			menutxt "MIRROR MODE        "
 
-Txt_Shields:			 menutxt "SHIELDS            "
-Txt_NormalOnly:			 menutxt "        NORMAL ONLY"
-Txt_ElementalAndNormal:  menutxt "ELEMENTAL AND NRMAL"
-Txt_ElementalAndRandom:  menutxt "  ELEMENTAL AND RND"
-Txt_RandomizedElemental: menutxt " RNDMIZED ELEMENTAL"
-Txt_RandomizedAll:		 menutxt "     RANDOMIZED ALL"
-Txt_FireOnly:			 menutxt "          FIRE ONLY"
-Txt_ElectricOnly:		 menutxt "      ELECTRIC ONLY"
-Txt_BubbleOnly:			 menutxt "        BUBBLE ONLY"
+Txt_Shields:			menutxt "SHIELDS            "
+Txt_NormalOnly:			menutxt "        NORMAL ONLY"
+Txt_ElementalAndNormal: menutxt "ELEMENTAL AND NRMAL"
+Txt_ElementalAndRandom: menutxt " ELEMENTAL AND RND."
+Txt_RandomizedElemental: menutxt "     RND. ELEMENTAL"
+Txt_FireOnly:			menutxt "          FIRE ONLY"
+Txt_ElectricOnly:		menutxt "      ELECTRIC ONLY"
+Txt_BubbleOnly:			menutxt "        BUBBLE ONLY"
 
-Txt_CameraStyle:		 menutxt "CAMERA STYLE       "
-Txt_Normal:				 menutxt "             NORMAL"
-Txt_Extended:			 menutxt "           EXTENDED"
+Txt_CameraStyle:		menutxt "CAMERA STYLE       "
+Txt_Normal:				menutxt "             NORMAL"
+Txt_Extended:			menutxt "           EXTENDED"
+
+Txt_InvincShields:		menutxt "INVINC. SHIELDS    "
+Txt_SuperMusic:			menutxt "SUPER MUSIC        "
 
 ; =============================================================================
 
@@ -206,7 +208,6 @@ TxtList_Shields:
 	dc.l Txt_ElementalAndNormal
 	dc.l Txt_ElementalAndRandom
 	dc.l Txt_RandomizedElemental
-	dc.l Txt_RandomizedAll
 	dc.l Txt_FireOnly
 	dc.l Txt_ElectricOnly
 	dc.l Txt_BubbleOnly
@@ -230,15 +231,17 @@ OptionsMenu_Val_Sound:		        menuitemdatavalue	SFXlast, 	Sound_test_sound_byt
 ; =============================================================================
 
 OptionsMenu_Gameplay:
-	dc.w 4 ; max index
+	dc.w 5 ; max index
 	menuitemdata MenuItemBack,	        Txt_Back,               OptionsMenu_Main
 	menuitemdata MenuItemSub,	        Txt_SonicOptions,       OptionsMenu_GameplaySonic
 	menuitemdata MenuItemSub,	        Txt_TailsOptions,       OptionsMenu_GameplayTails
 	menuitemdata MenuItemValue,         Txt_PhysicsStyle,       OptionsMenu_Val_Physics
 	menuitemdata MenuItemValue,         Txt_AirCurling,         OptionsMenu_Val_AirCurling
+	menuitemdata MenuItemValue,         Txt_InvincShields,      OptionsMenu_Val_InvincShields
 
 OptionsMenu_Val_Physics: 	        menuitemdatavalue	3,          Option_PhysicsStyle,    TxtList_PhysicsStyle
 OptionsMenu_Val_AirCurling:         menuitemdatavalue	1,          Option_AirCurling,      TxtList_OffOn
+OptionsMenu_Val_InvincShields:      menuitemdatavalue	1,          Option_InvincShields,   TxtList_OffOn
 
 ; =============================================================================
 
@@ -271,11 +274,13 @@ OptionsMenu_Style:
 	menuitemdata MenuItemValue, Txt_WaterRipple,         OptionsMenu_Val_WaterRipple
 	menuitemdata MenuItemValue, Txt_SpeedTrail,          OptionsMenu_Val_SpeedTrail
 	menuitemdata MenuItemValue, Txt_CameraStyle,         OptionsMenu_Val_CameraStyle
+	menuitemdata MenuItemValue, Txt_SuperMusic,          OptionsMenu_Val_SuperMusic
 
 OptionsMenu_Val_WaterSoundFilter:   menuitemdatavalue	1,          Option_WaterSoundFilter,		TxtList_OffOn
 OptionsMenu_Val_WaterRipple:        menuitemdatavalue	2,          Option_WaterRipple,		        TxtList_WaterRipple
 OptionsMenu_Val_SpeedTrail:         menuitemdatavalue	1,          Option_SpeedTrail,		        TxtList_OnOff
 OptionsMenu_Val_CameraStyle:   		menuitemdatavalue	2,          Option_CameraStyle,				TxtList_CameraStyle
+OptionsMenu_Val_SuperMusic:   		menuitemdatavalue	1,          Option_SuperMusic,				TxtList_OnOff
 
 ; =============================================================================
 
@@ -284,7 +289,7 @@ OptionsMenu_Level:
 	menuitemdata MenuItemBack,	Txt_Back,               OptionsMenu_Main
 	menuitemdata MenuItemValue, Txt_Shields,			OptionsMenu_Val_Shields
 
-OptionsMenu_Val_Shields:   menuitemdatavalue	7,      Option_Shields,		TxtList_Shields
+OptionsMenu_Val_Shields:   menuitemdatavalue	6,      Option_Shields,		TxtList_Shields
 
 ; =============================================================================
 

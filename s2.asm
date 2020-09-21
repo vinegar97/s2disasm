@@ -2575,7 +2575,7 @@ PalCycle_SuperSonic_revert:	; runs the fade in transition backwards
 	move.w	(Palette_frame).w,d0
 	subq.w	#8,(Palette_frame).w	; previous frame
 	bcc.s	+			; branch, if it isn't the first frame
-	move.b	#0,(Palette_frame).w
+	move.w	#0,(Palette_frame).w
 	move.b	#0,(Super_Sonic_palette).w	; stop palette cycle
 +
 	lea	(Normal_palette+4).w,a1
@@ -23131,12 +23131,74 @@ Obj_Monitor_Init:
 +
 	move.b	#$46,collision_flags(a0)
 	move.b	subtype(a0),anim(a0)	; subtype = icon to display
+
+Obj_Monitor_AdjustType_2P:
 	tst.w	(Two_player_mode).w	; is it two player mode?
-	beq.s	Obj_Monitor_Main		; if not, branch
+	beq.s	Obj_Monitor_AdjustType		; if not, branch
 	move.b	#9,anim(a0)		; use '?' icon
     tst.b   (Option_2PItems).w    ; are monitors set to 'teleport only'?
-    beq.s   Obj_Monitor_Main      ; if not, branch
+    beq.s   Obj_Monitor_AdjustType      ; if not, branch
     subq.b  #1,anim(a0)     ; use teleport icon
+
+Obj_Monitor_AdjustType:
+	moveq	#0,d0
+	move.b	anim(a0),d0
+	add.w	d0,d0
+	move.w	Obj_Monitor_AdjustType_Table(pc,d0.w),d0
+	jmp	Obj_Monitor_AdjustType_Table(pc,d0.w)
+
+Obj_Monitor_AdjustType_Table:	offsetTable
+		offsetTableEntry.w Obj_Monitor_Main	; 0 - Static
+		offsetTableEntry.w Obj_Monitor_Main		; 1 - Sonic 1-up
+		offsetTableEntry.w Obj_Monitor_Main		; 2 - Tails 1-up
+		offsetTableEntry.w Obj_Monitor_Main	; 3 - Robotnik
+		offsetTableEntry.w Obj_Monitor_Main		; 4 - Super Ring
+		offsetTableEntry.w Obj_Monitor_Main		; 5 - Speed Shoes
+		offsetTableEntry.w Obj_Monitor_AdjustType_Shield	; 6 - Shield
+		offsetTableEntry.w Obj_Monitor_Main	; 7 - Invincibility
+		offsetTableEntry.w Obj_Monitor_Main	; 8 - Teleport
+		offsetTableEntry.w Obj_Monitor_Main	; 9 - Question mark
+		offsetTableEntry.w Obj_Monitor_AdjustType_EleShield
+		offsetTableEntry.w Obj_Monitor_AdjustType_EleShield
+		offsetTableEntry.w Obj_Monitor_AdjustType_EleShield
+		offsetTableEntry.w Obj_Monitor_Main
+		offsetTableEntry.w Obj_Monitor_AdjustType_EleShield
+
+Obj_Monitor_AdjustType_EleShield:
+	cmpi.b	#1,(Option_Shields).w
+	beq.s	Obj_Monitor_Main
+	cmpi.b	#2,(Option_Shields).w
+	beq.s	Obj_Monitor_Main
+
+Obj_Monitor_AdjustType_Shield:
+	move.b	#6,anim(a0)
+
+	cmpi.b	#0,(Option_Shields).w
+	beq.s	Obj_Monitor_Main
+
+	cmpi.b	#2,(Option_Shields).w
+	bne.s	+
+	move.b	#14,anim(a0)
+	bra.s	Obj_Monitor_Main
++
+	cmpi.b	#3,(Option_Shields).w
+	bne.s	+
+	move.b	#14,anim(a0)
+	bra.s	Obj_Monitor_Main
++
+	cmpi.b	#4,(Option_Shields).w
+	bne.s	+
+	move.b	#10,anim(a0)
+	bra.s	Obj_Monitor_Main
++
+	cmpi.b	#5,(Option_Shields).w
+	bne.s	+
+	move.b	#11,anim(a0)
+	bra.s	Obj_Monitor_Main
++
+	cmpi.b	#6,(Option_Shields).w
+	bne.s	Obj_Monitor_Main
+	move.b	#12,anim(a0)
 
 ;obj_26_sub_2:
 Obj_Monitor_Main:
@@ -23295,6 +23357,13 @@ Obj_Monitor_SpawnIcon:
 	move.w	x_pos(a0),x_pos(a1)	; set icon's position
 	move.w	y_pos(a0),y_pos(a1)
 	move.b	anim(a0),anim(a1)
+
+	; Random Elemental shield monitor moment
+	cmpi.b	#14,anim(a0)
+	bne.s	+
+	move.b	mapping_frame(a0),anim(a1)
+	subi.b	#1,anim(a1)
++
 	move.w	parent(a0),parent(a1)	; parent gets the item
 ;loc_1281E:
 Obj_Monitor_SpawnSmoke:
@@ -23307,7 +23376,7 @@ Obj_Monitor_SpawnSmoke:
 +
 	move.w	respawn_index(a0),a2
 	bset	#0,(a2)		; mark monitor as destroyed
-	move.b	#$E,anim(a0)
+	move.b	#$F,anim(a0)
 	bra.w	DisplaySprite
 ; ===========================================================================
 ; ----------------------------------------------------------------------------
@@ -23411,6 +23480,7 @@ Obj_MonitorContents_Types:	offsetTable
 		offsetTableEntry.w lightningshield_monitor
 		offsetTableEntry.w bubbleshield_monitor
 		offsetTableEntry.w super_monitor
+		offsetTableEntry.w randomshield_monitor
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
 ; Robotnik Monitor
@@ -23500,7 +23570,7 @@ ChkPlayer_1up:
 super_shoes:
 	addq.w	#1,(a2)
 	bset	#status_sec_hasSpeedShoes,status_secondary(a1)	; give super sneakers status
-	move.l	#Obj_HyperSonicKnux_Trail,(SuperSonicStars+id).w ; load Obj_SuperSonicStars (super sonic stars object) at $FFFFD040
+	move.l	#Obj_HyperSonicKnux_Trail,(HyperSonicKnux_Trail+id).w ; load Obj_SuperSonicStars (super sonic stars object) at $FFFFD040
 	move.w	#$4B0,speedshoes_time(a1)
 	cmpa.w	#MainCharacter,a1	; did the main character break the monitor?
 	bne.s	super_shoes_Tails	; if not, branch
@@ -23524,6 +23594,7 @@ super_shoes_Tails:
 ; Shield Monitor
 ; gives the player a shield that absorbs one hit
 ; ---------------------------------------------------------------------------
+randomshield_monitor:
 shield_monitor:
 	addq.w	#1,(a2)
 	bset	#status_sec_hasShield,status_secondary(a1)	; give shield status
@@ -23547,7 +23618,10 @@ shield_monitor:
 invincible_monitor:
 	addq.w	#1,(a2)
 	tst.b	(Super_Sonic_flag).w	; is Sonic super?
-	bne.s	+++	; rts		; if yes, branch
+	beq.s	+				; if not, branch
+	sfx		sfx_Sparkle
+	bra.s	++
++
 	bset	#status_sec_isInvincible,status_secondary(a1)	; give invincibility status
 	move.w	#20*60,invincibility_time(a1) ; 20 seconds
 	tst.b	(Current_Boss_ID).w	; don't change music during boss battles
@@ -23818,6 +23892,7 @@ Ani_Obj_Monitor:	offsetTable
 		offsetTableEntry.w Ani_Obj_Monitor_LightningShield
 		offsetTableEntry.w Ani_Obj_Monitor_BubbleShield
 		offsetTableEntry.w Ani_Obj_Monitor_Super
+		offsetTableEntry.w Ani_Obj_Monitor_RandomShield		; $D
 		offsetTableEntry.w Ani_Obj_Monitor_Broken		; $D
 ; byte_12CE4:
 Ani_Obj_Monitor_Static:
@@ -23861,6 +23936,9 @@ Ani_Obj_Monitor_BubbleShield:
 Ani_Obj_Monitor_Super:
 	dc.b   1,  0, $E, $E,  1, $E, $E,$FF
 ; byte_12D30:
+Ani_Obj_Monitor_RandomShield:
+	dc.b   10,  $B, $C, $D, $FF
+
 Ani_Obj_Monitor_Broken:
 	dc.b   2,  0,  1, $F,$FE,  1
 	even
@@ -33596,6 +33674,8 @@ ResumeMusic:
 +
 	tst.b	(Super_Sonic_flag).w
 	beq.w	+			; branch if it isn't Super Sonic
+	tst.b	(Option_SuperMusic).w	; Allow super music?
+	bne.s	+						; If not, branch
 	moveq	#mus_SuperSonic,d0	; prepare to play super sonic music
 
 +
@@ -33974,7 +34054,7 @@ Obj_Splash_Init:
 	move.w	#Sidekick,parent(a0)
 	move.w	#tiles_to_bytes(ArtTile_ArtNem_TailsDust),objoff_3C(a0)
 +
-	bsr.w	Adjust2PArtPointer
+	jsr		Adjust2PArtPointer
 
 ; loc_1DD90:
 Obj_Splash_Main:
@@ -34272,8 +34352,11 @@ Obj_Insta_Shield:
 
 Obj_Insta_Shield_Main:
 		movea.w	parent(a0),a2
+		tst.b	(Option_InvincShields).w	; Allow shields while invinc?
+		bne.s	+							; If so, branch
 		btst	#Status_Invincible,status_secondary(a2) ; Is the player invincible?
 		bne.s	locret_195A4			; If so, return
++
 		move.w	x_pos(a2),x_pos(a0)		; Inherit player's x_pos
 		move.w	y_pos(a2),y_pos(a0)		; Inherit player's y_pos
 		move.b	status(a2),status(a0)		; Inherit status
@@ -34336,8 +34419,11 @@ loc_195F0:
 
 Obj_Fire_Shield_Main:
 		movea.w	parent(a0),a2
+		tst.b	(Option_InvincShields).w	; Allow shields while invinc?
+		bne.s	+							; If so, branch
 		btst	#Status_Invincible,status_secondary(a2) ; Is player invincible?
 		bne.w	locret_19690				; If so, do not display and do not update variables
++
 		cmpi.b	#$1C,anim(a2)				; Is player in their 'blank' animation?
 		beq.s	locret_19690				; If so, do not display and do not update variables
 		btst	#Status_Shield,status_secondary(a2) 	; Should the player still have a shield?
@@ -34419,8 +34505,11 @@ Obj_Lightning_Shield:
 
 Obj_Lightning_Shield_Main:
 		movea.w	parent(a0),a2
+		tst.b	(Option_InvincShields).w	; Allow shields while invinc?
+		bne.s	+							; If so, branch
 		btst	#Status_Invincible,status_secondary(a2)	; Is player invincible?
 		bne.w	locret_197C4				; If so, do not display and do not update variables
++
 		cmpi.b	#$1C,anim(a2)				; Is player in their 'blank' animation?
 		beq.s	locret_197C4				; If so, do not display and do not update variables
 		btst	#Status_Shield,status_secondary(a2)	; Should the player still have a shield?
@@ -34586,8 +34675,11 @@ Obj_Bubble_Shield:
 
 Obj_Bubble_Shield_Main:
 		movea.w	parent(a0),a2
+		tst.b	(Option_InvincShields).w	; Allow shields while invinc?
+		bne.s	+							; If so, branch
 		btst	#Status_Invincible,status_secondary(a2)	; Is player invincible?
 		bne.s	locret_1998A				; If so, do not display and do not update variables
++
 		cmpi.b	#$1C,anim(a2)				; Is player in their 'blank' animation?
 		beq.s	locret_1998A				; If so, do not display and do not update variables
 		btst	#Status_Shield,status_secondary(a2)	; Should the player still have a shield?
@@ -36408,8 +36500,14 @@ Obj_Starpost_LoadData:
 	move.w	(Saved_y_pos).w,(MainCharacter+y_pos).w
 	move.w	(Saved_Ring_count).w,(Ring_count).w
 	move.b	(Saved_Extra_life_flags).w,(Extra_life_flags).w
+	
+	; http://info.sonicretro.org/SCHG_How-to:Retain_Rings_when_returning_at_a_Star_Post
+	tst.b   (Returning_From_SS).w
+	bne.s   +
 	clr.w	(Ring_count).w
 	clr.b	(Extra_life_flags).w
+	clr.b	(Returning_From_SS).w
++
 	move.l	(Saved_Timer).w,(Timer).w
 	move.b	#59,(Timer_frame).w
 	subq.b	#1,(Timer_second).w
@@ -36503,6 +36601,7 @@ Obj_Starpost_Star:
 	beq.s	+
 	move.b	#1,(SpecialStage_flag_2P).w
 	move.b	#GameModeID_SpecialStage,(Game_Mode).w ; => SpecialStage
+	move.b  #1, (Returning_From_SS).w
 +
 	clr.b	collision_property(a0)
 

@@ -1430,12 +1430,11 @@ Sonic_InstaAndShieldMoves:
 	move.b	(Ctrl_1_Press_logical).w,d0
 	andi.b	#$70,d0				; are buttons A, B, or C being pressed?
 	beq.w	locret_11A14			; if not, branch
-	bclr	#Status_RollJump,status(a0)
-	tst.b	(Super_Sonic_flag).w	; check Super-state
-	beq.s	Sonic_PrimaryAbility		; if not in a super-state, branch
+	;tst.b	(Super_Sonic_flag).w	; check Super-state
+	;beq.s	Sonic_PrimaryAbility		; if not in a super-state, branch
 	;bmi.w	Sonic_HyperDash			; if Hyper, branch
-	move.b	#1,double_jump_flag(a0)
-	rts
+	;move.b	#1,double_jump_flag(a0)
+	;rts
 ; ---------------------------------------------------------------------------
 
 Sonic_PrimaryAbility:
@@ -1458,8 +1457,11 @@ Sonic_PrimaryAbility:
 	beq.w	Sonic_CheckGoSuper			; if not, branch
 
 Sonic_FireShield:
+	tst.b	(Option_InvincShields).w	; Allow shields while invinc?
+	bne.s	+							; If so, branch
 	btst	#Status_Invincible,status_secondary(a0)	; first, does Sonic have invincibility?
 	bne.w	Sonic_MidInvinc				; if yes, branch
++
 	btst	#Status_FireShield,status_secondary(a0)	; does Sonic have a Fire Shield?
 	beq.s	Sonic_LightningShield			; if not, branch
 
@@ -1468,6 +1470,8 @@ Sonic_FireShieldDo:
 	btst	#Status_FireShield,status_secondary(a0)	; does Sonic have a Fire Shield?
 	beq.s	+			; if not, branch
 	move.b	#1,(Shield+anim).w
++
+	bclr	#Status_RollJump,status(a0)
 	move.b	#1,double_jump_flag(a0)
 	move.w	#$800,d0
 	btst	#Status_Facing,status(a0)		; is Sonic facing left?
@@ -1494,6 +1498,7 @@ Sonic_LightningShieldDo:
 	beq.s	+			; if not, branch
 	move.b	#1,(Shield+anim).w
 +
+	bclr	#Status_RollJump,status(a0)
 	move.b	#1,double_jump_flag(a0)
 	move.w	#-$580,y_vel(a0)	; bounce Sonic up, creating the double jump effect
 	clr.b	jumping(a0)
@@ -1511,6 +1516,7 @@ Sonic_BubbleShieldDo:
 	beq.s	+			; if not, branch
 	move.b	#1,(Shield+anim).w
 +
+	bclr	#Status_RollJump,status(a0)
 	move.b	#1,double_jump_flag(a0)
 	cmpi.b	#2,(Option_ShieldAbilityStyle).l
 	bne.s	+
@@ -1538,8 +1544,9 @@ Sonic_BubbleShieldDo:
 
 Sonic_HomingAttack:
 	jsr		FindClosestTargetInFront
+	bclr	#Status_RollJump,status(a0)
 	move.l	a1,(HomingAttack_Object).l
-	move.l	#Obj_HyperSonicKnux_Trail,(SuperSonicStars+id).w
+	move.l	#Obj_HyperSonicKnux_Trail,(HyperSonicKnux_Trail+id).w
 	sfx		sfx_Thok
 	tst.l	(HomingAttack_Object).l
 	bne.s	+
@@ -1585,6 +1592,7 @@ Sonic_DropDashStart:
 	beq.s	+
 	rts
 +
+	bclr	#Status_RollJump,status(a0)
 	move.b	#1,double_jump_flag(a0)
 	move.b	#20,glidemode(a0)
 	rts
@@ -1601,6 +1609,7 @@ Sonic_InstaShieldCont:
 	bne.s	locret_11A14				; if yes, branch
 	move.b	#1,(Shield+anim).w
 +
+	bclr	#Status_RollJump,status(a0)
 	move.b	#1,double_jump_flag(a0)
 	sfx		sfx_InstaAttack			; play Insta-Shield sound
 	rts
@@ -1640,6 +1649,8 @@ Sonic_Transform:
 	move.w	#0,(MainCharacter+invincibility_time).w
 	bset	#status_sec_isInvincible,(MainCharacter+status_secondary).w	; make Sonic invincible
 	sfx	sfx_Transform				; Play transformation sound effect.
+	tst.b	(Option_SuperMusic).w	; Allow super music?
+	bne.s	return_1ABA4			; If not, branch
 	music	mus_SuperSonic				; load the Super Sonic song and return
 
 ; ---------------------------------------------------------------------------
@@ -2527,8 +2538,8 @@ BubbleShield_Bounce:
 	cmpi.b	#2,double_jump_flag(a0)
 	beq.w	BubbleShield_Bounce_Start
 +
-	tst.b	(Super_Sonic_flag).w
-	bne.s	+
+	;tst.b	(Super_Sonic_flag).w
+	;bne.s	+
 	btst	#Status_BublShield,status_secondary(a0)	; does character have a bubble shield?
 	bne.w	BubbleShield_Bounce_Start	; if so, branch
 +

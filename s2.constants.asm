@@ -738,6 +738,8 @@ Tails_Tails:			; address of the Tail's Tails object
 				ds.b object_size
 SuperSonicStars:
 				ds.b object_size
+HyperSonicKnux_Trail:
+				ds.b object_size
 Sonic_BreathingBubbles:		; Sonic's breathing bubbles
 				ds.b object_size
 Tails_BreathingBubbles:		; Tails' breathing bubbles
@@ -1170,6 +1172,8 @@ Continue_count:			ds.b 1
 Super_Sonic_flag:		ds.b 1
 Time_Over_flag:			ds.b 1
 Extra_life_flags:		ds.b 1
+Returning_From_SS:		ds.b 1
+						ds.b 1 ; align
 
 ; If set, the respective HUD element will be updated.
 Update_HUD_lives:		ds.b 1
@@ -1374,6 +1378,9 @@ Option_PeelOut:			ds.b 1 ; 0 = off, 1 = ability + anim, 3 = anim, 2 = ability
 
 Option_Shields:			ds.b 1 ; see OptionsScreen/Data.asm, i probably got way too granular with these choices lmao
 Option_CameraStyle:		ds.b 1; 0 = normal, 1 = extended, 2 = full scd
+
+Option_SuperMusic:		ds.b 1 ; 0 = on
+Option_InvincShields:	ds.b 1
 
 Options_RAM_End:
 
@@ -2087,16 +2094,16 @@ ArtTile_ArtNem_SuperSonic_stars       = $05F2
 
 ; Universal (used on all standard levels).
 ArtTile_ArtNem_Checkpoint             = $047C
-ArtTile_ArtNem_TailsDust              = $048C
-ArtTile_ArtNem_SonicDust              = $049C
-ArtTile_ArtNem_Numbers                = $04AC
-ArtTile_Shield                		  = $04BE
-ArtTile_ArtNem_Invincible_stars       = $04BE
+ArtTile_ArtNem_TailsDust              = $048A
+ArtTile_ArtNem_SonicDust              = $049A
+ArtTile_ArtNem_Numbers                = $04AA
+ArtTile_Shield                		  = $04BC
 
-ArtTile_Shield_Sparks                 = $04DD ; ArtTile_Shield + $1F
+ArtTile_Shield_Sparks                 = ArtTile_Shield + $1F
+ArtTile_ArtNem_Invincible_stars       = $04DD
 
 ArtTile_ArtNem_Powerups               = $0680
-ArtTile_ArtNem_Ring                   = $06BC - 6
+ArtTile_ArtNem_Ring                   = $06B6
 ArtTile_ArtNem_HUD                    = ArtTile_ArtNem_Powerups + $4A
 ArtTile_ArtUnc_Sonic                  = $0780
 ArtTile_ArtUnc_Tails                  = $07A0

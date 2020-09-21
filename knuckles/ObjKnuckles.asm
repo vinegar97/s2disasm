@@ -929,10 +929,12 @@ Knuckles_TurnSuper:				  ; ...
 		bset	#1,$2B(a0)
 		move.w	#$DF,d0
         sfx	sfx_Transform				; Play transformation sound effect.
+		tst.b	(Option_SuperMusic).w	; Allow super music?
+		bne.s	+						; If not, branch
         music	mus_SuperSonic				; load the Super Sonic song and return
 ; End of function Knuckles_JumpHeight
-
 ; ---------------------------------------------------------------------------
++
 		rts
 
 ; =============== S U B	R O U T	I N E =======================================
