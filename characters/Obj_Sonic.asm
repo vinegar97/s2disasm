@@ -1615,7 +1615,7 @@ Sonic_InstaShieldCont:
 	rts
 
 locret_11A14:
-		rts
+	rts
 
 Sonic_ShieldControl:
 	cmpi.b	#5,(Option_SonicAbility).l

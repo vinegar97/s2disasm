@@ -4513,7 +4513,8 @@ InitPlayers:
 	move.l	#Obj_Sonic,(MainCharacter+id).w ; load Obj_Sonic Sonic object at $FFFFB000
 	move.l	#Obj_SpindashDust,(Sonic_Dust+id).w ; load Obj_Splash Sonic's spindash dust/splash object at $FFFFD100
 	move.b	#$13,(MainCharacter+y_radius).w		; Set Sonic's y-radius
-	;move.l	#Obj_Insta_Shield,(Sonic_Shield).w
+	move.l	#Obj_Insta_Shield,(Sonic_Shield).w
+	move.w	#MainCharacter,(Sonic_Shield+parent).w
 
 	cmpi.b	#3,(Player_MainChar).w
 	bne.s	+ ; branch if this isnt a Knux alone game
@@ -33760,6 +33761,7 @@ Obj_Shield:
 	bsr.w	Adjust2PArtPointer
 	bsr.w	RestoreShieldGFX
 	move.l	#Obj_Shield_Shield,(a0)
+	move.b	#0,mapping_frame(a0)
 	move.b	#0,anim(a0)
 	move.b	#0,anim_frame(a0)
 	rts
@@ -33790,17 +33792,16 @@ return_1D976:
 ; ===========================================================================
 
 JmpTo7_DeleteObject
-	jmp	(DeleteObject).l
+	andi.b	#$8E,status_secondary(a2)	; Sets Status_Shield, Status_FireShield, Status_LtngShield, and Status_BublShield to 0
+	move.l	#Obj_Insta_Shield,(a0)		; Replace the Fire Shield with the Insta-Shield
+	rts
 
 RestoreShieldGFX:
 	movea.w	parent(a0),a2 ; a2=character
-	btst	#status_sec_isInvincible,status_secondary(a2)
-	bne.s	+
 	move.l	#ArtUnc_Shield,d1
 	move.l	#ArtTile_Shield*32,d2
 	move.w	#(ArtUnc_Shield_end - ArtUnc_Shield), d3
 	jsr		QueueDMATransfer
-+
 	rts
 ; ===========================================================================
 ; ----------------------------------------------------------------------------
@@ -34338,7 +34339,7 @@ Obj_Insta_Shield:
 		move.l	#DPLC_InstaShield,DPLC_Address(a0)			; Used by PLCLoad_Shields
 		move.l	#ArtUnc_InstaShield,Art_Address(a0)			; Used by PLCLoad_Shields
 		move.b	#4,render_flags(a0)
-		move.w	#$80,priority(a0)
+		move.w	#prio(1),priority(a0)
 		move.b	#$18,width_pixels(a0)
 ;		move.b	#$18,height_pixels(a0)
 		move.w	#ArtTile_Shield,art_tile(a0)
@@ -34383,10 +34384,10 @@ Obj_Insta_Shield_Main:
 		move.b	#2,double_jump_flag(a2)		; Mark attack as over
 
 	.notover:
-		tst.b	mapping_frame(a0)		; Is this the first frame?
-		beq.s	.loadnewDPLC			; If so, branch and load the DPLC for this and the next few frames
-		cmpi.b	#3,mapping_frame(a0)		; Is this the third frame?
-		bne.s	.skipDPLC			; If not, branch as we don't need to load another DPLC yet
+		;tst.b	mapping_frame(a0)		; Is this the first frame?
+		;beq.s	.loadnewDPLC			; If so, branch and load the DPLC for this and the next few frames
+		;cmpi.b	#3,mapping_frame(a0)		; Is this the third frame?
+		;bne.s	.skipDPLC			; If not, branch as we don't need to load another DPLC yet
 
 	.loadnewDPLC:
 		bsr.w	PLCLoad_Shields
@@ -76584,11 +76585,50 @@ JmpTo20_SingleObjLoad
 ; ---------------------------------------------------------------------------
 
 ; ||||||||||||||| S U B R O U T I N E |||||||||||||||||||||||||||||||||||||||
+IsInstaShielding:
+	cmpi.l	#Obj_Sonic,id(a0)			; Is the player Sonic?
+	bne.s	+			; If not, branch
+	btst	#Status_Shield,status_secondary(a0)	; Got a shield?
+	bne.s	+ ; no insta for you then :(
+	; By this point, we're focussing purely on the Insta-Shield
+	cmpi.b	#1,(Shield+anim).w			; Is the Insta-Shield currently in its 'attacking' mode?
+	bne.s	+			; If not, branch
+	moveq	#1,d0
+	rts
++
+	moveq	#0,d0
+	rts
 
 ; loc_3F554:
 TouchResponse:
 	nop
 	jsrto	(Touch_Rings).l, JmpTo_Touch_Rings
+	bsr.w	ShieldTouchResponse
+
+	bsr.s	IsInstaShielding
+	tst.b	d0
+	beq.s	Touch_NoInstaShield
+
+	move.b	status_secondary(a0),d0			; Get status_secondary...
+	move.w	d0,-(sp)				; ...and save it
+	bset	#Status_Invincible,status_secondary(a0)	; Make the player invincible
+	move.w	x_pos(a0),d2				; Get player's x_pos
+	move.w	y_pos(a0),d3				; Get player's y_pos
+	subi.w	#$18,d2					; Subtract width of Insta-Shield
+	subi.w	#$18,d3					; Subtract height of Insta-Shield
+	move.w	#$30,d4					; Player's width
+	move.w	#$30,d5					; Player's height
+	bsr.s	Touch_Process
+	move.w	(sp)+,d0				; Get the backed-up status_secondary
+	btst	#Status_Invincible,d0			; Was the player already invincible (wait, what? An earlier check ensures that this can't happen [HJW: it can now ;)])
+	bne.s	.alreadyinvincible			; If so, branch
+	bclr	#Status_Invincible,status_secondary(a0)	; Make the player vulnerable again
+
+  .alreadyinvincible:
+	moveq	#0,d0
+	rts
+
+Touch_NoInstaShield:
 	; Bumpers in CNZ
 	cmpi.b	#casino_night_zone,(Current_Zone).w
 	bne.s	+
@@ -76611,6 +76651,8 @@ TouchResponse:
 Touch_NoDuck:
 	move.w	#$10,d4
 	add.w	d5,d5
+
+Touch_Process:
 	lea	(Dynamic_Object_RAM).w,a1
 	move.w	#(Dynamic_Object_RAM_End-Dynamic_Object_RAM)/object_size-1,d6
 ; loc_3F5A0:
@@ -77006,12 +77048,18 @@ loc_3F85C:
 
 Bounce_Projectile:
 	move.b	status_secondary(a0),d0
-	andi.b	#Status_FireShield_mask|Status_LtngShield_mask|Status_BublShield_mask,d0 ; got a shield?
-	beq.w	+ ; nope? begone
 
 	btst	#Shield_Reaction_Bounce,shield_reaction(a1) ; Should the object be bounced away by a shield?
-	beq.s	+		; If not, branch
+	beq.s	++		; If not, branch
 
+	bsr.w	IsInstaShielding
+	tst.b	d0
+	bne.s	+
+
+	andi.b	#Status_FireShield_mask|Status_LtngShield_mask|Status_BublShield_mask,d0 ; got a shield?
+	beq.w	++ ; nope? begone
+
++
 	move.w	x_pos(a0),d1
 	move.w	y_pos(a0),d2
 	sub.w	x_pos(a1),d1
@@ -77257,6 +77305,108 @@ loc_3FA18:
 loc_3FA22:
 	move.b	#-1,collision_property(a1)
 	bra.w	Touch_Enemy
+
+; =============== S U B R O U T I N E =======================================
+
+ShieldTouchResponse:
+		bsr.w	IsInstaShielding
+		tst.b	d0
+		bne.s	+
+
+		move.b	status_secondary(a0),d0
+		andi.b	#$71,d0				; Does the player have any shields?
+		beq.s	locret_1045C
+
++
+		move.w	x_pos(a0),d2			; Get player's x_pos
+		move.w	y_pos(a0),d3			; Get player's y_pos
+		subi.w	#$18,d2				; Subtract width of shield
+		subi.w	#$18,d3				; Subtract height of shield
+		move.w	#$30,d4				; Player's width
+		move.w	#$30,d5				; Player's height
+		lea	(Dynamic_Object_RAM).w,a1
+		move.w	#(Dynamic_Object_RAM_End-Dynamic_Object_RAM)/object_size-1,d6
+		;lea	(Collision_response_list).w,a4
+		;move.w	(a4)+,d6			; Get number of objects queued
+		;beq.s	locret_1045C			; If there are none, return
+
+ShieldTouch_Loop:
+		;movea.w	(a4)+,a1			; Get address of first object's RAM
+		move.b	collision_flags(a1),d0		; Get its collision_flags
+		andi.b	#$C0,d0				; Get only collision type bits
+		cmpi.b	#$80,d0				; Is only the high bit set ("harmful")?
+		beq.s	ShieldTouch_Width		; If so, branch
+
+ShieldTouch_NextObj:
+		lea	next_object(a1),a1 ; load obj address ; goto next object
+		dbf	d6,Touch_Loop ; repeat 6F more times
+		;subq.w	#2,d6				; Count the object as done
+		;bne.s	ShieldTouch_Loop		; If there are still objects left, loop
+
+locret_1045C:
+		rts
+; ---------------------------------------------------------------------------
+
+ShieldTouch_Width:
+		move.b	collision_flags(a1),d0		; Get collision_flags
+		andi.w	#$3F,d0				; Get only collision size
+		beq.s	ShieldTouch_NextObj		; If it doesn't have a size, branch
+		add.w	d0,d0				; Turn into index
+		lea	(Touch_Sizes).l,a2
+		lea	(a2,d0.w),a2			; Go to correct entry
+		moveq	#0,d1
+		move.b	(a2)+,d1			; Get width value from Touch_Sizes
+		move.w	x_pos(a1),d0			; Get object's x_pos
+		sub.w	d1,d0				; Subtract object's width
+		sub.w	d2,d0				; Subtract player's left collision boundary
+		bhs.s	.checkrightside			; If player's left side is to the left of the object, branch
+		add.w	d1,d1				; Double object's width value
+		add.w	d1,d0				; Add object's width*2 (now at right of object)
+		blo.s	ShieldTouch_Height		; If carry, branch (player is within the object's boundaries)
+		bra.s	ShieldTouch_NextObj		; If not, loop and check next object
+; ---------------------------------------------------------------------------
+
+	.checkrightside:
+		cmp.w	d4,d0				; Is player's right side to the left of the object?
+		bhi.s	ShieldTouch_NextObj		; If so, loop and check next object
+
+ShieldTouch_Height:
+		moveq	#0,d1
+		move.b	(a2)+,d1			; Get height value from Touch_Sizes
+		move.w	y_pos(a1),d0			; Get object's y_pos
+		sub.w	d1,d0				; Subtract object's height
+		sub.w	d3,d0				; Subtract player's bottom collision boundary
+		bcc.s	.checktop			; If bottom of player is under the object, branch
+		add.w	d1,d1				; Double object's height value
+		add.w	d1,d0				; Add object's height*2 (now at top of object)
+		bcs.w	.checkdeflect			; If carry, branch (player is within the object's boundaries)
+		bra.s	ShieldTouch_NextObj		; If not, loop and check next object
+; ---------------------------------------------------------------------------
+
+	.checktop:
+		cmp.w	d5,d0				; Is top of player under the object?
+		bhi.s	ShieldTouch_NextObj		; If so, loop and check next object
+
+	.checkdeflect:
+		move.b	shield_reaction(a1),d0
+		andi.b	#8,d0				; Should the object be bounced away by a shield?
+		beq.s	ShieldTouch_NextObj		; If not, branch
+		move.w	x_pos(a0),d1
+		move.w	y_pos(a0),d2
+		sub.w	x_pos(a1),d1
+		sub.w	y_pos(a1),d2
+		jsr	(GetArcTan).l
+		jsr	(GetSineCosine).l
+		muls.w	#-$800,d1
+		asr.l	#8,d1
+		move.w	d1,x_vel(a1)
+		muls.w	#-$800,d0
+		asr.l	#8,d0
+		move.w	d0,y_vel(a1)
+		clr.b	collision_flags(a1)
+		rts
+; End of function ShieldTouchResponse
+
 ; ===========================================================================
 ; loc_3FA2C:
 BossSpecificCollision:
