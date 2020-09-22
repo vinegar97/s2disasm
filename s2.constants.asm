@@ -45,6 +45,7 @@ x_radius		ds.b 1		; object's width / 2, often used for floor/wall collision
 flip_turned =		*		; 0 for normal, 1 to invert flipping (it's a 180 degree rotation about the axis of Sonic's spine, so he stays in the same position but looks turned around)
 objoff_40 =		*
 objoff_41 =		*
+shield_reaction = *
 glidemode		ds.b 1
 double_jump_flag = *
 glideflags		ds.b 1
@@ -278,6 +279,11 @@ Status_RollJump:     EQU 4
 Status_Push:         EQU 5
 Status_Underwater:   EQU 6
 
+Shield_Reaction_Bounce:	EQU 3
+Shield_Reaction_Fire:	EQU 4
+Shield_Reaction_Ltng:	EQU 5
+Shield_Reaction_Bubble:	EQU 6
+
 ; ---------------------------------------------------------------------------
 ; status_secondary bitfield variables
 ;
@@ -289,6 +295,10 @@ Status_SpeedShoes:   EQU 2
 Status_FireShield:   EQU 4
 Status_LtngShield:   EQU 5
 Status_BublShield:   EQU 6
+
+Status_FireShield_mask:   EQU 1<<Status_FireShield
+Status_LtngShield_mask:   EQU 1<<Status_LtngShield
+Status_BublShield_mask:   EQU 1<<Status_BublShield
 
 status_sec_hasShield:		EQU	0
 status_sec_isInvincible:	EQU	1

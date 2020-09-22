@@ -3346,6 +3346,7 @@ RandomNumber:
 ; ||||||||||||||| S U B R O U T I N E |||||||||||||||||||||||||||||||||||||||
 
 ; sub_33B6:
+GetSineCosine:
 CalcSine:
 	andi.w	#$FF,d0
 	addq.w	#8,d0
@@ -3370,6 +3371,7 @@ Sine_Data:	BINCLUDE	"misc/sinewave.bin"
 ; ||||||||||||||| S U B R O U T I N E |||||||||||||||||||||||||||||||||||||||
 
 ; sub_364E:
+GetArcTan:
 CalcAngle:
 	movem.l	d3-d4,-(sp)
 	moveq	#0,d3
@@ -38274,6 +38276,7 @@ Obj_LavaMarker_CollisionFlagsBySubtype:
 ; ===========================================================================
 ; loc_20E02:
 Obj_LavaMarker_Init:
+	bset	#Shield_Reaction_Fire,shield_reaction(a0)
 	addq.b	#2,routine(a0) ; => Obj_LavaMarker_Main
 	moveq	#0,d0
 	move.b	subtype(a0),d0
@@ -40726,6 +40729,7 @@ Obj_LavaBubble_Index:	offsetTable
 ; ===========================================================================
 ; loc_23014:
 Obj_LavaBubble_Init:
+	bset	#Shield_Reaction_Fire,shield_reaction(a0)
 	addq.b	#2,routine(a0)
 	move.b	#8,y_radius(a0)
 	move.b	#8,x_radius(a0)
@@ -40779,6 +40783,7 @@ loc_230B4:
 
 loc_230C2:
 	_move.l	#Obj_LavaBubble,id(a1) ; load Obj_LavaBubble
+	bset	#Shield_Reaction_Fire,shield_reaction(a1)
 	move.b	#8,routine(a1)
 	move.w	x_pos(a0),x_pos(a1)
 	move.w	y_pos(a0),y_pos(a1)
@@ -41415,6 +41420,7 @@ Obj_RisingLava_Widths:
 ; ===========================================================================
 ; loc_238F8:
 Obj_RisingLava_Init:
+	bset	#Shield_Reaction_Fire,shield_reaction(a0)
 	addq.b	#2,routine(a0)
 	move.w	y_pos(a0),objoff_32(a0)
 	move.w	x_pos(a0),objoff_30(a0)
@@ -53400,6 +53406,7 @@ Obj_Buzzer_ShootProjectile:
 	bne.s	+
 
 	_move.l	#Obj_Buzzer,id(a1) ; load Obj_Buzzer
+	bset	#Shield_Reaction_Bounce,shield_reaction(a1)
 	move.b	#6,routine(a1)	; => Obj_Buzzer_Projectile
 	move.l	#Obj_Buzzer_MapUnc_2D2EA,mappings(a1)
 	move.w	#make_art_tile(ArtTile_ArtNem_Buzzer,0,0),art_tile(a1)
@@ -56696,6 +56703,7 @@ off_2FEFE:	offsetTable
 ; ===========================================================================
 
 loc_2FF02:
+	bset	#Shield_Reaction_Fire,shield_reaction(a0)
 	move.l	#Obj_HTZBoss_MapUnc_302BC,mappings(a0)
 	move.w	#make_art_tile(ArtTile_ArtNem_HTZBoss,0,0),art_tile(a0)
 	ori.b	#4,render_flags(a0)
@@ -56752,6 +56760,7 @@ loc_2FF80:
 
 loc_2FF94:
 	move.l	#Obj_HTZBoss,id(a1) ; load Obj_HTZBoss
+	bset	#Shield_Reaction_Fire,shield_reaction(a1)
 	move.b	#6,boss_subtype(a1)
 	move.l	#Obj_HTZBoss_MapUnc_302BC,mappings(a1)
 	move.w	#make_art_tile(ArtTile_ArtNem_HTZBoss,0,0),art_tile(a1)
@@ -56791,6 +56800,7 @@ loc_30008:
 	bpl.s	loc_30064
 	add.w	d1,y_pos(a0)
 	move.l	#Obj_LavaBubble,id(a0) ; load 0bj20
+	bset	#Shield_Reaction_Fire,shield_reaction(a0)
 	move.b	#$A,routine(a0)
 	move.b	#2,anim(a0)
 	move.b	#4,mapping_frame(a0)
@@ -58289,6 +58299,7 @@ Obj_MCZBoss_LoadStoneSpike:
 	jsrto	(SingleObjLoad).l, JmpTo15_SingleObjLoad
 	bne.s	return_31438
 	move.l	#Obj_MCZBoss,id(a1)	; load Obj_MCZBoss
+	bset	#Shield_Reaction_Bounce,shield_reaction(a1)
 	move.b	#4,boss_subtype(a1)
 	move.w	d1,x_pos(a1)
 	move.w	#$5F0,y_pos(a1)
@@ -65602,6 +65613,7 @@ Obj_Sol_NextFireball:
 	andi.w	#$7F,d5
 	move.b	d5,(a2)+
 	_move.l	id(a0),id(a1) ; load Obj_Sol
+	bset	#Shield_Reaction_Fire,shield_reaction(a1)
 	move.b	#6,routine(a1)
 	move.l	mappings(a0),mappings(a1)
 	move.w	art_tile(a0),art_tile(a1)
@@ -66193,6 +66205,7 @@ Obj_Projectile_Index:	offsetTable
 ; ===========================================================================
 ; loc_376FA:
 Obj_Projectile_Init: ;;
+	bset	#Shield_Reaction_Bounce,shield_reaction(a0)
 	bra.w	LoadSubObject
 ; ===========================================================================
 ; loc_376FE:
@@ -67698,6 +67711,7 @@ loc_387FC:
 	addq.b	#2,routine(a0)
 	move.w	#$80,objoff_30(a0)
 	ori.b	#$80,collision_flags(a0)
+	bset	#Shield_Reaction_Ltng,shield_reaction(a0)
 	jmpto	(MarkObjGone_P1).l, JmpTo2_MarkObjGone_P1
 ; ===========================================================================
 word_38810:
@@ -67771,6 +67785,7 @@ loc_3888E:
 	move.b	#4,routine(a0)
 	move.w	#$80,objoff_30(a0)
 	andi.b	#$7F,collision_flags(a0)
+	bclr	#Shield_Reaction_Ltng,shield_reaction(a0)
 	clr.l	mapping_frame(a0)
 	clr.b	anim_frame_duration(a0)
 	jmpto	(MarkObjGone_P1).l, JmpTo2_MarkObjGone_P1
@@ -76989,25 +77004,59 @@ loc_3F85C:
 
 ; ||||||||||||||| S U B R O U T I N E |||||||||||||||||||||||||||||||||||||||
 
+Bounce_Projectile:
+	move.b	status_secondary(a0),d0
+	andi.b	#Status_FireShield_mask|Status_LtngShield_mask|Status_BublShield_mask,d0 ; got a shield?
+	beq.w	+ ; nope? begone
+
+	btst	#Shield_Reaction_Bounce,shield_reaction(a1) ; Should the object be bounced away by a shield?
+	beq.s	+		; If not, branch
+
+	move.w	x_pos(a0),d1
+	move.w	y_pos(a0),d2
+	sub.w	x_pos(a1),d1
+	sub.w	y_pos(a1),d2
+	jsr	(GetArcTan).l
+	jsr	(GetSineCosine).l
+	muls.w	#-$800,d1
+	asr.l	#8,d1
+	move.w	d1,x_vel(a1)
+	muls.w	#-$800,d0
+	asr.l	#8,d0
+	move.w	d0,y_vel(a1)
+	clr.b	collision_flags(a1)
+	moveq	#1,d0
+	rts
++
+	moveq	#0,d0
+	rts
+
 ; loc_3F862:
 Touch_ChkHurt:
 	btst	#status_sec_isInvincible,status_secondary(a0)	; is Sonic invincible?
 	bne.s	Touch_NoHurt		; if so, branch
 
+	bsr.w	Bounce_Projectile
+	tst.b	d0	; Did it get bounced?
+	beq.s	Touch_ChkHurt_FireShield	; If not, branch
+	moveq	#-1,d0
+	rts
+
 Touch_ChkHurt_FireShield:
 	btst	#Status_FireShield,status_secondary(a0)	; does Sonic have a Fire Shield?
-	beq.s	Touch_ChkHurt_Cont			; if not, branch
+	beq.s	Touch_ChkHurt_LtngShield			; if not, branch
+	btst	#Shield_Reaction_Fire,shield_reaction(a1)
+	beq.s	Touch_ChkHurt_LtngShield
+	moveq	#-1,d0
+	rts
 
-	; This is VERY BAD but i dont understand collision flags so TOO BAD
-	cmpi.l	#Obj_LavaMarker,id(a1)
-	beq.s	Touch_NoHurt
-	cmpi.l	#Obj_LavaBubble,id(a1)
-	beq.s	Touch_NoHurt
-	cmpi.l	#Obj_RisingLava,id(a1)
-	beq.s	Touch_NoHurt
-
-Touch_ChkHurt_Cont:
-	bra.s	Touch_Hurt
+Touch_ChkHurt_LtngShield:
+	btst	#Status_LtngShield,status_secondary(a0)	; does Sonic have a lightning Shield?
+	beq.s	Touch_Hurt			; if not, branch
+	btst	#Shield_Reaction_Ltng,shield_reaction(a1)
+	beq.s	Touch_Hurt
+	moveq	#-1,d0
+	rts
 
 ; loc_3F86A:
 Touch_NoHurt:
@@ -77370,6 +77419,8 @@ BossCollision_MCZ2:
 ; ===========================================================================
 ;loc_3FB8A:
 BossCollision_CNZ:
+	btst	#Status_LtngShield,status_secondary(a0)
+	bne.s	++
 	tst.b	(Boss_CollisionRoutine).w
 	beq.s	++
 	move.w	d7,-(sp)
