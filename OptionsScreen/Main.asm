@@ -263,6 +263,7 @@ OptionsScreen_Input_MenuItemValue:
 	blo.s	+
 	move.b	#0,(a0)
 +
+	jsr		SaveSRAM
 	rts
 
 OptionsScreen_Input_MenuItemBack:

@@ -75,6 +75,8 @@ useFullWaterTables =	0
 
 ; >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 ; start of ROM
+BackupSRAM:	equ 1
+AddressSRAM:	equ 3	; 0 = odd+even; 2 = even only; 3 = odd only
 
 StartOfRom:
     if * <> 0
@@ -162,7 +164,8 @@ ROMEndLoc:
 	dc.l EndOfRom-1		; End address of ROM
 	dc.l RAM_Start&$FFFFFF		; Start address of RAM
 	dc.l (RAM_End-1)&$FFFFFF		; End address of RAM
-	dc.b "    "		; Backup RAM ID
+SRAMSupport:
+	dc.b $52, $41, $A0+(BackupSRAM<<6)+(AddressSRAM<<3), $20
 	dc.l $20202020		; Backup RAM start address
 	dc.l $20202020		; Backup RAM end address
 	dc.b "            "	; Modem support
@@ -370,6 +373,58 @@ GameClrRAM:
 	move.l	d7,(a6)+
 	dbf	d6,GameClrRAM			; clear RAM ($0000-$FDFF)
 
+; ===========================================================================
+
+InitSRAM:
+	move.b  #1,(SRAM_Write).l    ; Enable SRAM writing
+	lea (SRAM).l,a0      ; Load SRAM memory into a0 (Change the last digit to 0 if you're using even SRAM)
+	movep.l (a0),d0        ; Get the existing string at the start of SRAM
+	move.l  #"SRAM",d1        ; Write the string "SRAM" to d1
+	cmp.l   d0,d1            ; Was it already in SRAM?
+	beq.s   LoadSRAM           ; If so, skip
+	movep.l d1,(a0)        ; Write string "SRAM"
+	jsr		SaveSRAM
+	
+	; Init defaults here... although ideally they should be all 0
+
+	move.b  #0,(SRAM_Write).l    ; Disable SRAM writing
+	bra.w	GameInit_Cont
+
+LoadSRAM:
+	move.b  #1,(SRAM_Write).l    ; Enable SRAM writing
+	lea	(Options_RAM_Start).l,a6
+	lea (SRAM).l,a5
+	addi.l	#8,a5 ; Skip header
+
+LoadSRAM_Loop:
+	cmpi.l	#Options_RAM_End,a6
+	beq.s	LoadSRAM_End
+	move.b	(a5)+,(a6)+
+	bra.s	LoadSRAM_Loop
+
+LoadSRAM_End:
+	move.b  #0,(SRAM_Write).l    ; Disable SRAM writing
+	bra.w	GameInit_Cont	; Branch to game program.
+
+SaveSRAM:
+	move.b  #1,(SRAM_Write).l    ; Enable SRAM writing
+	lea	(Options_RAM_Start).l,a6
+	lea (SRAM).l,a5
+	addi.l	#8,a5 ; Skip header
+
+SaveSRAM_Loop:
+	cmpi.l	#Options_RAM_End,a6
+	beq.s	SaveSRAM_End
+	move.b	(a6)+,(a5)+
+	bra.s	SaveSRAM_Loop
+
+SaveSRAM_End:
+	move.b  #0,(SRAM_Write).l    ; Disable SRAM writing
+	rts
+
+; ===========================================================================
+
+GameInit_Cont:
 	jsr (InitDMAQueue).l
 	bsr.w	VDPSetupGame
 	jsr	LoadDualPCM			; load Dual PCM
@@ -3765,6 +3820,7 @@ TitleScreen_Loop:
 	move.w	d0,(Two_player_mode).w
     if emerald_hill_zone_act_1=0
 	move.w	d0,(Current_ZoneAndAct).w ; emerald_hill_zone_act_1
+	move.w	d0,(Apparent_ZoneAndAct).w ; emerald_hill_zone_act_1
     else
 	move.w	#emerald_hill_zone_act_1,(Current_ZoneAndAct).w
     endif
@@ -3812,6 +3868,7 @@ TitleScreen_Demo:
 	add.w	d0,d0
 	move.w	DemoLevels(pc,d0.w),d0
 	move.w	d0,(Current_ZoneAndAct).w
+	move.w	d0,(Apparent_ZoneAndAct).w
 	addq.w	#1,(Demo_number).w
 	cmpi.w	#(DemoLevels_End-DemoLevels)/2,(Demo_number).w
 	blo.s	+
@@ -3920,6 +3977,15 @@ JmpTo_SwScrl_Title
     endif
 
 
+PlayStageMusic:
+	moveq	#0,d0
+	move.b	(Apparent_Zone).w,d0
+	lea_	MusicList,a1
+	move.b	(a1,d0.w),d0		; load from music playlist
+	move.w	d0,(Level_Music).w	; store level music
+	move.b	d0,mQueue+1.w
+	command	Mus_Reset
+	rts
 
 
 ;----------------------------------------------------------------------------
@@ -4004,6 +4070,11 @@ Level:
 
 	tst.b	(Level_Quick_Reset_flag).w
 	bne.s	Level_ClrRam
+	
+	bsr.s	Level_LoadArt
+	bra.w	Level_ClrRam
+
+Level_LoadArt:
 	move.b	(Current_Zone).w,d0
 	; multiply d0 by 12, the size of a level art load block
 	add.w	d0,d0
@@ -4039,9 +4110,11 @@ Level:
 
 Level_NoTails:
 	cmpi.b	#3,(Player_MainChar).w
-	bne.s	Level_ClrRam
+	bne.s	+
 	moveq	#PLCID_KnucklesLife,d0
 	bsr.w	LoadPLC
++	rts
+
 ; loc_3F48:
 Level_ClrRam:
 	clearRAM Sprite_Table_Input,Sprite_Table_Input_End
@@ -4050,18 +4123,28 @@ Level_ClrRam:
 	clearRAM Misc_Variables,Misc_Variables_End
 	clearRAM Oscillating_Data,Oscillating_variables_End
 	clearRAM CNZ_saucer_data,CNZ_saucer_data_End
+	bsr.s	Level_CheckInitWater
+	bsr.s	Level_VDPInit
+	bsr.w	Level_LoadWaterVars
+	bsr.w	Level_LoadWaterPal
+	bsr.w	Level_GetBgm
+	bra.w	Level_InitTtlCard
 
+Level_CheckInitWater:
 	cmpi.w	#chemical_plant_zone_act_2,(Current_ZoneAndAct).w ; CPZ 2
 	beq.s	Level_InitWater
 	cmpi.b	#aquatic_ruin_zone,(Current_Zone).w ; ARZ
 	beq.s	Level_InitWater
 	cmpi.b	#hidden_palace_zone,(Current_Zone).w ; HPZ
-	bne.s	+
-
+	beq.s	Level_InitWater
+	rts
+	
 Level_InitWater:
 	move.b	#1,(Water_flag).w
 	move.w	#0,(Two_player_mode).w
-+
+	rts
+
+Level_VDPInit:
 	lea	(VDP_control_port).l,a6
 	move.w	#$8B03,(a6)		; EXT-INT disabled, V scroll by screen, H scroll by line
 	move.w	#$8200|(VRAM_Plane_A_Name_Table/$400),(a6)	; PNT A base: $C000
@@ -4090,8 +4173,11 @@ Level_InitWater:
 +
 	move.w	(Hint_counter_reserve).w,(a6)
 	ResetDMAQueue
+	rts
+
+Level_LoadWaterVars:
 	tst.b	(Water_flag).w	; does level have water?
-	beq.s	Level_LoadPal	; if not, branch
+	beq.s	+	; if not, branch
 	move.w	#$8014,(a6)	; H-INT enabled
 	moveq	#0,d0
 	move.w	(Current_ZoneAndAct).w,d0
@@ -4109,13 +4195,15 @@ Level_InitWater:
 	clr.b	(Water_routine).w	; clear water routine counter
 	clr.b	(Water_fullscreen_flag).w	; clear water movement
 	move.b	#1,(Water_on).w	; enable water
++
+	rts
 ; loc_407C:
-Level_LoadPal:
+Level_LoadWaterPal:
 	tst.b	(Level_Quick_Reset_flag).w
-	bne.w	Level_TtlCard
+	bne.w	+
 	jsr		LoadPal_Character
 	tst.b	(Water_flag).w	; does level have water?
-	beq.s	Level_GetBgm	; if not, branch
+	beq.s	+	; if not, branch
 	moveq	#PalID_HPZ_U,d0	; palette number $15
 	cmpi.b	#hidden_palace_zone,(Current_Zone).w
 	beq.s	Level_WaterPal ; branch if level is HPZ
@@ -4137,24 +4225,28 @@ Level_PalNotCPZ:
 Level_WaterPal:
 	bsr.w	PalLoad_Water_Now	; load underwater palette (with d0)
 	tst.b	(Last_star_pole_hit).w ; is it the start of the level?
-	beq.s	Level_GetBgm	; if yes, branch
+	beq.s	+	; if yes, branch
 	move.b	(Saved_Water_move).w,(Water_fullscreen_flag).w
++	rts
 ; loc_40AE:
 Level_GetBgm:
 	tst.w	(Demo_mode_flag).w
-	bmi.s	++
+	bmi.s	+
 	moveq	#0,d0
 	move.b	(Current_Zone).w,d0
 	lea_	MusicList,a1
 	tst.w	(Two_player_mode).w
 	beq.s	Level_PlayBgm
-	lea_	MusicList2,a1
++	lea_	MusicList2,a1
 ; loc_40C8:
 Level_PlayBgm:
 	move.b	(a1,d0.w),d0		; load from music playlist
 	move.w	d0,(Level_Music).w	; store level music
 	move.b	d0,mQueue+1.w
 	command	Mus_Reset
+	rts
+
+Level_InitTtlCard:
 	tst.b	(Level_Quick_Reset_flag).w
 	bne.w	Level_TtlCard
 	move.l	#Obj_TitleCard,(TitleCard+id).w ; load Obj_TitleCard (level title card) at $FFFFB080
@@ -4197,7 +4289,7 @@ Level_TtlCard:
 	jsrto	(loadZoneBlockMaps).l, JmpTo_loadZoneBlockMaps
 	jsrto	(DrawInitialBG).l, JmpTo_DrawInitialBG
 	tst.b	(Level_Quick_Reset_flag).w
-	bne.w	Level_ChkWater
+	bne.w	+
 	jsr	(loc_402D4).l
 	jsr	(ConvertCollisionArray).l
 	bsr.w	LoadCollisionIndexes
@@ -4209,6 +4301,10 @@ Level_TtlCard:
 	move.b	#1,(Control_Locked).w
 	move.b	#1,(Control_Locked_P2).w
 	move.b	#0,(Level_started_flag).w
++
+	bsr.s	Level_ChkWater
+	bra.s	Level_ClrHUD
+
 Level_ChkWater:
 	tst.b	(Water_flag).w	; does level have water?
 	beq.s	+	; if not, branch
@@ -4222,8 +4318,9 @@ Level_ChkWater:
 	move.l	#Obj_CPZPylon,(CPZPylon+id).w ; load Obj_CPZPylon (CPZ pylon) at $FFFFB340
 +
 	cmpi.b	#oil_ocean_zone,(Current_Zone).w	; check if zone == OOZ
-	bne.s	Level_ClrHUD		; branch if not
+	bne.s	+		; branch if not
 	move.l	#Obj_Oil,(Oil+id).w ; load Obj_Oil (OOZ oil) at $FFFFB380
++	rts
 ; Level_LoadObj: misnomer now
 Level_ClrHUD:
 	moveq	#0,d0
@@ -4314,19 +4411,7 @@ Level_FromCheckpoint:
 	bsr.w	RunPLC_RAM
 	tst.l	(TitleCard_Background+id).w
 	bne.s	-	; loop while the title card background is still loaded
-
-	tst.b	(Level_Quick_Reset_flag).w
-	bne.s	+
-	lea	(TitleCard).w,a1
-	move.b	#$16,TitleCard_ZoneName-TitleCard+routine(a1)
-	move.b	#$2D,TitleCard_ZoneName-TitleCard+anim_frame_duration(a1)
-	move.b	#$16,TitleCard_Zone-TitleCard+routine(a1)
-	move.b	#$2D,TitleCard_Zone-TitleCard+anim_frame_duration(a1)
-	tst.l	TitleCard_ActNumber-TitleCard+id(a1)
-	beq.s	+	; branch if the act number has been unloaded
-	move.b	#$16,TitleCard_ActNumber-TitleCard+routine(a1)
-	move.b	#$2D,TitleCard_ActNumber-TitleCard+anim_frame_duration(a1)
-+	move.b	#0,(Control_Locked).w
+	move.b	#0,(Control_Locked).w
 	move.b	#0,(Control_Locked_P2).w
 	move.b	#1,(Level_started_flag).w
 	move.b	#1,(Screen_redraw_flag).w
@@ -4373,6 +4458,7 @@ TimeAttack_Cancel:
 	beq.s	TimeAttack_Ret
 	jsr		LoadPal_Character
 	jsr		loadZonePalette
+	jsr		Level_LoadWaterPal
 	move.w	#0,(PalCycle_Timer).w
 	move.b	#0,(Level_Quick_Reset_timer).w
 	command	Mus_StopSFX
@@ -4386,11 +4472,83 @@ TimeAttack_PreventLoop:
 	move.b	#0,(Level_Quick_Reset_timer).w
 +	rts
 
+; ||||||||||||||| S U B R O U T I N E |||||||||||||||||||||||||||||||||||||||
+
+LoadSecondaryZoneTiles:
+	moveq	#0,d0
+	move.b	(Current_Zone).w,d0
+	add.w	d0,d0
+	add.w	d0,d0
+	move.w	d0,d1
+	add.w	d0,d0
+	add.w	d1,d0
+	lea	(LevelArtPointers).l,a2
+	lea	(a2,d0.w),a2
+	move.l	4(a2),d0
+	lsr.l	#8,d0
+	lsr.l	#8,d0
+	lsr.l	#8,d0
+	jmp		LoadPLC
+
+ActTransition:
+	move.w	(Apparent_ZoneAndAct).w,(Current_ZoneAndAct).w
+	jsr		Level_LoadArt
+	jsr		LoadSecondaryZoneTiles
+	jsr		loadLevelLayout
+	jsr		LevelSizeLoad_Bounds
+	jsr		Level_CheckInitWater
+	jsr		Level_VDPInit
+	jsr		Level_LoadWaterVars
+	jsr		Level_LoadWaterPal
+	jsr		loadZonePalette
+	jsr		Level_ChkWater
+	;jsr		OscillateNumInit
+	;jsrto	(AniArt_Load).l, JmpTo_AniArt_Load
+	bsr.w	SetLevelEndType
+	clr.b	(Dynamic_Resize_Routine).w ; load level boundaries
+	clr.b	(Rings_manager_routine).w
+	clr.b	(Obj_placement_routine).w
+	clr.b	(CNZ_Bumper_routine).w
+	clr.b	(SlotMachine_Routine).w
+	clr.w	(SlotMachineInUse).w
+	clr.w	(Monitors_Broken).w
+	move.b	#1,(Screen_redraw_flag).w
+
+	moveq	#0,d0
+	moveq	#0,d1
+	move.w	(MainCharacter+x_pos).w,d0
+	move.w	d0,d1
+	divu.w	#128,d0
+	swap	d0
+	addi.w	#128,d0
+	move.w	d0,(MainCharacter+x_pos).w
+	sub.w	d0,d1
+	sub.w	d1,(Camera_X_pos).w
+	sub.w	d1,(Camera_X_pos_last).w
+
+	movem.l	(Camera_RAM).w,d0-d7
+	movem.l	d0-d7,(Camera_RAM_copy).w
+	movem.l	(Scroll_flags).w,d0-d3
+	movem.l	d0-d3,(Scroll_flags_copy).w
+
+	moveq	#0,d0
+	move.w	(Sidekick+x_pos).w,d0
+	move.w	d0,d1
+	divu.w	#128,d0
+	swap	d0
+	addi.w	#128,d0
+	move.w	d0,(Sidekick+x_pos).w
+
+	clr.b	(ActTransition_Flag).w
+	rts
+
 ; ---------------------------------------------------------------------------
 ; Main level loop (when all title card and loading sequences are finished)
 ; ---------------------------------------------------------------------------
 ; loc_4360:
 Level_Iterate:
+	tst.b	(ActTransition_Flag).w
+	bne.w	ActTransition
 	;bsr.w	TimeAttack_Iterate
 	bsr.w	PauseGame
 	move.b	#VintID_Level,(Vint_routine).w
@@ -5358,7 +5516,7 @@ nosignpost macro actid
 
 ; sub_4BD2:
 SetLevelEndType:
-	move.w	#0,(Level_Has_Signpost).w	; set level type to non-signpost
+	move.b	#0,(Level_Has_Signpost).w	; set level type to non-signpost
 	tst.w	(Two_player_mode).w	; is it two-player competitive mode?
 	bne.s	LevelEnd_SetSignpost	; if yes, branch
 	nosignpost.w emerald_hill_zone_act_2
@@ -5375,7 +5533,7 @@ SetLevelEndType:
 
 ; loc_4C40:
 LevelEnd_SetSignpost:
-	move.w	#1,(Level_Has_Signpost).w	; set level type to signpost
+	move.b	#1,(Level_Has_Signpost).w	; set level type to signpost
 +	rts
 ; End of function SetLevelEndType
 
@@ -5384,7 +5542,7 @@ LevelEnd_SetSignpost:
 
 ; sub_4C48:
 CheckLoadSignpostArt:
-	tst.w	(Level_Has_Signpost).w
+	tst.b	(Level_Has_Signpost).w
 	beq.s	+	; rts
 	tst.w	(Debug_placement_mode).w
 	bne.s	+	; rts
@@ -11039,6 +11197,7 @@ loc_8DF4:
 	move.w	LevelSelect2P_LevelOrder(pc,d0.w),d0
 	bmi.s	loc_8E3A
 	move.w	d0,(Current_ZoneAndAct).w
+	move.w	d0,(Apparent_ZoneAndAct).w
 	move.w	#1,(Two_player_mode).w
 	move.b	#GameModeID_Level,(Game_Mode).w ; => Level (Zone play mode)
 	move.b	#0,(Last_star_pole_hit).w
@@ -11344,6 +11503,8 @@ LevelSelect_PressStart:
 ;LevelSelect_SpecialStage:
 	move.b	#GameModeID_SpecialStage,(Game_Mode).w ; => SpecialStage
 	clr.w	(Current_ZoneAndAct).w
+	clr.w	(Apparent_ZoneAndAct).w
+
 	move.b	#3,(Life_count).w
 	move.b	#3,(Life_count_2P).w
 	moveq	#0,d0
@@ -11402,6 +11563,8 @@ LevelSelect_Order:
 LevelSelect_StartZone:
 	andi.w	#$3FFF,d0
 	move.w	d0,(Current_ZoneAndAct).w
+	move.w	d0,(Apparent_ZoneAndAct).w
+
     moveq    #PLCID_Std1,d0
     jsr		RunPLC_ROM
 	move.b	#GameModeID_Level,(Game_Mode).w ; => Level (Zone play mode)
@@ -13586,6 +13749,13 @@ LevelSizeLoad:
 	move.w	d0,(Camera_BG_X_offset).w
 	move.w	d0,(Camera_BG_Y_offset).w
     endif
+	move.w	#(224/2)-16,(Camera_Y_pos_bias).w
+	move.w	#(224/2)-16,(Camera_Y_pos_bias_P2).w
+	move.w	#$1010,(Horiz_block_crossed_flag).w
+	bsr.s	LevelSizeLoad_Bounds
+	bra.w	LevelSizeLoad_Cont
+
+LevelSizeLoad_Bounds:
 	move.w	(Current_ZoneAndAct).w,d0
 	ror.b	#1,d0
 	lsr.w	#4,d0
@@ -13599,10 +13769,7 @@ LevelSizeLoad:
 	; If you remove this instruction, the camera will scroll up until it kills Sonic
 	move.l	d0,(unk_EEC4).w	; unused besides this one write...
 	move.l	d0,(Tails_Min_Y_pos).w
-	move.w	#$1010,(Horiz_block_crossed_flag).w
-	move.w	#(224/2)-16,(Camera_Y_pos_bias).w
-	move.w	#(224/2)-16,(Camera_Y_pos_bias_P2).w
-	bra.w	+
+	rts
 ; ===========================================================================
 ; ----------------------------------------------------------------------------
 ; LEVEL SIZE ARRAY
@@ -13648,7 +13815,7 @@ LevelSize: zoneOrderedTable 2,8	; WrdArr_LvlSize
     zoneTableEnd
 
 ; ===========================================================================
-+
+LevelSizeLoad_Cont:
 	tst.b	(Last_star_pole_hit).w		; was a star pole hit yet?
 	beq.s	+				; if not, branch
 	jsr	(Obj_Starpost_LoadData).l		; load the previously saved data
@@ -14123,8 +14290,12 @@ SwScrl_EHZ:
 -	move.l	d0,(a1)+			; whoever thought using bytes was a bright idea?
 	dbf	d1,-
 
-	move.w	d2,d0
-
+	move.w	(Camera_X_pos_diff).w,d4
+	asr.w	#8,d4
+	move.w	(Camera_BG_X_pos).w,d0
+	add.w	d4,d0	; add x-shift for this frame
+	move.w	d0,(Camera_BG_X_pos).w
+	neg.w	d0
 	move.w	d0,d1
 	asr.w	#1,d1
 	sub.w	d1,d0
@@ -14503,6 +14674,14 @@ SwScrl_HTZ:
 	move.w	d0,d2
 	swap	d0
 	move.w	d2,d0
+	asr.w	#3,d0
+
+	move.w	(Camera_X_pos_diff).w,d4
+	asr.w	#8,d4
+	move.w	(Camera_BG_X_pos).w,d0
+	add.w	d4,d0	; add x-shift for this frame
+	move.w	d0,(Camera_BG_X_pos).w
+	neg.w	d0
 	asr.w	#3,d0
 
 	move.w	#bytesToLcnt($200),d1
@@ -14938,8 +15117,8 @@ SwScrl_MCZ:
 	bne.w	SwScrl_MCZ_2P
 	move.w	(Camera_Y_pos).w,d0
 	move.l	(Camera_BG_Y_pos).w,d3
-	tst.b	(Current_Act).w
-	bne.s	+
+	;tst.b	(Current_Act).w
+	;bne.s	+
 	divu.w	#3,d0
 	subi.w	#$140,d0
 	bra.s	++
@@ -14970,7 +15149,14 @@ SwScrl_MCZ:
 +
 	lea	(TempArray_LayerDef).w,a2
 	lea	$1E(a2),a3
-	move.w	(Camera_X_pos).w,d0
+
+	move.w	(Camera_X_pos_diff).w,d4
+	asr.w	#8,d4
+	move.w	(Camera_BG_X_pos).w,d0
+	add.w	d4,d0	; add x-shift for this frame
+	move.w	d0,(Camera_BG_X_pos).w
+
+;	move.w	(Camera_X_pos).w,d0
 	ext.l	d0
 	asl.l	#4,d0
 	divs.w	#$A,d0
@@ -15340,7 +15526,13 @@ SwScrl_CNZ:
 	lsr.w	#6,d0
 	move.w	d0,(Camera_BG_Y_pos).w
 	move.w	(Camera_BG_Y_pos).w,(Vscroll_Factor_BG).w
-	move.w	(Camera_X_pos).w,d2
+
+	move.w	(Camera_X_pos_diff).w,d4
+	asr.w	#8,d4
+	move.w	(Camera_BG_X_pos).w,d2
+	add.w	d4,d2	; add x-shift for this frame
+	move.w	d2,(Camera_BG_X_pos).w
+
 	bsr.w	sub_D160
 	lea	(SwScrl_CNZ_RowHeights).l,a3
 	lea	(TempArray_LayerDef).w,a2
@@ -15356,7 +15548,7 @@ SwScrl_CNZ:
 	neg.w	d1
 	subq.w	#2,a2
 	move.w	#bytesToLcnt($380),d2
-	move.w	(Camera_X_pos).w,d0
+	move.w	(Camera_BG_X_pos).w,d0
 	neg.w	d0
 	swap	d0
 	move.w	(a2)+,d0
@@ -15912,7 +16104,7 @@ SwScrl_ARZ:
 	lea	6(a2),a3			; Starts at BG scroll row 4
 
 	; Set up the speed of each row (there are 16 rows in total)
-	move.w	(Camera_X_pos).w,d0
+	move.w	(Camera_BG_X_pos).w,d0
 
 	ext.l	d0
 	asl.l	#4,d0
@@ -15948,8 +16140,8 @@ SwScrl_ARZ:
 	; a few instructions later, so all three move at the same speed.
 	; This code seems to pre-date the Simon Wai build, which uses the final's
 	; scrolling.
-	move.w	d1,(a2)		; Set row 1's speed
-	move.w	d1,4(a2)	; Set row 3's speed
+	;move.w	d1,(a2)		; Set row 1's speed
+	;move.w	d1,4(a2)	; Set row 3's speed
 
 	move.w	(Camera_BG_X_pos).w,d0
 	move.w	d0,2(a2)	; Set row 2's speed
@@ -25033,8 +25225,12 @@ Obj_TitleCard_Index:	offsetTable
 Obj_TitleCard_Init:
 	lea	(a0),a1
 	lea	Obj_TitleCard_TitleCardData(pc),a2
-
 	moveq	#(Obj_TitleCard_TitleCardData_End-Obj_TitleCard_TitleCardData)/$A-1,d1
+	cmpi.b	#1,subtype(a0)
+	bne.s	+
+	lea	Obj_TitleCard_TitleCardData_Transition(pc),a2
+	moveq	#(Obj_TitleCard_TitleCardData_Transition_End-Obj_TitleCard_TitleCardData_Transition)/$A-1,d1
++
 -	_move.l	#Obj_TitleCard,id(a1) ; load Obj_TitleCard
 	move.w	#prio(0),priority(a1)
 	move.b	(a2)+,routine(a1)
@@ -25079,6 +25275,15 @@ Obj_TitleCard_TitleCardData:
 	titlecarddata  4, $15, $48,   8, $2A8+(6*8), $168,$120	; bottom yellow part
 	titlecarddata  6, $16,   8, $15,  $80-(6*8),  $F0, $F0	; left red part
 Obj_TitleCard_TitleCardData_End:
+
+Obj_TitleCard_TitleCardData_Transition:
+	titlecarddata  8,   0, $80, $1B, $240, $120, $B8	; zone name
+	titlecarddata $A, $11, $40, $1C,  $28, $148, $D0	; "ZONE"
+	titlecarddata $C, $12, $18, $1C,  $68, $188, $D0	; act number
+	titlecarddata  2,   0,   0,   0,    0,    0,   0	; blue background
+	titlecarddata  4, $15, $48,   8, $2A8+(6*8), $2A8+(6*8),$120	; bottom yellow part
+	titlecarddata  6, $16,   8, $15,  $80-(6*8),  $80-(6*8), $F0	; left red part
+Obj_TitleCard_TitleCardData_Transition_End:
 
 ; ||||||||||||||| S U B R O U T I N E |||||||||||||||||||||||||||||||||||||||
 
@@ -25167,8 +25372,23 @@ Obj_TitleCard_LeftPartIn:	; the red part on the left, coming in
 ; loc_13DDC:
 Obj_TitleCard_ZoneName:		; the name of the zone, coming in
 	jsr	Obj_TitleCard_Wait(pc)
-	move.b	(Current_Zone).w,mapping_frame(a0)
-	bra.s	Obj_TitleCard_MoveTowardsTargetPosition
+	move.b	(Apparent_Zone).w,mapping_frame(a0)
+	bsr.w	Obj_TitleCard_MoveTowardsTargetPosition
+
+	cmpi.b	#1,subtype(a0)
+	bne.s	+
+
+	move.w	x_pixel(a0),d1		; get the X position
+	cmp.w	titlecard_x_target(a0),d1 ; compare with target position
+	bne.s	+			; if it's not reached its target position, branch
+
+	cmpi.w	#-1,(TitleCard_ZoneName+titlecard_leaveflag).w
+	beq.s	+
+	move.w	#-1,(TitleCard_ZoneName+titlecard_leaveflag).w
+	move.b	#$E,(TitleCard_Left+routine).w	; make the left part move offscreen
+	move.w	#20-4,(TitleCard_Left+titlecard_location).w
+
++	rts
 ; ===========================================================================
 ; loc_13DE8:
 Obj_TitleCard_Zone:		; the word "ZONE", coming in
@@ -25178,14 +25398,14 @@ Obj_TitleCard_Zone:		; the word "ZONE", coming in
 ; loc_13DEE:
 Obj_TitleCard_ActNumber:	; the act number, coming in
 	jsr	Obj_TitleCard_Wait(pc)
-	move.b	(Current_Zone).w,d0	; get the current zone
+	move.b	(Apparent_Zone).w,d0	; get the current zone
 	cmpi.b	#sky_chase_zone,d0	; is it Sky Chase?
 	beq.s	BranchTo9_DeleteObject	; if yes, branch
 	cmpi.b	#wing_fortress_zone,d0	; is it Wing Fortress?
 	beq.s	BranchTo9_DeleteObject	; if yes, branch
 	cmpi.b	#death_egg_zone,d0	; is it Death Egg Zone?
 	beq.s	BranchTo9_DeleteObject	; if yes, branch
-	move.b	(Current_Act).w,d1	; get the current act
+	move.b	(Apparent_Act).w,d1	; get the current act
 	addi.b	#$12,d1			; add $12 to it (this is the index of the "1" frame in the mappings)
 	cmpi.b	#metropolis_zone_2,d0	; are we in Metropolis Zone Act 3?
 	bne.s	+			; if not, branch
@@ -25299,10 +25519,23 @@ Obj_TitleCard_BackgroundOut:
 	move.w	titlecard_location(a0),d0
 	subi.w	#$20,d0
 	cmpi.w	#-$30,d0
-	beq.w	BranchTo9_DeleteObject
+	beq.w	Obj_TitleCard_BackgroundOut_Delete
 	move.w	d0,titlecard_location(a0)
 	move.w	d0,titlecard_vram_dest(a0)
 	rts
+
+Obj_TitleCard_BackgroundOut_Delete:
+	lea	(TitleCard).w,a1
+	move.b	#$16,TitleCard_ZoneName-TitleCard+routine(a1)
+	move.b	#$2D,TitleCard_ZoneName-TitleCard+anim_frame_duration(a1)
+	move.b	#$16,TitleCard_Zone-TitleCard+routine(a1)
+	move.b	#$2D,TitleCard_Zone-TitleCard+anim_frame_duration(a1)
+	tst.l	TitleCard_ActNumber-TitleCard+id(a1)
+	beq.s	+	; branch if the act number has been unloaded
+	move.b	#$16,TitleCard_ActNumber-TitleCard+routine(a1)
+	move.b	#$2D,TitleCard_ActNumber-TitleCard+anim_frame_duration(a1)
++
+	jmp		DeleteObject
 ; ===========================================================================
 ; loc_13F18:
 Obj_TitleCard_WaitAndGoAway:
@@ -25328,7 +25561,8 @@ Obj_TitleCard_WaitAndGoAway:
 ; loc_13F44:
 Obj_TitleCard_LoadStandardWaterAndAnimalArt:
 	cmpa.w	#TitleCard_ZoneName,a0	; is this the zone name object?
-	bne.s	+			; if not, just delete the title card
+	bne.s	Obj_TitleCard_Delete	; if not, just delete the title card
+	bsr.s	Obj_TitleCard_Delete
 
 LoadStandardWaterAndAnimalArt:
 	moveq	#PLCID_StdWtr,d0	; load the standard water graphics
@@ -25336,8 +25570,9 @@ LoadStandardWaterAndAnimalArt:
 	moveq	#0,d0
 	move.b	(Current_Zone).w,d0
 	move.b	Animal_PLCTable(pc,d0.w),d0 ; load the animal graphics for the current zone
-	jsrto	(LoadPLC).l, JmpTo3_LoadPLC
-+
+	jmpto	(LoadPLC).l, JmpTo3_LoadPLC
+
+Obj_TitleCard_Delete:
 	bra.w	DeleteObject		; delete the title card object
 ; ===========================================================================
 ;byte_13F62:
@@ -25681,8 +25916,11 @@ loc_14256:
 	sfx	sfx_Switch
 	rts
 ; ===========================================================================
-
 loc_14270:
+	bsr.s	GetNextLevel
+	bra.s	Obj_Results_CheckNextLevel
+
+GetNextLevel:
 	moveq	#0,d0
 	move.b	(Current_Zone).w,d0
 	add.w	d0,d0
@@ -25690,11 +25928,13 @@ loc_14270:
 	add.w	d0,d0
 	lea	LevelOrder(pc),a1
 	tst.w	(Two_player_mode).w
-	beq.s	loc_1428C
+	beq.s	+
 	lea	LevelOrder_2P(pc),a1
-
-loc_1428C:
++
 	move.w	(a1,d0.w),d0
+	rts
+
+Obj_Results_CheckNextLevel:
 	tst.w	d0
 	bpl.s	loc_1429C
 	move.b	#GameModeID_SegaScreen,(Game_Mode).w ; => SegaScreen
@@ -25702,10 +25942,56 @@ loc_1428C:
 ; ===========================================================================
 
 loc_1429C:
+	tst.b	(Option_ActTransitions).w
+	beq.s	+++
+	tst.b	(Level_Has_Signpost).w
+	beq.s	+++
++
+	bsr.s	StartActTransition
+	; Delete all results objects
+	lea	(Dynamic_Object_RAM).w,a1 ; a1=object
+	moveq	#(Dynamic_Object_RAM_End-Dynamic_Object_RAM)/object_size-1,d6 ; run the first $80 objects out of levels
+-
+	lea	next_object(a1),a2 ; load obj address
+	cmpi.l	#Obj_Results,id(a1)
+	bne.s	+
+	jsr		DeleteObject2	
++
+	move.l	a2,a1
+	dbf	d6,-
+	rts
++
 	move.w	d0,(Current_ZoneAndAct).w
 	clr.b	(Last_star_pole_hit).w
 	clr.b	(Last_star_pole_hit_2P).w
 	move.b	#1,(Level_Inactive_flag).w
+	rts
+
+StartActTransition:
+	jsr		GetNextLevel
+	move.w	d0,(Apparent_ZoneAndAct).w
+
+	clr.b	(Last_star_pole_hit).w
+	clr.b	(Last_star_pole_hit_2P).w
+	clr.l	(Timer).w
+	clr.w	(Ring_count).w
+	clr.b	(Extra_life_flags).w
+	move.b	#1,(Update_HUD_timer).w
+
+	; Play music
+	jsr		PlayStageMusic
+
+	; Load title card
+	move.l	a0,(TitleCard+id).w			; Backup object pointer
+	jsr		LoadTitleCardButActuallyJUSTLoadTheTitleCardArt	; Load art
+	jsr		loadLevelLayout
+	move.l	(TitleCard+id).w,a0			; Restore object pointer
+	move.l	#Obj_TitleCard,(TitleCard+id).w ; load Obj_TitleCard (level title card) at $FFFFB080
+	move.b	#1,(TitleCard+subtype).w ; load Obj_TitleCard (level title card) at $FFFFB080
+
+	; Unlock right screen bound
+	addi.w	#128*16,(Camera_Max_X_pos).w
+	addi.w	#128*16,(Tails_Max_X_pos).w
 	rts
 ; ===========================================================================
 
@@ -26732,7 +27018,7 @@ loc_15714: ; Draw level?
 	move.w	d1,d4
 	moveq	#-$30,d5
 	moveq	#$1F,d6
-	bsr.w	DrawBlockRow
+	jsr 	DrawBlockRow
 	movem.l	(sp)+,d4-d6
 	addi.w	#$10,d4
 	dbf	d6,-
@@ -26751,7 +27037,7 @@ loc_15758:
 	move.w	d1,d4
 	moveq	#-$30,d5
 	moveq	#$1F,d6
-	bsr.w	DrawBlockRow
+	jsr		DrawBlockRow
 	movem.l	(sp)+,d4-d6
 	addi.w	#$10,d4
 	dbf	d6,-
@@ -26868,6 +27154,52 @@ Off_TitleCardLetters:
 	dc.b TitleCardLetters_ARZ - TitleCardLetters	; F
 	dc.b TitleCardLetters_SCZ - TitleCardLetters	; 10
 	even
+
+; ===========================================================================
+
+LoadTitleCard0_2:
+	move.l	#PLCID_TitleCard,d0
+	jsr		LoadPLC
+
+	lea	(Level_Layout).w,a4
+	lea	(ArtNem_TitleCard2).l,a0
+	jmpto	(NemDecToRAM).l, JmpTo_NemDecToRAM
+; ===========================================================================
+; loc_157D2:
+LoadTitleCardButActuallyJUSTLoadTheTitleCardArt:
+	bsr.s	LoadTitleCard0_2
+	moveq	#0,d0
+	move.b	(Current_Zone).w,d0
+	move.b	Off_TitleCardLetters(pc,d0.w),d0
+	lea	TitleCardLetters(pc),a0
+	lea	(a0,d0.w),a0
+	move.l	#vdpComm(tiles_to_bytes(ArtTile_LevelName),VRAM,WRITE),d0
+
+	move	#$2700,sr
+	lea	(Level_Layout).w,a1
+	lea	(VDP_data_port).l,a6
+	move.l	d0,4(a6)
+
+loc_157FE_2:
+	moveq	#0,d0
+	move.b	(a0)+,d0
+	bmi.s	loc_1581A_2
+	lsl.w	#5,d0
+	lea	(a1,d0.w),a2
+	moveq	#0,d1
+	move.b	(a0)+,d1
+	lsl.w	#3,d1
+	subq.w	#1,d1
+
+loc_15812_2:
+	move.l	(a2)+,(a6)
+	dbf	d1,loc_15812_2
+	bra.s	loc_157FE_2
+; ===========================================================================
+
+loc_1581A_2:
+	move	#$2300,sr
+	rts
 
  ; temporarily remap characters to title card letter format
  ; Characters are encoded as Aa, Bb, Cc, etc. through a macro
@@ -30917,6 +31249,7 @@ ObjPtr_ContinueText:
 ObjPtr_ContinueIcons:	dc.l Obj_ContinueText		; $DA ; Continue text
 ObjPtr_ContinueChars:	dc.l Obj_ContinueChars		; $DB ; Sonic lying down or Tails nagging (continue screen)
 ObjPtr_RingPrize:	dc.l Obj_RingPrize		; $DC ; Ring prize from Casino Night Zone
+ObjPtr_ActTransition:	dc.l Obj_ActTransition		; $DD ; Act transition trigger
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
 ; Single object loading subroutine
@@ -31906,6 +32239,7 @@ Obj_Signpost:
 Obj_Signpost_Index:	offsetTable
 		offsetTableEntry.w Obj_Signpost_Init	; 0
 		offsetTableEntry.w Obj_Signpost_Main	; 2
+		offsetTableEntry.w Obj_Signpost_Hit		; 4
 ; ===========================================================================
 ; loc_191DC: Obj_0D_sub_0:
 Obj_Signpost_Init:
@@ -31944,19 +32278,26 @@ loc_1922C:
 
 ; loc_1924C: Obj_0D_sub_2:
 Obj_Signpost_Main:
-	tst.b	(Update_HUD_timer).w
-	beq.w	loc_192D6
 	lea	(MainCharacter).w,a1 ; a1=character
 	move.w	x_pos(a1),d0
 	sub.w	x_pos(a0),d0
-	bcs.s	loc_192D6
+	bcs.w	loc_192D6
 	cmpi.w	#$20,d0
 	bhs.s	loc_192D6
 	sfx	sfx_Signpost	; play spinning sound
 	clr.b	(Update_HUD_timer).w
+	move.w	(Camera_Max_X_pos).w,(Camera_Min_X_pos).w	; lock screen
+	cmpi.b	#2,(Option_ActTransitions).w
+	bne.s	+
+	
+	jsr		LoadBonusValues
+	
+	jsr		StartActTransition
+
++
+	addq.b	#2,routine(a0) ; => Obj_Signpost_Hit
 	move.w	#1,anim(a0)
 	move.w	#0,Obj_Signpost_spinframe(a0)
-	move.w	(Camera_Max_X_pos).w,(Camera_Min_X_pos).w	; lock screen
 	move.b	#2,routine_secondary(a0) ; => Obj_Signpost_Main_State2
 	cmpi.b	#$C,(Loser_Time_Left).w
 	bhi.s	loc_192A0
@@ -31980,6 +32321,9 @@ loc_192BC:
 ; ---------------------------------------------------------------------------
 
 loc_192D6:
+	rts
+
+Obj_Signpost_Hit:
 	tst.w	(Two_player_mode).w
 	beq.s	loc_19350
 	tst.b	(Update_HUD_timer_2P).w
@@ -32086,10 +32430,13 @@ Obj_Signpost_RingSparklePositions:
 Obj_Signpost_Main_State3:
 	tst.w	(Debug_placement_mode).w
 	bne.w	return_194D0
+	cmpi.b	#2,(Option_ActTransitions).w
+	beq.w	return_194D0
 	btst	#1,(MainCharacter+status).w
 	bne.s	loc_19434
 	move.b	#1,(Control_Locked).w
 	move.w	#(button_right_mask<<8)|0,(Ctrl_1_Logical).w
+
 loc_19434:
 	; This check here is for S1's Big Ring, which would set Sonic's Object ID to 0
 	tst.l	(MainCharacter+id).w
@@ -32104,8 +32451,16 @@ loc_1944C:
 	move.b	#0,routine_secondary(a0) ; => Obj_Signpost_Main_StateNull
 ;loc_19452:
 Load_EndOfAct:
+	cmpi.b	#2,(Option_ActTransitions).w
+	bne.s	+
+	tst.b	(Level_Has_Signpost).w
+	beq.s	+
+	rts
++
 	lea	(MainCharacter).w,a1 ; a1=character
-	clr.b	status_secondary(a1)
+	bclr	#status_sec_isInvincible,status_secondary(a1)
+	bclr	#status_sec_hasSpeedShoes,status_secondary(a1)
+	command	mus_ShoesOff		; Slow down tempo
 	clr.b	(Update_HUD_timer).w
 	bsr.w	SingleObjLoad
 	bne.s	+
@@ -32121,6 +32476,11 @@ Load_EndOfAct:
 	moveq	#PLCID_ResultsKnuckles,d0
 +
 	jsr	(LoadPLC2).l
+	bsr.s	LoadBonusValues
+	music	mus_GotThroughAct
+	rts
+
+LoadBonusValues:
 	move.b	#1,(Update_Bonus_score).w
 	moveq	#0,d0
 	move.b	(Timer_minute).w,d0
@@ -32145,7 +32505,6 @@ Load_EndOfAct:
 	bne.s	+
 	move.w	#5000,(Bonus_Countdown_3).w
 +
-	music	mus_GotThroughAct
 
 return_194D0:
 	rts
@@ -32254,6 +32613,38 @@ Obj_Signpost_MapRUnc_196EE:	BINCLUDE "mappings/spriteDPLC/Obj_Signpost.bin"
 
 
 
+; ----------------------------------------------------------------------------
+; Object DD - Act transition trigger
+; ----------------------------------------------------------------------------
+
+Obj_ActTransition:
+	lea	(MainCharacter).w,a1 ; a1=character
+	move.w	x_pos(a1),d0
+	sub.w	x_pos(a0),d0
+	bcs.s	+
+	cmpi.w	#$20,d0
+	bhs.s	+
+
+	cmpi.b	#1,subtype(a0)
+	beq.s	Obj_ActTransition_BGReset
+
+	move.b	#1,(ActTransition_Flag).w
+	jmp		DeleteObject
++
+	bra.w	MarkObjGone
+	rts
+
+Obj_ActTransition_BGReset:
+	move.w	(Camera_X_pos).w,(Camera_Min_X_pos).w
+	clr.l	(Camera_BG_X_pos).w
+	clr.l	(Camera_ARZ_BG_X_pos).w
+
+	jmp		DeleteObject
++
+	bra.w	MarkObjGone
+	rts
+
+; ===========================================================================
 
 ; ---------------------------------------------------------------------------
 ; Solid object subroutines (includes spikes, blocks, rocks etc)
@@ -70394,6 +70785,7 @@ Obj_Tornado_animate:
 Obj_Tornado_SCZ_Finished:
 	bsr.w	Obj_Tornado_Deactivate_level
 	move.w	#wing_fortress_zone_act_1,(Current_ZoneAndAct).w
+	move.w	#wing_fortress_zone_act_1,(Apparent_ZoneAndAct).w
 	bra.s	Obj_Tornado_animate
 ; ===========================================================================
 ; loc_3A89A:
@@ -70723,6 +71115,7 @@ byte_3AC2A:
 ; loc_3AC40:
 Obj_Tornado_Start_DEZ:
 	move.w	#death_egg_zone_act_1,(Current_ZoneAndAct).w
+	move.w	#death_egg_zone_act_1,(Apparent_ZoneAndAct).w
 ; loc_3AC46:
 Obj_Tornado_Deactivate_level:
 	move.b	#1,(Level_Inactive_flag).w
@@ -80946,6 +81339,7 @@ PLCptr_KnucklesLife:	offsetTableEntry.w PlrList_KnucklesLife
 PLCptr_Std2Knuckles:	offsetTableEntry.w PlrList_Std2Knuckles
 PLCptr_ResultsKnuckles:	offsetTableEntry.w PlrList_ResultsKnuckles
 PLCptr_SignpostKnuckles:	offsetTableEntry.w PlrList_SignpostKnuckles
+PLCptr_TitleCard:	offsetTableEntry.w PlrList_TitleCard
 
 ; macro for a pattern load request list header
 ; must be on the same line as a label that has a corresponding _End label later
@@ -81922,7 +82316,9 @@ PlrList_ResultsTails_Dup: plrlistheader
 PlrList_ResultsTails_Dup_End
     endif
 
-
+PlrList_TitleCard: plrlistheader
+	plreq ArtTile_ArtNem_TitleCard, ArtNem_TitleCard
+PlrList_TitleCard_End
 
 ;---------------------------------------------------------------------------------------
 ; Curve and resistance mapping

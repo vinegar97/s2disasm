@@ -101,6 +101,9 @@ Txt_Extended:			menutxt "           EXTENDED"
 Txt_InvincShields:		menutxt "INVINC. SHIELDS    "
 Txt_SuperMusic:			menutxt "SUPER MUSIC        "
 
+Txt_ActTransitions:		menutxt "ACT TRANSITIONS    "
+Txt_Instant:			menutxt "            INSTANT"
+
 ; =============================================================================
 
 MenuItemLabel 		= 2
@@ -212,6 +215,11 @@ TxtList_Shields:
 	dc.l Txt_ElectricOnly
 	dc.l Txt_BubbleOnly
 
+TxtList_ActTransitions:
+	dc.l Txt_Off
+	dc.l Txt_On
+	dc.l Txt_Instant
+
 ; =============================================================================
 
 OptionsMenu_Main:
@@ -285,11 +293,13 @@ OptionsMenu_Val_SuperMusic:   		menuitemdatavalue	1,          Option_SuperMusic,
 ; =============================================================================
 
 OptionsMenu_Level:
-	dc.w 1 ; max index
+	dc.w 2 ; max index
 	menuitemdata MenuItemBack,	Txt_Back,               OptionsMenu_Main
 	menuitemdata MenuItemValue, Txt_Shields,			OptionsMenu_Val_Shields
+	menuitemdata MenuItemValue, Txt_ActTransitions,		OptionsMenu_Val_ActTransitions
 
-OptionsMenu_Val_Shields:   menuitemdatavalue	6,      Option_Shields,		TxtList_Shields
+OptionsMenu_Val_Shields:   		menuitemdatavalue	6,      Option_Shields,			TxtList_Shields
+OptionsMenu_Val_ActTransitions: menuitemdatavalue	2,      Option_ActTransitions,	TxtList_ActTransitions
 
 ; =============================================================================
 

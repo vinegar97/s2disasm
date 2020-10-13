@@ -1,6 +1,9 @@
 ; >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 ; Equates section - Names for variables.
 
+SRAM = $200001
+SRAM_Write = $A130F1
+
 ; ---------------------------------------------------------------------------
 ; size variables - you'll get an informational error if you need to change these...
 ; they are all in units of bytes
@@ -559,6 +562,7 @@ PLCID_KnucklesLife =	id(PLCptr_KnucklesLife)
 PLCID_Std2Knuckles =	id(PLCptr_Std2Knuckles)
 PLCID_ResultsKnuckles =	id(PLCptr_ResultsKnuckles)
 PLCID_SignpostKnuckles =	id(PLCptr_SignpostKnuckles)
+PLCID_TitleCard =	id(PLCptr_TitleCard)
 
 ; 2P VS results screens
 offset := TwoPlayerResultsPointers
@@ -879,7 +883,7 @@ Camera_BG_X_offset:		ds.w 1		; Used to control background scrolling in X in WFZ 
 Camera_BG_Y_offset:		ds.w 1		; Used to control background scrolling in Y in WFZ ending and HTZ screen shake
 HTZ_Terrain_Delay:		ds.w 1		; During HTZ screen shake, this is a delay between rising and sinking terrain during which there is no shaking
 HTZ_Terrain_Direction:		ds.b 1		; During HTZ screen shake, 0 if terrain/lava is rising, 1 if lowering
-				ds.b 1
+ActTransition_Flag:				ds.b 1
 Vscroll_Factor_P2_HInt:		ds.l 1
 Camera_X_pos_copy:		ds.l 1
 Camera_Y_pos_copy:		ds.l 1
@@ -1165,12 +1169,11 @@ Debug_Accel_Timer:		ds.b 1
 Debug_Speed:			ds.b 1
 Vint_runcount:			ds.l 1
 
-Apparent_zone_and_act:
-Current_zone_and_act:
+Apparent_ZoneAndAct:
+Apparent_Zone:			ds.b 1
+Apparent_Act:			ds.b 1
 Current_ZoneAndAct:				; 2 bytes
-Apparent_zone:
 Current_Zone:			ds.b 1		; 1 byte
-Apparent_act:
 Current_Act:			ds.b 1		; 1 byte
 Life_count:			ds.b 1
 				ds.b 1
@@ -1343,7 +1346,8 @@ Got_Emeralds_array:		ds.b 7		; 7 bytes
 Super_Emerald_count:			ds.b 1
 Next_Extra_life_score:		ds.l 1
 Next_Extra_life_score_2P:	ds.l 1
-Level_Has_Signpost:		ds.w 1		; 1 = signpost, 0 = boss or nothing
+Level_Has_Signpost:		ds.b 1		; 1 = signpost, 0 = boss or nothing
+						ds.b 1
 Signpost_prev_frame:		ds.b 1
 				ds.b 1		; $FFFFFFCB ; seems unused
 Camera_Min_Y_pos_Debug_Copy:	ds.w 1
@@ -1392,10 +1396,13 @@ Option_CameraStyle:		ds.b 1; 0 = normal, 1 = extended, 2 = full scd
 Option_SuperMusic:		ds.b 1 ; 0 = on
 Option_InvincShields:	ds.b 1
 
-Options_RAM_End:
+Option_ActTransitions:	ds.b 1
+						ds.b 1
 
 Option_Emulator_Scaling:	ds.b 1
 Option_Emulator_MirrorMode:	ds.b 1
+
+Options_RAM_End:
 
 Save_pointer:				ds.l	1
 Saved_data:					ds.b	$54
