@@ -33422,7 +33422,17 @@ loc_19E30:
 	bset	d6,status(a0)
 	bclr	#1,status(a1)
 	beq.s	return_19E8E
-	
+
+	; Hardcoded exception for springs to prevent dropdashing on them
+	cmpi.l	#Obj_Spring,id(a0)
+	beq.s	+
+	cmpi.l	#Obj_PipeExitSpring,id(a0)
+	beq.s	+
+	bra.s	++
++
+	clr.b	double_jump_flag(a1)
++
+
 	move.l	a0,-(sp)
 	movea.l	a1,a0
 	move.w	a0,d1
@@ -33430,6 +33440,7 @@ loc_19E30:
 	bne.s	loc_19E76
 	cmpi.w	#2,(Player_mode).w
 	beq.s	loc_19E76
+
 	jsr	(Sonic_ResetOnFloor_Part2).l
 	jsr	(Sonic_ResetOnFloor_Ability).l
 	bra.s	loc_19E7C

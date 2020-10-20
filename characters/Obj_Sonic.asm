@@ -221,18 +221,19 @@ loc_10DEC:
 		move.l	#0,(a2)+
 		dbf	d0,loc_10DEC
 		move.w	#0,(Pos_table_index).w
+		rts
 
 Reset_Player_Position_ArrayP2:
 		;tst.w	(Competition_mode).w	; are we in Competition mode?
 		;beq.s	locret_10E24		; if not, branch
-		;lea	(Stat_table).w,a1
-		;move.w	#$3F,d0
+		lea	(Stat_table).w,a1
+		move.w	#$3F,d0
 
-;loc_10E12:
-;		move.w	x_pos(a0),(a1)+
-;		move.w	y_pos(a0),(a1)+
-;		dbf	d0,loc_10E12
-;		move.w	#0,(Pos_table_index_P2).w
+loc_10E12:
+		move.w	x_pos(a0),(a1)+
+		move.w	y_pos(a0),(a1)+
+		dbf	d0,loc_10E12
+		move.w	#0,(Pos_table_index_P2).w
 
 locret_10E24:
 		rts
@@ -401,7 +402,7 @@ Sonic_AirCurl:
 	cmpi.l	#Obj_Knuckles,id(a0)
 	bne.s	+
 	clr.b	double_jump_flag(a0)
-	clr.b	glidemode(a0)
+	move.b	#20,glidemode(a0)
 +
 	rts
 ; ===========================================================================
@@ -484,8 +485,12 @@ Sonic_DropDash:
 	rts
 
 Sonic_DropDashCont:
+	move.b	status_secondary(a0),d0
+	andi.b	#Status_FireShield_mask|Status_LtngShield_mask|Status_BublShield_mask,d0 ; got a shield?
+	bne.w	+ ; yep? begone
+
 	tst.b	double_jump_flag(a0)	; Have we started a double jump?
-	beq.s	++						; If not, stop
+	beq.s	+						; If not, stop
 
 	move.b	(Ctrl_1_Held_Logical).w,d0
 	andi.b	#button_B_mask|button_C_mask|button_A_mask,d0 ; is a jump button pressed?
@@ -494,21 +499,16 @@ Sonic_DropDashCont:
 	tst.b	glidemode(a0)		; Has the timer hit 0?
 	beq.s	+					; If so, branch
 	subi.b	#1,glidemode(a0)
-	rts
-
-+
-	cmpi.b	#2,double_jump_flag(a0)
-	beq.s	+
+	tst.b	glidemode(a0)		; Has the timer hit 0?
+	bne.s	+					; If not, branch
 	sfx		sfx_DropDash
-	move.b	#2,double_jump_flag(a0)
 	move.b	#AniIDSonAni_DropDash,anim(a0)
 +
 	rts
 
 Sonic_DropDashCancel:
-	cmpi.b	#1,double_jump_flag(a0)
+	cmpi.b	#20,glidemode(a0)
 	beq.s	+
-	move.b	#1,double_jump_flag(a0)
 	move.b	#20,glidemode(a0)
 	move.b	#AniIDSonAni_Roll,anim(a0)
 +
@@ -1608,7 +1608,6 @@ Sonic_InstaShieldCont:
 	btst	#Status_Shield,status_secondary(a0)	; does Sonic have an S2 shield (The Elementals were already filtered out at this point)?
 	bne.s	locret_11A14				; if yes, branch
 	move.b	#1,(Shield+anim).w
-+
 	bclr	#Status_RollJump,status(a0)
 	move.b	#1,double_jump_flag(a0)
 	sfx		sfx_InstaAttack			; play Insta-Shield sound
@@ -2159,7 +2158,7 @@ Sonic_DoLevelCollision:
 +
 	bsr.w	Sonic_CheckFloor
 	tst.w	d1
-	bpl.s	return_1AF8A
+	bpl.w	return_1AF8A
 	move.b	y_vel(a0),d2
 	addq.b	#8,d2
 	neg.b	d2
@@ -2371,7 +2370,6 @@ Sonic_ResetOnFloor_Part3:
 	move.b	#0,jumping(a0)
 	move.w	#0,(Chain_Bonus_counter).w
 	move.b	#0,flip_angle(a0)
-	move.b	#0,flip_turned(a0)
 	move.b	#0,flips_remaining(a0)
 	move.w	#0,(Sonic_Look_delay_counter).w
 
@@ -2386,6 +2384,7 @@ Sonic_ResetOnFloor_Ability:
 	bsr.s	Sonic_DropDashRelease
 	bsr.w	BubbleShield_Bounce
 	clr.b	double_jump_flag(a0)
+	move.b	#0,flip_turned(a0)
 	rts
 
 Sonic_DropDashRelease:
@@ -2399,8 +2398,15 @@ Sonic_DropDashRelease_Start:
 	cmpi.l	#Obj_Sonic,id(a0)
 	bne.w	Sonic_DropDashRelease_Ret
 
-	cmpi.b	#2,double_jump_flag(a0)
+	tst.b	double_jump_flag(a0)
+	beq.w	Sonic_DropDashRelease_Ret
+
+	tst.b	glidemode(a0)
 	bne.w	Sonic_DropDashRelease_Ret
+
+	move.b	status_secondary(a0),d0
+	andi.b	#Status_FireShield_mask|Status_LtngShield_mask|Status_BublShield_mask,d0 ; got a shield?
+	bne.w	Sonic_DropDashRelease_Ret ; yep? begone
 
 	move.w	#$800,d0	; [ dashspeed = 0x80000 ]
 	move.w	#$C00,d1	; [ maxspeed = 0xC0000 ]
