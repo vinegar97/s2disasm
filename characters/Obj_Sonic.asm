@@ -1037,19 +1037,20 @@ Sonic_SetRollSpeeds:
 	move.w	d0,y_vel(a0)	; set y velocity based on $14 and angle
 	muls.w	inertia(a0),d1
 	asr.l	#8,d1
-	; HJW: Mania doesn't cap this, however things obviously get buggy w/o it
-	; However if there's gonna be a cap anyway why isn't it global?
-	; Whatever
+	; HJW: Mania caps this higher
+	move.w	#$1000,d0
 	cmpi.b	#3,(Option_PhysicsStyle).w
-	bge.s	++
-
-	cmpi.w	#$1000,d1
-	ble.s	+
-	move.w	#$1000,d1	; limit Sonic's speed rolling right
+	blt.s	+
+	move.w	#$1800,d0
 +
-	cmpi.w	#-$1000,d1
+	cmp.w	d0,d1
+	ble.s	+
+	move.w	d0,d1	; limit Sonic's speed rolling right
++
+	neg.w	d0
+	cmp.w	d0,d1
 	bge.s	+
-	move.w	#-$1000,d1	; limit Sonic's speed rolling left
+	move.w	d0,d1	; limit Sonic's speed rolling left
 +
 	move.w	d1,x_vel(a0)	; set x velocity based on $14 and angle
 	bra.w	Obj_Sonic_CheckWallsOnGround
@@ -1261,8 +1262,13 @@ Sonic_Roll:
     endif
 
 	cmpi.b	#2,(Option_PhysicsStyle).w
-	blt.s	Sonic_Roll_NoSlowDucking
+	beq.s	Sonic_Roll_SlowDucking
 
+	cmpi.b	#4,(Option_PhysicsStyle).w
+	beq.s	Sonic_Roll_SlowDucking
+	bra.s	Sonic_Roll_NoSlowDucking
+
+Sonic_Roll_SlowDucking:
 	btst	#button_down,(Ctrl_1_Held_Logical).w ; is down being pressed?
 	beq.s   Obj_Sonic_NoRoll               ; if not, branch
 	move.b	(Ctrl_1_Held_Logical).w,d0

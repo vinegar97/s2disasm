@@ -150,6 +150,7 @@ TxtList_PhysicsStyle:
 	dc.l Txt_S1
 	dc.l Txt_S3K
 	dc.l Txt_Mania
+	dc.l Txt_Joey
 
 TxtList_CharStyle:
 	dc.l Txt_Original
@@ -251,7 +252,7 @@ OptionsMenu_Gameplay:
 	menuitemdata MenuItemValue,         Txt_InvincShields,      OptionsMenu_Val_InvincShields
 	menuitemdata MenuItemSub,			Txt_LevelOptions,       OptionsMenu_Level
 
-OptionsMenu_Val_Physics: 	        menuitemdatavalue	3,          Option_PhysicsStyle,    TxtList_PhysicsStyle
+OptionsMenu_Val_Physics: 	        menuitemdatavalue	4,          Option_PhysicsStyle,    TxtList_PhysicsStyle
 OptionsMenu_Val_AirCurling:         menuitemdatavalue	1,          Option_AirCurling,      TxtList_OffOn
 OptionsMenu_Val_InvincShields:      menuitemdatavalue	1,          Option_InvincShields,   TxtList_OffOn
 
