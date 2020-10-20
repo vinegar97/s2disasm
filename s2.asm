@@ -34625,7 +34625,8 @@ Obj_SplashAni_Dash:	dc.b   1, $A, $B, $C, $D, $E, $F,$10,$FF
 	rev02even
 Obj_SplashAni_Skid:	dc.b   3,$11,$12,$13,$14,$FC
 	even
-Obj_SplashAni_Dropdash:	dc.b   1, $16, $17,$17, $18, $19, $1A, $1B,$1C,$1D,$FD,0
+Obj_SplashAni_Dropdash:	dc.b   2, $16, $17, $18, $19,$19
+	dc.b $1A,$1A, $1B,$1B,$1B, $1C,$1C,$1C,$1C, $1D,$1D,$1D,$1D, $FD,0
 	even
 ; -------------------------------------------------------------------------------
 ; sprite mappings
