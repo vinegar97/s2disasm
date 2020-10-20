@@ -104,6 +104,8 @@ Txt_SuperMusic:			menutxt "SUPER MUSIC        "
 Txt_ActTransitions:		menutxt "ACT TRANSITIONS    "
 Txt_Instant:			menutxt "            INSTANT"
 
+Txt_Credits:			menutxt "CREDITS            "
+
 ; =============================================================================
 
 MenuItemLabel 		= 2
@@ -113,6 +115,7 @@ MenuItemSound 		= 8
 MenuItemValuePlayer = 10
 MenuItemValue2P 	= 12
 MenuItemBack 	    = 14
+MenuItemCredits 	= 16
 
 menuitemdata_len	= 10
 menuitemdata macro type,txtlabel,otherdataptr
@@ -229,8 +232,8 @@ OptionsMenu_Main:
 	menuitemdata MenuItemSound, 		Txt_SoundTest,          OptionsMenu_Val_Sound
 	menuitemdata MenuItemSub,			Txt_GameplayOptions,    OptionsMenu_Gameplay
 	menuitemdata MenuItemSub,			Txt_StyleOptions,       OptionsMenu_Style
-	menuitemdata MenuItemSub,			Txt_LevelOptions,       OptionsMenu_Level
 	menuitemdata MenuItemSub,			Txt_SystemOptions,		OptionsMenu_Emulator
+	menuitemdata MenuItemCredits,		Txt_Credits,			0
 
 OptionsMenu_Val_Player: 	        menuitemdatavalue	4,          Player_option_byte,     TxtList_CharacterUE
 OptionsMenu_Val_2P:			        menuitemdatavalue	1,          Option_2PItems,         TxtList_2PItems
@@ -239,13 +242,14 @@ OptionsMenu_Val_Sound:		        menuitemdatavalue	SFXlast, 	Sound_test_sound_byt
 ; =============================================================================
 
 OptionsMenu_Gameplay:
-	dc.w 5 ; max index
+	dc.w 6 ; max index
 	menuitemdata MenuItemBack,	        Txt_Back,               OptionsMenu_Main
 	menuitemdata MenuItemSub,	        Txt_SonicOptions,       OptionsMenu_GameplaySonic
 	menuitemdata MenuItemSub,	        Txt_TailsOptions,       OptionsMenu_GameplayTails
 	menuitemdata MenuItemValue,         Txt_PhysicsStyle,       OptionsMenu_Val_Physics
 	menuitemdata MenuItemValue,         Txt_AirCurling,         OptionsMenu_Val_AirCurling
 	menuitemdata MenuItemValue,         Txt_InvincShields,      OptionsMenu_Val_InvincShields
+	menuitemdata MenuItemSub,			Txt_LevelOptions,       OptionsMenu_Level
 
 OptionsMenu_Val_Physics: 	        menuitemdatavalue	3,          Option_PhysicsStyle,    TxtList_PhysicsStyle
 OptionsMenu_Val_AirCurling:         menuitemdatavalue	1,          Option_AirCurling,      TxtList_OffOn
@@ -294,7 +298,7 @@ OptionsMenu_Val_SuperMusic:   		menuitemdatavalue	1,          Option_SuperMusic,
 
 OptionsMenu_Level:
 	dc.w 2 ; max index
-	menuitemdata MenuItemBack,	Txt_Back,               OptionsMenu_Main
+	menuitemdata MenuItemBack,	Txt_Back,               OptionsMenu_Gameplay
 	menuitemdata MenuItemValue, Txt_Shields,			OptionsMenu_Val_Shields
 	menuitemdata MenuItemValue, Txt_ActTransitions,		OptionsMenu_Val_ActTransitions
 

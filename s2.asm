@@ -12112,6 +12112,7 @@ EndingSequence:
 	move.w	(VDP_Reg1_val).w,d0
 	ori.b	#$40,d0
 	move.w	d0,(VDP_control_port).l
+EndgameCredits_Loop:
 -
 	move.b	#VintID_Ending,(Vint_routine).w
 	jsr		WaitForVint

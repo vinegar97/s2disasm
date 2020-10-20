@@ -123,6 +123,7 @@ OptionsScreen_GetValTextPtr_Index:	offsetTable
 	offsetTableEntry.w	OptionsScreen_GetValTextPtr_MenuItemValue ; 10 (MenuItemValuePlayer)
 	offsetTableEntry.w	OptionsScreen_GetValTextPtr_MenuItemValue ; 12 (MenuItemValue2P)
 	offsetTableEntry.w	OptionsScreen_GetValTextPtr_Null ; 14 (MenuItemBack)
+	offsetTableEntry.w	OptionsScreen_GetValTextPtr_Null ; 16 (MenuItemCredits)
 
 OptionsScreen_GetValTextPtr_Null:
 	move.l	#Txt_Empty,a1
@@ -201,6 +202,7 @@ OptionsScreen_Input_Index:	offsetTable
 	offsetTableEntry.w	OptionsScreen_Input_MenuItemValuePlayer ; 10 (MenuItemValuePlayer)
 	offsetTableEntry.w	OptionsScreen_Input_MenuItemValue2P ; 12 (MenuItemValue2P)
 	offsetTableEntry.w	OptionsScreen_Input_MenuItemBack ; 14 (MenuItemBack)
+	offsetTableEntry.w	OptionsScreen_Input_MenuItemCredits ; 16 (MenuItemCredits)
 
 OptionsScreen_Input_Null:
 	rts
@@ -321,6 +323,18 @@ OptionsScreen_Input_MenuItemSound:
 	lea	(Level_select_flag).w,a1	; Also Slow_motion_flag
 	moveq	#0,d2	; flag to tell the routine to enable the continues cheat
 	bsr.w	CheckCheats
++
+	rts
+
+OptionsScreen_Input_MenuItemCredits:
+	move.b	(Ctrl_1_Press).w,d0
+	or.b	(Ctrl_2_Press).w,d0
+	btst	#button_start,d0
+	beq.s	+
+	move.b	#GameModeID_EndingSequence,(Game_Mode).w
+	clr.b	(Ending_PalCycle_flag).w
+	move.b	#1,(Credits_Trigger).w
+	jmp		EndgameCredits_Loop
 +
 	rts
 
