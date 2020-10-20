@@ -211,14 +211,14 @@ Sonic_RecordPos:
 Reset_Player_Position_Array:
 		cmpa.w	#MainCharacter,a0			; is object player 1?
 		bne.s	Reset_Player_Position_ArrayP2	; if not, branc
-		lea	(Pos_table).w,a1
-		lea	(Stat_table).w,a2
+		lea	(Pos_table).w,a5
+		lea	(Stat_table).w,a6
 		move.w	#$3F,d0
 
 loc_10DEC:
-		move.w	x_pos(a0),(a1)+			; write location to pos_table
-		move.w	y_pos(a0),(a1)+
-		move.l	#0,(a2)+
+		move.w	x_pos(a0),(a5)+			; write location to pos_table
+		move.w	y_pos(a0),(a5)+
+		move.l	#0,(a6)+
 		dbf	d0,loc_10DEC
 		move.w	#0,(Pos_table_index).w
 		rts
@@ -2509,24 +2509,19 @@ Sonic_DropDashRelease_ApplyVel:
 	move.w	d0,ground_vel(a0)
 
 Sonic_DropDashRelease_Release:
-	; Hack to prevent crash on bridge (????)
-	btst	#3,status(a0)	; check 'on object' bit
-	bne.s	+
 	move.w	#$1000,(Horiz_scroll_delay_val).w
-	bsr.w	Reset_Player_Position_Array
-+
+	;bsr.w	Reset_Player_Position_Array
 	move.b	#$E,y_radius(a0)
 	move.b	#7,x_radius(a0)
 	move.b	#AniIDSonAni_Roll,anim(a0)
 	addq.w	#5,y_pos(a0)	; add the difference between Sonic's rolling and standing heights
 	bset	#Status_Roll,status(a0)
 
-	move.w	#Sonic_Dust,a2
-	move.b	#4,anim(a2)
-	move.w	x_pos(a0),x_pos(a2)
-	move.w	y_pos(a0),y_pos(a2)
-	move.b	status(a0),status(a2)
-	andi.b	#1,status(a2)
+	move.b	#4,(Sonic_Dust+anim).w
+	move.w	x_pos(a0),(Sonic_Dust+x_pos).w
+	move.w	y_pos(a0),(Sonic_Dust+y_pos).w
+	move.b	status(a0),(Sonic_Dust+status).w
+	andi.b	#1,(Sonic_Dust+status).w
 
 	sfx	sfx_Dash
 
