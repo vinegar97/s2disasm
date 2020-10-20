@@ -2509,8 +2509,12 @@ Sonic_DropDashRelease_ApplyVel:
 	move.w	d0,ground_vel(a0)
 
 Sonic_DropDashRelease_Release:
+	; Hack to prevent crash on bridge (????)
+	btst	#3,status(a0)	; check 'on object' bit
+	bne.s	+
 	move.w	#$1000,(Horiz_scroll_delay_val).w
 	bsr.w	Reset_Player_Position_Array
++
 	move.b	#$E,y_radius(a0)
 	move.b	#7,x_radius(a0)
 	move.b	#AniIDSonAni_Roll,anim(a0)
