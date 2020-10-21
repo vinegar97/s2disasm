@@ -2516,7 +2516,7 @@ Sonic_DropDashRelease_ApplyVel:
 
 Sonic_DropDashRelease_Release:
 	move.w	#$1000,(Horiz_scroll_delay_val).w
-	;bsr.w	Reset_Player_Position_Array
+	bsr.w	Reset_Player_Position_Array
 	move.b	#$E,y_radius(a0)
 	move.b	#7,x_radius(a0)
 	move.b	#AniIDSonAni_Roll,anim(a0)

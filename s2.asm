@@ -34162,7 +34162,12 @@ Obj_Shield:
 	move.b	#$18,width_pixels(a0)
 	move.w	#make_art_tile(ArtTile_Shield,0,0),art_tile(a0)
 	bsr.w	Adjust2PArtPointer
-	bsr.w	RestoreShieldGFX
+
+	move.l	#ArtUnc_Shield,d1
+	move.l	#ArtTile_Shield*32,d2
+	move.w	#(ArtUnc_Shield_end - ArtUnc_Shield)/2, d3
+	jsr		QueueDMATransfer
+
 	move.l	#Obj_Shield_Shield,(a0)
 	move.b	#0,mapping_frame(a0)
 	move.b	#0,anim(a0)
@@ -34199,13 +34204,6 @@ JmpTo7_DeleteObject
 	move.l	#Obj_Insta_Shield,(a0)		; Replace the Fire Shield with the Insta-Shield
 	rts
 
-RestoreShieldGFX:
-	movea.w	parent(a0),a2 ; a2=character
-	move.l	#ArtUnc_Shield,d1
-	move.l	#ArtTile_Shield*32,d2
-	move.w	#(ArtUnc_Shield_end - ArtUnc_Shield), d3
-	jsr		QueueDMATransfer
-	rts
 ; ===========================================================================
 ; ----------------------------------------------------------------------------
 ; Object 35 - Invincibility Stars
@@ -34235,7 +34233,7 @@ off_1D992:
 loc_1D9A4:
 	move.l	#ArtUnc_Invincible_stars,d1
 	move.l	#ArtTile_ArtNem_Invincible_stars*32,d2
-	move.w	#(ArtUnc_Invincible_starsEnd - ArtUnc_Invincible_stars), d3
+	move.w	#(ArtUnc_Invincible_starsEnd - ArtUnc_Invincible_stars)/2, d3
 	jsr		QueueDMATransfer
 
 	moveq	#0,d2
@@ -34310,7 +34308,7 @@ loc_1DA74:
 loc_1DA80:
 	movea.w	parent(a0),a1 ; a1=character
 	btst	#status_sec_isInvincible,status_secondary(a1)
-	beq.w	Obj_InvincibilityStars_Delete
+	jeq		DeleteObject
 	cmpi.w	#2,(Player_mode).w
 	beq.s	loc_1DAA4
 	lea	(Sonic_Pos_Record_Index).w,a5
@@ -34383,10 +34381,6 @@ loc_1DB2C:
 	add.w	d0,d2
 	add.w	d1,d3
 	rts
-
-Obj_InvincibilityStars_Delete:
-	bsr.w	RestoreShieldGFX
-	jmp		DeleteObject
 
 ; ===========================================================================
 ; unknown
@@ -34764,6 +34758,7 @@ Obj_Insta_Shield_Main:
 		btst	#Status_Invincible,status_secondary(a2) ; Is the player invincible?
 		bne.s	locret_195A4			; If so, return
 +
+
 		move.w	x_pos(a2),x_pos(a0)		; Inherit player's x_pos
 		move.w	y_pos(a2),y_pos(a0)		; Inherit player's y_pos
 		move.b	status(a2),status(a0)		; Inherit status

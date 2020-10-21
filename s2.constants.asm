@@ -2116,7 +2116,7 @@ ArtTile_ArtNem_SonicDust              = $049A
 ArtTile_ArtNem_Numbers                = $04AA
 ArtTile_Shield                		  = $04BC
 
-ArtTile_Shield_Sparks                 = ArtTile_Shield + $1F
+ArtTile_Shield_Sparks                 = ArtTile_Shield + $1D
 ArtTile_ArtNem_Invincible_stars       = $04DD + 2
 
 ArtTile_ArtNem_Powerups               = $0680
