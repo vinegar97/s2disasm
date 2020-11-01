@@ -964,7 +964,9 @@ Hint_flag:			ds.w 1		; unless this is 1, H-int won't run
 
 Water_Level_1:			ds.w 1
 Water_Level_2:			ds.w 1
+ChecksumValue:					; the accumulated value of checksum check
 Water_Level_3:			ds.w 1
+ChecksumStart:					; set if start button was pressed during checksum check
 Water_on:			ds.b 1		; is set based on Water_flag
 Water_routine:			ds.b 1
 Water_fullscreen_flag:		ds.b 1		; was "Water_move"
@@ -1361,6 +1363,7 @@ Correct_cheat_entries:		ds.w 1
 Correct_cheat_entries_2:	ds.w 1		; for 14 continues or 7 emeralds codes
 
 Two_player_mode:		ds.w 1		; flag (0 for main game)
+ChecksumAddr:			ds.l 1		; the checksum address we're checking
 
 Demo_mode_flag:			ds.w 1		; 1 if a demo is playing (2 bytes)
 Demo_number:			ds.w 1		; which demo will play next (2 bytes)

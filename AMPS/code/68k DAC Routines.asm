@@ -17,7 +17,7 @@ dAMPSnextDAC:
 
 	dGateDAC	 			; handle DAC-specific gate behavior
 	dCalcFreq				; calculate channel base frequency
-	dModPorta dAMPSdoFM, dAMPSnextDAC, 4	; run modulation + portamento code
+	dModPortaWait	dAMPSdoFM, dAMPSnextDAC, 4; run modulation + portamento code
 		bsr.w	dUpdateFreqDAC		; if frequency needs changing, do it
 
 	if FEATURE_DACFMVOLENV=0
@@ -132,15 +132,15 @@ dNoteOnDAC5:
 		btst	#ctbPt2,cType(a1)	; check if this channel is DAC1
 		beq.s	dNoteWriteDAC1		; if is, branch
 
-		lea	dZ80+PCM2_Sample,a5	; load addresses for PCM 1
-		lea	dZ80+PCM2_NewRET,a4	; ''
+		lea	dZ80+PCM2_Sample.l,a5	; load addresses for PCM 1
+		lea	dZ80+PCM2_NewRET.l,a4	; ''
 		bra.s	dNoteOnDAC4
 ; ---------------------------------------------------------------------------
 
 dNoteWriteDAC1:
 
-		lea	dZ80+PCM1_Sample,a5	; load addresses for PCM 2
-		lea	dZ80+PCM1_NewRET,a4	; ''
+		lea	dZ80+PCM1_Sample.l,a5	; load addresses for PCM 2
+		lea	dZ80+PCM1_NewRET.l,a4	; ''
 
 dNoteOnDAC4:
 	stopZ80					; wait for Z80 to stop
@@ -176,20 +176,7 @@ dUpdateFreqOffDAC:
 		move.b	cDetune(a1),d3		; get detune value
 		ext.w	d3			; extend to word
 		add.w	d3,d2			; add it to d2
-
-	if FEATURE_MODENV
-		jsr	dModEnvProg(pc)		; process modulation envelope
-	endif
-
-	if FEATURE_PORTAMENTO
-		add.w	cPortaFreq(a1),d2	; add portamento speed to frequency
-	endif
-
-	if FEATURE_MODULATION
-		btst	#cfbMod,(a1)		; check if channel is modulating
-		beq.s	dUpdateFreqDAC3		; if not, branch
-		add.w	cModFreq(a1),d2		; add modulation frequency offset to d2
-	endif
+	dModPortaTrk	4			; run modulation and portamento code
 		bra.s	dUpdateFreqDAC3
 ; ---------------------------------------------------------------------------
 
@@ -208,6 +195,10 @@ dUpdateFreqDAC2:
 dUpdateFreqDAC3:
 	if safe=1
 		AMPS_Debug_FreqDAC		; check if DAC frequency is in bounds
+	endif
+
+	if FEATURE_SOUNDTEST
+		move.w	d2,cChipFreq(a1)	; save frequency to chip
 	endif
 
 		move.b	d2,d3			; copy the frequency to d3
@@ -248,7 +239,7 @@ dAMPSdoDACSFX:
 		beq.w	.update			; if timed out, update channel
 
 	dCalcFreq				; calculate channel base frequency
-	dModPorta dAMPSdoFMSFX, dAMPSdoFMSFX, 5	; run modulation + portamento code
+	dModPortaWait	dAMPSdoFMSFX, dAMPSdoFMSFX, 5; run modulation + portamento code
 		bsr.w	dUpdateFreqDAC2		; if frequency needs changing, do it
 
 	if FEATURE_DACFMVOLENV=0
@@ -354,18 +345,22 @@ dUpdateVolDAC2:
 		and.b	#$80,d1			; change volume of $FF to $80 (this mutes DAC)
 
 .nocap
+	if FEATURE_SOUNDTEST
+		move.b	d1,cChipVol(a1)		; save volume to chip
+	endif
+
 	stopZ80					; wait for Z80 to stop
 		move.b	#$D2,dZ80+PCM_ChangeVolume.l; set volume change flag
 
 		btst	#ctbPt2,cType(a1)	; check if this channel is DAC1
 		beq.s	.dac1			; if is, branch
-		move.b	d1,dZ80+PCM2_Volume+1.l	; save volume for PCM 1
+		move.b	d1,dZ80+PCM2_Volume+1.l	; save volume for PCM 2
 	startZ80				; enable Z80 execution
 		rts
 ; ---------------------------------------------------------------------------
 
 .dac1
-		move.b	d1,dZ80+PCM1_Volume+1.l	; save volume for PCM 2
+		move.b	d1,dZ80+PCM1_Volume+1.l	; save volume for PCM 1
 	startZ80				; enable Z80 execution
 
 locret_VolDAC:
