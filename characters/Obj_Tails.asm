@@ -33,9 +33,8 @@ Obj_Tails_Init:
 	move.w	#prio(2),priority(a0)
 	move.b	#$18,width_pixels(a0)
 	move.b	#$84,render_flags(a0) ; render_flags(Tails) = $80 | initial render_flags(Sonic)
-	move.w	#$600,(Tails_top_speed).w	; set Tails' top speed
-	move.w	#$C,(Tails_acceleration).w	; set Tails' acceleration
-	move.w	#$80,(Tails_deceleration).w	; set Tails' deceleration
+	lea		(Tails_top_speed).w,a2	; Load Tails_top_speed into a2
+	jsr		ApplySpeedSettings	; Fetch Speed settings
 	cmpi.w	#2,(Player_mode).w
 	bne.s	Obj_Tails_Init_2Pmode
 	tst.b	(Last_star_pole_hit).w
@@ -177,9 +176,8 @@ Obj_Tails_ChkShoes:		; Checks if Speed Shoes have expired and disables them if t
 	beq.s	Obj_Tails_ExitChk
 	subq.w	#1,speedshoes_time(a0)
 	bne.s	Obj_Tails_ExitChk
-	move.w	#$600,(Tails_top_speed).w
-	move.w	#$C,(Tails_acceleration).w
-	move.w	#$80,(Tails_deceleration).w
+	lea		(Tails_top_speed).w,a2	; Load Tails_top_speed into a2
+	jsr		ApplySpeedSettings	; Fetch Speed settings
 ; Obj_Tails_RmvSpeed:
 	bclr	#status_sec_hasSpeedShoes,status_secondary(a0)
 	command	Mus_ShoesOff	; Slow down tempo
@@ -373,10 +371,12 @@ loc_1BC68:
 +
 	or.w	d0,d1
 	jne		return_1BCDE
-	; https://info.sonicretro.org/SCHG_How-to:Fix_Tails%27_respawn_speeds
-	move.w	#$600,(Tails_top_speed).w	; set Tails' top speed
-	move.w	#$C,(Tails_acceleration).w	; set Tails' acceleration
-	move.w	#$80,(Tails_deceleration).w	; set Tails' deceleration
+	
+	move.l	a1,-(sp)		; Backup a1
+	lea		(Tails_top_speed).w,a2	; Load Tails_top_speed into a2
+	jsr		ApplySpeedSettings	; Fetch Speed settings
+	move.l	(sp)+,a1		; Restore a1
+	
 	move.w	#6,(Tails_CPU_routine).w	; => TailsCPU_Normal
 	move.b	#0,obj_control(a0)
 	move.b	#AniIDTailsAni_Walk,anim(a0)
@@ -924,9 +924,8 @@ Obj_Tails_InWater:
 	move.l	#Obj_SmallBubbles,(Tails_BreathingBubbles+id).w ; load Obj_SmallBubbles (tail's breathing bubbles) at $FFFFD0C0
 	move.b	#$81,(Tails_BreathingBubbles+subtype).w
 	move.l	a0,(Tails_BreathingBubbles+objoff_3C).w ; set its parent to be this (Obj_SmallBubbles uses $3C instead of $3E for some reason)
-	move.w	#$300,(Tails_top_speed).w
-	move.w	#6,(Tails_acceleration).w
-	move.w	#$40,(Tails_deceleration).w
+	lea		(Tails_top_speed).w,a2	; Load Tails_top_speed into a2
+	jsr		ApplySpeedSettings	; Fetch Speed settings
 	asr	x_vel(a0)
 	asr	y_vel(a0)
 	asr	y_vel(a0)
@@ -942,9 +941,8 @@ Obj_Tails_OutWater:
 
 	movea.l	a0,a1
 	bsr.w	ResumeMusic
-	move.w	#$600,(Tails_top_speed).w
-	move.w	#$C,(Tails_acceleration).w
-	move.w	#$80,(Tails_deceleration).w
+	lea		(Tails_top_speed).w,a2	; Load Tails_top_speed into a2
+	jsr		ApplySpeedSettings	; Fetch Speed settings
 
 	cmpa.w	#MainCharacter,a0	; is this Tails alone?
 	bne.s	+			; if not, skip

@@ -30,9 +30,8 @@ Obj_Knuckles_Init:					  ; ...
 	move.w	#prio(2),priority(a0)
 	move.b	#$18,width_pixels(a0)
 	move.b	#4,render_flags(a0)
-	move.w	#$600,(Sonic_top_speed).w	; set Sonic's top speed
-	move.w	#$C,(Sonic_acceleration).w	; set Sonic's acceleration
-	move.w	#$80,(Sonic_deceleration).w	; set Sonic's deceleration
+	lea		(Sonic_top_speed).w,a2	; Load Sonic_top_speed into a2
+	jsr		ApplySpeedSettings	; Fetch Speed settings
 	tst.b	(Last_star_pole_hit).w
 	bne.s	Obj_Knuckles_Init_Continued
 	; only happens when not starting at a checkpoint:
@@ -922,9 +921,8 @@ Knuckles_TurnSuper:				  ; ...
 		move.b	#$81,obj_control(a0)
 		move.b	#$1F,anim(a0)
     	move.l	#Obj_SuperSonicStars,(SuperSonicStars+id).w ; load Obj_SuperSonicStars (super sonic stars object) at $FFFFD040
-		move.w	#$800,(Sonic_top_speed).w
-		move.w	#$18,(Sonic_acceleration).w
-		move.w	#$C0,(Sonic_deceleration).w
+		lea		(Sonic_top_speed).w,a2	; Load Sonic_top_speed into a2
+		jsr		ApplySpeedSettings	; Fetch Speed settings
 		move.w	#0,$32(a0)
 		bset	#1,$2B(a0)
 		move.w	#$DF,d0

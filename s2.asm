@@ -4199,6 +4199,7 @@ Level_NoTails:
 
 ; loc_3F48:
 Level_ClrRam:
+	clr.b	(Super_Sonic_flag).w
 	clearRAM Sprite_Table_Input,Sprite_Table_Input_End
 	clearRAM Object_RAM,Object_RAM_End ; clear object RAM
 	clearRAM MiscLevelVariables,MiscLevelVariables_End
@@ -23842,20 +23843,26 @@ super_shoes:
 	bset	#status_sec_hasSpeedShoes,status_secondary(a1)	; give super sneakers status
 	move.l	#Obj_HyperSonicKnux_Trail,(HyperSonicKnux_Trail+id).w ; load Obj_SuperSonicStars (super sonic stars object) at $FFFFD040
 	move.w	#$4B0,speedshoes_time(a1)
-	cmpa.w	#MainCharacter,a1	; did the main character break the monitor?
-	bne.s	super_shoes_Tails	; if not, branch
-	cmpi.w	#2,(Player_mode).w	; is player using Tails?
-	beq.s	super_shoes_Tails	; if yes, branch
-	move.w	#$C00,(Sonic_top_speed).w	; set stats
-	move.w	#$18,(Sonic_acceleration).w
-	move.w	#$80,(Sonic_deceleration).w
-	bra.s	+
+	movem.l	a0-a2,-(sp)		; Move a0, a1 and a2 onto stack
+	lea	(MainCharacter).w,a0	; Load main character to a0
+	cmpa.w	a0,a1			; Did the main character break the monitor?
+	bne.s	super_shoes_Tails		; If not, branch
+	cmpi.w	#2,(Player_mode).w	; Is player using Tails?
+	beq.s	super_shoes_Tails		; If yes, branch
+	lea	(Sonic_top_speed).w,a2	; Load Sonic_top_speed into a2
+	jsr	ApplySpeedSettings	; Fetch Speed settings
+	movem.l	(sp)+,a0-a2		; Move a0, a1 and a2 from stack
+	bra.s	++
 ; ---------------------------------------------------------------------------
 ;loc_12A10:
 super_shoes_Tails:
-	move.w	#$C00,(Tails_top_speed).w
-	move.w	#$18,(Tails_acceleration).w
-	move.w	#$80,(Tails_deceleration).w
+	tst.w	(Two_player_mode).w	; Is this two-player mode?
+	beq.s	+					; If not, branch
+	lea	(Sidekick).w,a0		; If so, Tails isn't the main character; use correct RAM
++;.nottwoplayer:
+	lea	(Tails_top_speed).w,a2	; Load Tails_top_speed into a2
+	jsr	ApplySpeedSettings	; Fetch Speed settings
+	movem.l	(sp)+,a0-a2		; Move a0, a1 and a2 from stack
 +
 	command	mus_ShoesOn
 	rts	; Speed up tempo
@@ -33613,7 +33620,57 @@ loc_19F4C:
 
 ; ===========================================================================
 
+; ----------------------------------------------------------------------------
+; Speed Settings Array
+
+; This array defines what speeds the character should be set to
+; ----------------------------------------------------------------------------
+;		top_speed	acceleration	deceleration	; #	; Comment
+Speedsettings:
+	dc.w	$600,		$C,		$80		; $00	; Normal
+	dc.w	$C00,		$18,		$80		; $08	; Normal Speedshoes
+	dc.w	$300,		$6,		$40		; $16	; Normal Underwater
+	dc.w	$600,		$C,		$40		; $24	; Normal Underwater Speedshoes
+	dc.w	$A00,		$30,		$100		; $32	; Super
+	dc.w	$C00,		$30,		$100		; $40	; Super Speedshoes
+	dc.w	$500,		$18,		$80		; $48	; Super Underwater
+	dc.w	$A00,		$30,		$80		; $56	; Super Underwater Speedshoes
+; ===========================================================================
+
+; ===========================================================================
+; ---------------------------------------------------------------------------
+; Subroutine to collect the right speed setting for a character
+; a0 must be character
+; a1 will be the result and have the correct speed settings
+; a2 is characters' speed
+; ---------------------------------------------------------------------------
+
+; ||||||||||||||| S U B R O U T I N E |||||||||||||||||||||||||||||||||||||||
+
+ApplySpeedSettings:
+	moveq	#0,d0				; Quickly clear d0
+	tst.w	speedshoes_time(a0)		; Does character have speedshoes?
+	beq.s	+				; If not, branch
+	addq.b	#6,d0				; Quickly add 6 to d0
++
+	btst	#6,status(a0)			; Is the character underwater?
+	beq.s	+				; If not, branch
+	addi.b	#12,d0				; Add 12 to d0
++
+	cmpa.w	#MainCharacter,a0		; Is it Tails currently following this code?
+	bne.s	+				; If so, branch and ignore next question
+	tst.b	(Super_Sonic_flag).w		; Is the character Super?
+	beq.s	+				; If not, branch
+	addi.b	#24,d0				; Add 24 to d0
++
+	lea	Speedsettings(pc,d0.w),a1	; Load correct speed settings into a1
+	move.l	(a1)+,(a2)+			; Set character's new top speed and acceleration
+	move.w	(a1),(a2)			; Set character's deceleration
+	rts					; Finish subroutine
+; ===========================================================================
+
 	include "characters/PanCamera.asm"
+	
 	include "characters/Obj_Sonic.asm"
 	include "characters/Obj_Tails.asm"
 

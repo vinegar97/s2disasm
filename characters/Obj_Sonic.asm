@@ -33,9 +33,8 @@ Obj_Sonic_Init:
 	move.w	#prio(2),priority(a0)
 	move.b	#$18,width_pixels(a0)
 	move.b	#4,render_flags(a0)
-	move.w	#$600,(Sonic_top_speed).w	; set Sonic's top speed
-	move.w	#$C,(Sonic_acceleration).w	; set Sonic's acceleration
-	move.w	#$80,(Sonic_deceleration).w	; set Sonic's deceleration
+	lea		(Sonic_top_speed).w,a2	; Load Sonic_top_speed into a2
+	jsr		ApplySpeedSettings	; Fetch Speed settings
 	tst.b	(Last_star_pole_hit).w
 	bne.s	Obj_Sonic_Init_Continued
 	; only happens when not starting at a checkpoint:
@@ -163,14 +162,8 @@ Obj_Sonic_ChkShoes:		; Checks if Speed Shoes have expired and disables them if t
 	beq.s	Obj_Sonic_ExitChk
 	subq.w	#1,speedshoes_time(a0)
 	bne.s	Obj_Sonic_ExitChk
-	move.w	#$600,(Sonic_top_speed).w
-	move.w	#$C,(Sonic_acceleration).w
-	move.w	#$80,(Sonic_deceleration).w
-	tst.b	(Super_Sonic_flag).w
-	beq.s	Obj_Sonic_RmvSpeed
-	move.w	#$A00,(Sonic_top_speed).w
-	move.w	#$30,(Sonic_acceleration).w
-	move.w	#$100,(Sonic_deceleration).w
+	lea		(Sonic_top_speed).w,a2	; Load Sonic_top_speed into a2
+	jsr		ApplySpeedSettings	; Fetch Speed settings
 ; loc_1A14A:
 Obj_Sonic_RmvSpeed:
 	bclr	#status_sec_hasSpeedShoes,status_secondary(a0)
@@ -273,15 +266,8 @@ Obj_Sonic_InWater:
 	move.l	#Obj_SmallBubbles,(Sonic_BreathingBubbles+id).w ; load Obj_SmallBubbles (sonic's breathing bubbles) at $FFFFD080
 	move.b	#$81,(Sonic_BreathingBubbles+subtype).w
 	move.l	a0,(Sonic_BreathingBubbles+objoff_3C).w
-	move.w	#$300,(Sonic_top_speed).w
-	move.w	#6,(Sonic_acceleration).w
-	move.w	#$40,(Sonic_deceleration).w
-	tst.b	(Super_Sonic_flag).w
-	beq.s	+
-	move.w	#$500,(Sonic_top_speed).w
-	move.w	#$18,(Sonic_acceleration).w
-	move.w	#$80,(Sonic_deceleration).w
-+
+	lea		(Sonic_top_speed).w,a2	; Load Sonic_top_speed into a2
+	jsr		ApplySpeedSettings	; Fetch Speed settings
 	asr.w	x_vel(a0)
 	asr.w	y_vel(a0)	; memory operands can only be shifted one bit at a time
 	asr.w	y_vel(a0)
@@ -298,15 +284,8 @@ Obj_Sonic_OutWater:
 	movea.l	a0,a1
 	bsr.w	ResumeMusic
 	command	Mus_OutWater
-	move.w	#$600,(Sonic_top_speed).w
-	move.w	#$C,(Sonic_acceleration).w
-	move.w	#$80,(Sonic_deceleration).w
-	tst.b	(Super_Sonic_flag).w
-	beq.s	+
-	move.w	#$A00,(Sonic_top_speed).w
-	move.w	#$30,(Sonic_acceleration).w
-	move.w	#$100,(Sonic_deceleration).w
-+
+	lea		(Sonic_top_speed).w,a2	; Load Sonic_top_speed into a2
+	jsr		ApplySpeedSettings	; Fetch Speed settings
 	;cmpi.b	#4,routine(a0)	; is Sonic falling back from getting hurt?
 	;beq.s	+		; if yes, branch
 	asl	y_vel(a0)
@@ -1648,12 +1627,11 @@ Sonic_Transform:
 	move.b	#$81,(MainCharacter+obj_control).w
 	move.b	#AniIDSupSonAni_Transform,(MainCharacter+anim).w			; use transformation animation
 	move.l	#Obj_SuperSonicStars,(SuperSonicStars+id).w ; load Obj_SuperSonicStars (super sonic stars object) at $FFFFD040
-	move.w	#$A00,(Sonic_top_speed).w
-	move.w	#$30,(Sonic_acceleration).w
-	move.w	#$100,(Sonic_deceleration).w
 	move.w	#0,(MainCharacter+invincibility_time).w
 	bset	#status_sec_isInvincible,(MainCharacter+status_secondary).w	; make Sonic invincible
 	sfx	sfx_Transform				; Play transformation sound effect.
+	lea		(Sonic_top_speed).w,a2	; Load Sonic_top_speed into a2
+	jsr		ApplySpeedSettings	; Fetch Speed settings
 	tst.b	(Option_SuperMusic).w	; Allow super music?
 	bne.s	return_1ABA4			; If not, branch
 	music	mus_SuperSonic				; load the Super Sonic song and return
@@ -1700,14 +1678,8 @@ Sonic_RevertToNormal:
 	move.b	#0,(Super_Sonic_flag).w
 	move.b	#1,next_anim(a0)	; Change animation back to normal ?
 	move.w	#1,invincibility_time(a0)	; Remove invincibility
-	move.w	#$600,(Sonic_top_speed).w
-	move.w	#$C,(Sonic_acceleration).w
-	move.w	#$80,(Sonic_deceleration).w
-	btst	#6,status(a0)	; Check if underwater, return if not
-	beq.s	return_1AC3C
-	move.w	#$300,(Sonic_top_speed).w
-	move.w	#6,(Sonic_acceleration).w
-	move.w	#$40,(Sonic_deceleration).w
+	lea		(Sonic_top_speed).w,a2	; Load Sonic_top_speed into a2
+	jsr		ApplySpeedSettings	; Fetch Speed settings
 
 return_1AC3C:
 	rts
