@@ -77,9 +77,12 @@ REM REM // fix the rom header (checksum)
 REM // if there were errors/warnings, a log file is produced
 IF EXIST s2.log goto LABLERROR4
 
-del s2.p
-del s2.h
+
+REM // done -- pause if we seem to have failed, then exit
+IF NOT EXIST s2built.md pause & exit /b
+"ErrorDebugger/ConvSym.exe" s2.lst s2built.md -input as_lst -a
 del AMPS\.Data
+"win32/ips/ipspatch" create SONIC2_W.68K s2built.md s2w.ips
 exit /b
 
 :LABLERROR1

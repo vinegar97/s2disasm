@@ -95,6 +95,10 @@ SoundIndex:
 	ptrSFX	0, Chain, Bonus, BigRing, ActionBlock, Diamonds
 	ptrSFX	0, QuickDoor, Electricity, Unk2B, Unk38, Unk51, Unk52
 
+	ptrSFX  0, FireShield, BubbleShield, ElectricShield
+	ptrSFX  0, InstaAttack, FireAttack, BubbleAttack, ElectricAttack, Grab
+	ptrSFX  0, GlideLand, GroundSlide, Flying, FlyTired, Thok, DropDash
+
 SFXcount =	__sfx-SFXoff		; number of intalled sound effects
 SFXlast =	__sfx
 ; ===========================================================================
@@ -127,6 +131,8 @@ SampleList:
 	sample $0080, Bongo, Stop, FloorBongo	; 91 - Floor Bongo
 
 	sample $0100, SEGA, Stop		; 92 - SEGA
+	sample $0100, Thok, Stop		; 93 - Thok
+	sample $0100, DropDash, Stop		; 94 - DropDash
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
 ; Define volume envelopes and their data
@@ -137,7 +143,7 @@ __venv :=	$01
 
 VolEnvs:
 	volenv 01, 02, 03, 04, 05, 06, 07, 08
-	volenv 09, 0A, 0B, 0C, 0D
+	volenv 09, 0A, 0B, 0C, 0D, 17
 VolEnvs_End:
 ; ---------------------------------------------------------------------------
 
@@ -212,6 +218,11 @@ vd0C:		dc.b $20, $20, $18, $18, $10, $10, $08, $08
 
 vd0D:		dc.b $70, $68, $60, $58, $50, $48, $40, $38
 		dc.b $30, $28, $20, $18, $10, $08, $00, eHold
+
+
+vd17:	dc.b $01, $00, $00, $00, $00, $01, $01, $01
+		dc.b $02, $02, $02, $03, $03, $03, $03, $04
+		dc.b $04, $04, $05, $05, eHold
 		even
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
@@ -256,7 +267,7 @@ SWFR_Stop:	asdata Z80E_Read*(MaxPitch/$100), $00
 ; ---------------------------------------------------------------------------
 
 	incSWF	Kick, Snare, Clap, Tom, Timpani, Bongo
-	incSWF	Scratch, SEGA
+	incSWF	Scratch, SEGA, Thok, DropDash
 	even
 
 	listing on			; continue source listing

@@ -1,0 +1,12 @@
+	sHeaderInitSFX						; Z80 offset is $E0F1
+	sHeaderPrio	$80
+	sHeaderCh	$01
+	sHeaderSFX	$80, ctPSG3, .PSG3, $10, $00
+
+.PSG3:
+	sNoisePSG	$E7
+	sVolEnv	v17
+	dc.b nCs5, $04
+	sModAMPS	$02, $01, $06, $07
+	dc.b nE5, $10
+	sStop

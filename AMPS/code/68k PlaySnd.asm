@@ -717,16 +717,6 @@ dSFXoverList:	dc.w mFM3			; SFX FM3
 ;   d1 - Sound ID
 ; ---------------------------------------------------------------------------
 
-dPlaySnd_Comm:
-	if safe=1
-		AMPS_Debug_PlayCmd		; check if the command is valid
-	endif
-
-		add.w	d1,d1			; quadruple ID
-		add.w	d1,d1			; because each entry is 1 long word
-		jmp	dSoundCommands-4(pc,d1.w); jump to appropriate command handler
-; ---------------------------------------------------------------------------
-
 dSoundCommands:
 		bra.w	dPlaySnd_Reset		; 01 - Reset underwater and speed shoes flags, update volume
 		bra.w	dPlaySnd_FadeOut	; 02 - Initialize a music fade out
@@ -739,6 +729,17 @@ dSoundCommands:
 		bra.w	dPlaySnd_Unpause	; 09 - Unpause the sound driver
 		bra.w	dPlaySnd_StopSFX	; 0A - Stop all sfx
 dSoundCommands_End:
+
+; ---------------------------------------------------------------------------
+
+dPlaySnd_Comm:
+	if safe=1
+		AMPS_Debug_PlayCmd		; check if the command is valid
+	endif
+
+		add.w	d1,d1			; quadruple ID
+		add.w	d1,d1			; because each entry is 1 long word
+		jmp	dSoundCommands-4(pc,d1.w); jump to appropriate command handler
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
 ; Commands for what to do after a volume fade
