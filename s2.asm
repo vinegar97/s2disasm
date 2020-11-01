@@ -78235,10 +78235,10 @@ Dynamic_HTZ:
 	bne.w	Dynamic_Normal
 	lea	(Anim_Counters).w,a3
 	moveq	#0,d0
-	move.w	(Camera_X_pos).w,d1
+	move.w	(Camera_BG_X_pos).w,d1
 	neg.w	d1
 	asr.w	#3,d1
-	move.w	(Camera_X_pos).w,d0
+	move.w	(Camera_BG_X_pos).w,d0
 	; fix from https://info.sonicretro.org/SCHG_How-to:Fix_Hill_Top%27s_background_scrolling_mountains
 	move.w	d0,d2	; Copy to d2
 	andi.w	#$F,d2	; Is the lower nibble zero?
