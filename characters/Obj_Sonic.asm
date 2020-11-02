@@ -411,6 +411,7 @@ Obj_Sonic_MdRoll:
 Obj_Sonic_MdJump:
 	tst.l	(HomingAttack_Object).l
 	bne.s	Sonic_HomingAttackMove
+	bsr.w	Sonic_CheckGoSuper
 	bsr.w	Sonic_DropDash
 	bsr.w	Sonic_JumpHeight
 	bsr.w	Sonic_AirCurl
@@ -1393,8 +1394,6 @@ Sonic_JumpHeight:
 	bne.s	+		; if yes, branch
 	move.w	d1,y_vel(a0)	; immediately reduce Sonic's upward speed to d1
 +
-	;tst.b	y_vel(a0)		; is Sonic exactly at the height of his jump?
-	;beq.s	Sonic_CheckGoSuper	; if yes, test for turning into Super Sonic
 	rts
 ; ---------------------------------------------------------------------------
 ; loc_1AB22:
@@ -1440,7 +1439,7 @@ Sonic_PrimaryAbility:
 	bsr.w	Sonic_ShieldControl
 +
 	btst	#Status_Shield,status_secondary(a0)	; does Sonic have a Shield
-	beq.w	Sonic_CheckGoSuper			; if not, branch
+	beq.w	Sonic_InstaAndDrop			; if not, branch
 
 Sonic_FireShield:
 	tst.b	(Option_InvincShields).w	; Allow shields while invinc?
@@ -1494,7 +1493,7 @@ Sonic_LightningShieldDo:
 
 Sonic_BubbleShield:
 	btst	#Status_BublShield,status_secondary(a0)	; does Sonic have a Bubble Shield
-	beq.w	Sonic_CheckGoSuper			; if not, branch
+	beq.w	Sonic_InstaAndDrop			; if not, branch
 
 Sonic_BubbleShieldDo:
 	; Check again because shield control might be active
@@ -1546,25 +1545,6 @@ Sonic_HomingAttack:
 	rts
 
 ; ---------------------------------------------------------------------------
-; Subroutine called at the peak of a jump that transforms Sonic into Super Sonic
-; if he has enough rings and emeralds
-; ---------------------------------------------------------------------------
-
-; ||||||||||||||| S U B R O U T I N E |||||||||||||||||||||||||||||||||||||||
-
-; loc_1AB38: test_set_SS:
-Sonic_CheckGoSuper:
-	cmpi.b	#7,(Emerald_count).w	; does Sonic have exactly 7 emeralds?
-	bne.s	Sonic_InstaAndDrop		; if not, branch
-	tst.b	(Update_HUD_timer).w	; has Sonic reached the end of the act?
-	beq.s	Sonic_InstaAndDrop		; if yes, branch
-
-loc_119E8:
-	cmpi.w	#50,(Ring_count).w	; does Sonic have at least 50 rings?
-	blo.s	Sonic_InstaAndDrop	; if not, perform Insta-Shield
-	tst.b	(Update_HUD_timer).w
-	bne.w	Sonic_Transform
-
 
 Sonic_InstaAndDrop:
 	bsr.s	Sonic_InstaShield
@@ -1619,6 +1599,19 @@ Sonic_ShieldControlCont:
 	bra.w	Sonic_FireShieldDo
 
 ; ---------------------------------------------------------------------------
+
+Sonic_CheckGoSuper:
+	move.b	(Ctrl_6btn_1_Press_Logical).w,d0
+	andi.b	#button_Y_mask,d0 ; is Y pressed?
+	beq.w	return_1ABA4	; if not, return
+	tst.b	(Super_Sonic_flag).w
+	bne.w	Sonic_RevertToNormal
+	cmpi.b	#7,(Emerald_count).w	; does Sonic have exactly 7 emeralds?
+	bne.s	return_1ABA4			; if not, branch
+	tst.b	(Update_HUD_timer).w	; has Sonic reached the end of the act?
+	beq.s	return_1ABA4			; if yes, branch
+	cmpi.w	#50,(Ring_count).w		; does Sonic have at least 50 rings?
+	blo.s	return_1ABA4			; if not, branch
 
 Sonic_Transform:
 	; HJW: not using a0 so that it can be called from monitor and still work
