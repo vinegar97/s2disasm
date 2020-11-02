@@ -1630,8 +1630,13 @@ Sonic_Transform:
 	move.w	#0,(MainCharacter+invincibility_time).w
 	bset	#status_sec_isInvincible,(MainCharacter+status_secondary).w	; make Sonic invincible
 	sfx	sfx_Transform				; Play transformation sound effect.
-	lea		(Sonic_top_speed).w,a2	; Load Sonic_top_speed into a2
+
+	move.l	a0,-(sp)		; Backup a0
+	move.l	#MainCharacter,a0
+	lea		(Sonic_top_speed).w,a2	; Load Tails_top_speed into a2
 	jsr		ApplySpeedSettings	; Fetch Speed settings
+	move.l	(sp)+,a0		; Restore a0
+
 	tst.b	(Option_SuperMusic).w	; Allow super music?
 	bne.s	return_1ABA4			; If not, branch
 	music	mus_SuperSonic				; load the Super Sonic song and return
