@@ -389,7 +389,7 @@ loc_1BC68:
 	lea		(Tails_top_speed).w,a2	; Load Tails_top_speed into a2
 	jsr		ApplySpeedSettings	; Fetch Speed settings
 	move.l	(sp)+,a1		; Restore a1
-	
+
 	move.w	#6,(Tails_CPU_routine).w	; => TailsCPU_Normal
 	move.b	#0,obj_control(a0)
 	move.b	#AniIDTailsAni_Walk,anim(a0)
@@ -1036,6 +1036,10 @@ locret_14820:
 		rts
 
 Tails_AirCurl:
+	; Prevent curling during flight assist
+	cmpi.l	#Obj_Tails,(MainCharacter).w
+	bne.s	+
+
 	tst.b	(Option_AirCurling).w
 	beq.s	+
 

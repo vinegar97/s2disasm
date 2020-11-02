@@ -84588,7 +84588,7 @@ ArtUnc_Knuckles:	BINCLUDE	"knuckles/art.bin"
 ; --------------------------------------------------------------------
 ; Include AMPS related files
 ; --------------------------------------------------------------------
-	!align		$1000			; putting this here because it fixes the pc-related ASS bugs
+	!align		$1500			; putting this here because it fixes the pc-related ASS bugs
 	include "AMPS/code/68k.asm"		; fucking hate doing it but... AS is broken
 
 DualPCM:
