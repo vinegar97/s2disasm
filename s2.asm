@@ -22670,22 +22670,65 @@ JmpTo_RandomNumber ; JmpTo
 	align 4
     endif
 
+; ===========================================================================
+
+Obj_TailsTails_Trail:
+		; init
+		move.b	#20,objoff_2B(a0)
+		move.l	#MapUnc_Tails,mappings(a0)
+		move.w	#ArtTile_ArtUnc_Tails_Tails,art_tile(a0)
+
+	.cont:
+		move.b	#$18,width_pixels(a0)
+		move.l	#Obj_TailsTails_Trail_Main,(a0)
+
+Obj_TailsTails_Trail_Main:
+		btst	#status_sec_hasSpeedShoes,(MainCharacter+status_secondary).w
+		bne.s	+
+		jmp		DeleteObject
++
+		moveq	#$C,d1				; This will be subtracted from Pos_table_index, giving the object an older entry
+		btst	#0,(Timer_frames+1).w	; Even frame? (Think of it as 'every other number' logic)
+		beq.s	.evenframe			; If so, branch
+		moveq	#$14,d1				; On every other frame, use a different number to subtract, giving the object an even older entry
+
+	.evenframe:
+		move.w	(Pos_table_index_P2).w,d0
+		lea	(Pos_table_P2).w,a1
+		sub.b	d1,d0
+		lea	(a1,d0.w),a1
+		move.w	(a1)+,x_pos(a0)			; Use previous player x_pos
+		move.w	(a1)+,y_pos(a0)			; Use previous player y_pos
+		lea	(Stat_table).w,a1
+		move.b	(Tails_Tails+mapping_frame).w,mapping_frame(a0)	; Use player's current mapping_frame
+		move.b	(Tails_Tails+render_flags).w,render_flags(a0)	; Use player's current render_flags
+		move.w	(Tails_Tails+priority).w,priority(a0)		; Use player's current priority
+		bra.w	DisplaySprite
+
+; ===========================================================================
+
 Obj_HyperSonicKnux_Trail:
 		tst.b	(Option_SpeedTrail).w
 		bne.w	DeleteObject
 
 		; init
 		move.b	#20,objoff_2B(a0)
-		move.l	#Mapunc_Knuckles,mappings(a0)	; Load Knuckles' mappings
-		cmpi.b	#3,(Player_MainChar).w		; Are we playing as Knuckles?
-		beq.s	.playingasknux			; If so, branch
-		move.l	#MapUnc_Sonic,mappings(a0)	; If not, you must be Hyper Sonic, load Super/Hyper Sonic mappings
 
-	.playingasknux:
+		move.l	#Mapunc_Knuckles,mappings(a0)	; Load Knuckles' mappings
 		move.w	#ArtTile_ArtUnc_Sonic,art_tile(a0)
-		move.w	#$100,priority(a0)
+
+		cmpi.l	#Obj_Knuckles,(MainCharacter+id).w		; Are we playing as Knuckles?
+		beq.s	.cont			; If so, branch
+		move.l	#MapUnc_Sonic,mappings(a0)
+		cmpi.l	#Obj_Sonic,(MainCharacter+id).w		; Are we playing as Sonic?
+		beq.s	.cont			; If so, branch
+
+		move.l	#MapUnc_Tails,mappings(a0)
+		move.w	#ArtTile_ArtUnc_Tails,art_tile(a0)
+		move.l	#Obj_TailsTails_Trail,(Tails_Tails_Trail+id).w
+
+	.cont:
 		move.b	#$18,width_pixels(a0)
-		move.b	#4,render_flags(a0)
 		move.l	#Obj_HyperSonicKnux_Trail_Main,(a0)
 
 Obj_HyperSonicKnux_Trail_Main:
@@ -22708,6 +22751,11 @@ Obj_HyperSonicKnux_Trail_Main:
 	.evenframe:
 		move.w	(Pos_table_index).w,d0
 		lea	(Pos_table).w,a1
+		cmpi.l	#Obj_Tails,(MainCharacter+id).w		; Are we playing as Tails?
+		bne.s	+
+		move.w	(Pos_table_index_P2).w,d0
+		lea	(Pos_table_P2).w,a1
++
 		sub.b	d1,d0
 		lea	(a1,d0.w),a1
 		move.w	(a1)+,x_pos(a0)			; Use previous player x_pos

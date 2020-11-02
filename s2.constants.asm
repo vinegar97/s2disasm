@@ -754,6 +754,8 @@ SuperSonicStars:
 				ds.b object_size
 HyperSonicKnux_Trail:
 				ds.b object_size
+Tails_Tails_Trail:
+				ds.b object_size
 Sonic_BreathingBubbles:		; Sonic's breathing bubbles
 				ds.b object_size
 Tails_BreathingBubbles:		; Tails' breathing bubbles
@@ -799,6 +801,7 @@ Stat_table:
 Sonic_Stat_Record_Buf:		ds.b $100
 Pos_table:
 Sonic_Pos_Record_Buf:		ds.b $100
+Pos_table_P2:
 Tails_Pos_Record_Buf:		ds.b $100
 CNZ_saucer_data:		ds.b $40	; the number of saucer bumpers in a group which have been destroyed. Used to decide when to give 500 points instead of 10
 CNZ_saucer_data_End:
