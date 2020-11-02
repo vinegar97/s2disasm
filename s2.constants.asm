@@ -248,6 +248,11 @@ touch_top_mask     = p1_touch_top|p2_touch_top
 ; Controller Buttons
 ;
 ; Buttons bit numbers
+button_Z:			EQU	0
+button_Y:			EQU	1
+button_X:			EQU	2
+button_mode:		EQU	3
+
 button_up:			EQU	0
 button_down:			EQU	1
 button_left:			EQU	2
@@ -257,6 +262,11 @@ button_C:			EQU	5
 button_A:			EQU	6
 button_start:			EQU	7
 ; Buttons masks (1 << x == pow(2, x))
+button_Z_mask:			EQU	1<<button_Z	; $01
+button_Y_mask:			EQU	1<<button_Y	; $02
+button_X_mask:			EQU	1<<button_X	; $04
+button_mode_mask:		EQU	1<<button_mode	; $08
+
 button_up_mask:			EQU	1<<button_up	; $01
 button_down_mask:		EQU	1<<button_down	; $02
 button_left_mask:		EQU	1<<button_left	; $04
@@ -924,14 +934,35 @@ Ctrl_1:						; 2 bytes
 Ctrl_1_Held:			ds.b 1		; 1 byte ; (pressed and held were switched around before)
 Ctrl_1_pressed:
 Ctrl_1_Press:			ds.b 1		; 1 byte
+
 Ctrl_2:						; 2 bytes
 Ctrl_2_Held:			ds.b 1		; 1 byte
 Ctrl_2_pressed:
 Ctrl_2_Press:			ds.b 1		; 1 byte
-				ds.b 4		; $FFFFF608-$FFFFF60B ; seems unused
+Ctrl_2_Logical:					; 2 bytes
+Ctrl_2_Held_Logical:		ds.b 1		; 1 byte
+Ctrl_2_Press_Logical:		ds.b 1		; 1 byte
+
+; Extra buttons
+Ctrl_6btn_1_Logical:					; 2 bytes
+Ctrl_6btn_1_Held_Logical:		ds.b 1		; 1 byte
+Ctrl_6btn_1_pressed_logical:
+Ctrl_6btn_1_Press_Logical:		ds.b 1		; 1 byte
+Ctrl_6btn_1:						; 2 bytes
+Ctrl_6btn_1_Held:			ds.b 1		; 1 byte ; (pressed and held were switched around before)
+Ctrl_6btn_1_pressed:
+Ctrl_6btn_1_Press:			ds.b 1		; 1 byte
+
+Ctrl_6btn_2:						; 2 bytes
+Ctrl_6btn_2_Held:			ds.b 1		; 1 byte
+Ctrl_6btn_2_pressed:
+Ctrl_6btn_2_Press:			ds.b 1		; 1 byte
+Ctrl_6btn_2_Logical:					; 2 bytes
+Ctrl_6btn_2_Held_Logical:		ds.b 1		; 1 byte
+Ctrl_6btn_2_Press_Logical:		ds.b 1		; 1 byte
+
 VDP_reg_1_command:
 VDP_Reg1_val:			ds.w 1		; normal value of VDP register #1 when display is disabled
-				ds.b 6		; $FFFFF60E-$FFFFF613 ; seems unused
 Demo_Time_left:			ds.w 1		; 2 bytes
 
 V_scroll_value:
@@ -998,9 +1029,6 @@ WFZ_BG_Y_Speed:			ds.w 1
 PalCycle_Timer2:		ds.w 1
 PalCycle_Timer3:		ds.w 1
 
-Ctrl_2_Logical:					; 2 bytes
-Ctrl_2_Held_Logical:		ds.b 1		; 1 byte
-Ctrl_2_Press_Logical:		ds.b 1		; 1 byte
 Sonic_Look_delay_counter:	ds.w 1		; 2 bytes
 Tails_Look_delay_counter:	ds.w 1		; 2 bytes
 Super_Sonic_frame_count:	ds.w 1

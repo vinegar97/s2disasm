@@ -95,10 +95,13 @@ Obj_Tails_Control:
 	rts
 +
 	move.w	(Ctrl_1_Logical).w,(Ctrl_2_Logical).w
+	move.w	(Ctrl_6btn_1_Logical).w,(Ctrl_6btn_2_Logical).w
 	tst.b	(Control_Locked).w	; are controls locked?
 	bne.s	Obj_Tails_Control_Part2	; if yes, branch
 	move.w	(Ctrl_1).w,(Ctrl_2_Logical).w	; copy new held buttons, to enable joypad control
+	move.w	(Ctrl_6btn_1).w,(Ctrl_6btn_2_Logical).w	; copy new held buttons, to enable joypad control
 	move.w	(Ctrl_1).w,(Ctrl_1_Logical).w
+	move.w	(Ctrl_6btn_1).w,(Ctrl_6btn_1_Logical).w
 	bra.s	Obj_Tails_Control_Part2
 ; ---------------------------------------------------------------------------
 ; loc_1B9D4:
@@ -549,6 +552,7 @@ TailsCPU_Normal_SendAction:
 
 TailsCPU_Normal_FlyingControl:
 	move.w	(Ctrl_1_Logical).w,(Ctrl_2_Logical).w
+	move.w	(Ctrl_6btn_1_Logical).w,(Ctrl_6btn_2_Logical).w
 	rts
 
 ; ===========================================================================

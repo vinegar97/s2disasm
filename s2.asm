@@ -1136,33 +1136,67 @@ JoypadInit:
 ; sub_111C:
 ReadJoypads:
 	lea	(Ctrl_1).w,a0	; address where joypad states are written
+	lea	(Ctrl_6btn_1).w,a2	; address where 6btn joypad states are written
 	lea	(HW_Port_1_Data).l,a1	; first joypad port
-	bsr.s	Joypad_Read		; do the first joypad
+	bsr.s	get_pad
 	addq.w	#2,a1			; do the second joypad
-
-; sub_112A:
-Joypad_Read:
-	move.b	#0,(a1)
-	nop
-	nop
-	move.b	(a1),d0
-	lsl.b	#2,d0
-	andi.b	#$C0,d0
-	move.b	#$40,(a1)
-	nop
-	nop
-	move.b	(a1),d1
-	andi.b	#$3F,d1
-	or.b	d1,d0
-	not.b	d0
-	move.b	(a0),d1
-	eor.b	d0,d1
-	move.b	d0,(a0)+
-	and.b	d0,d1
-	move.b	d1,(a0)+
+	bsr.s	get_pad
 	rts
-; End of function Joypad_Read
 
+; https://forums.sonicretro.org/index.php?posts/546181/
+get_pad:
+        bsr.b   get_input       ; - 0 s a 0 0 d u - 1 c b r l d u 
+        move.w  d0,d1
+        andi.w  #$0C00,d0
+        bne.b   no_pad
+        bsr.b   get_input       ; - 0 s a 0 0 d u - 1 c b r l d u 
+        bsr.b   get_input       ; - 0 s a 0 0 0 0 - 1 c b m x y z 
+        move.w  d0,d2
+        bsr.b   get_input       ; - 0 s a 1 1 1 1 - 1 c b r l d u 
+        andi.w  #$0F00,d0       ; 0 0 0 0 1 1 1 1 0 0 0 0 0 0 0 0 
+        cmpi.w  #$0F00,d0
+        beq.b   common          ; six button pad 
+        move.w  #$010F,d2       ; three button pad 
+common:
+        lsl.b   #4,d2           ; - 0 s a 0 0 0 0 m x y z 0 0 0 0 
+        lsl.w   #4,d2           ; 0 0 0 0 m x y z 0 0 0 0 0 0 0 0 
+        andi.w  #$303F,d1       ; 0 0 s a 0 0 0 0 0 0 c b r l d u 
+        move.b  d1,d2           ; 0 0 0 0 m x y z 0 0 c b r l d u 
+        lsr.w   #6,d1           ; 0 0 0 0 0 0 0 0 s a 0 0 0 0 0 0 
+        or.w    d1,d2           ; 0 0 0 0 m x y z s a c b r l d u 
+        eori.w  #$1FFF,d2       ; 0 0 0 1 M X Y Z S A C B R L D U
+		
+        move.w  d2,d4
+		lsr.w	#8,d4			; 0 0 0 1 M X Y Z
+
+		move.b	(a0),d1			; 3btn
+		eor.b	d2,d1
+		move.b	d2,(a0)+
+		and.b	d2,d1
+		move.b	d1,(a0)+
+
+		move.b	(a2),d3			; 6btn
+		eor.b	d4,d3
+		move.b	d4,(a2)+
+		and.b	d4,d3
+		move.b	d3,(a2)+
+
+        rts
+ 
+no_pad:
+        move.w  #$F000,d2
+        rts
+ 
+; read single phase from controller
+get_input:
+        move.b  #$00,(a1)
+        nop
+        nop
+        move.b  (a1),d0
+        move.b  #$40,(a1)
+        lsl.w   #8,d0
+        move.b  (a1),d0
+        rts
 
 ; ||||||||||||||| S U B R O U T I N E |||||||||||||||||||||||||||||||||||||||
 
@@ -4378,7 +4412,9 @@ Level_TtlCard:
 	bsr.w	LoadCollisionIndexes
 	bsr.w	WaterEffects
 	move.w	#0,(Ctrl_1_Logical).w
+	move.w	#0,(Ctrl_6btn_1_Logical).w
 	move.w	#0,(Ctrl_2_Logical).w
+	move.w	#0,(Ctrl_6btn_2_Logical).w
 	move.w	#0,(Ctrl_1).w
 	move.w	#0,(Ctrl_2).w
 	move.b	#1,(Control_Locked).w
@@ -6146,7 +6182,9 @@ SpecialStage:
 	bsr.w	SSInitPalAndData
 	move.l	#$C0000*2/3,(SS_New_Speed_Factor).w
 	clr.w	(Ctrl_1_Logical).w
+	clr.w	(Ctrl_6btn_1_Logical).w
 	clr.w	(Ctrl_2_Logical).w
+	clr.w	(Ctrl_6btn_2_Logical).w
 
 -	move.b	#VintID_S2SS,(Vint_routine).w
 	bsr.w	WaitForVint
@@ -6179,7 +6217,9 @@ SpecialStage:
 
 -	bsr.w	PauseGame
 	move.w	(Ctrl_1).w,(Ctrl_1_Logical).w
+	move.w	(Ctrl_6btn_1).w,(Ctrl_6btn_1_Logical).w
 	move.w	(Ctrl_2).w,(Ctrl_2_Logical).w
+	move.w	(Ctrl_6btn_2).w,(Ctrl_6btn_2_Logical).w
 	cmpi.b	#GameModeID_SpecialStage,(Game_Mode).w ; special stage mode?
 	bne.w	SpecialStage_Unpause		; if not, branch
 	move.b	#VintID_S2SS,(Vint_routine).w
@@ -6221,7 +6261,9 @@ SpecialStage:
 ; ===========================================================================
 +
 	move.w	(Ctrl_1).w,(Ctrl_1_Logical).w
+	move.w	(Ctrl_6btn_1).w,(Ctrl_6btn_1_Logical).w
 	move.w	(Ctrl_2).w,(Ctrl_2_Logical).w
+	move.w	(Ctrl_6btn_2).w,(Ctrl_6btn_2_Logical).w
 +
 	jsr	(RunObjects).l
 	tst.b	(SS_Check_Rings_flag).w
