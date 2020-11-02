@@ -142,6 +142,17 @@ dUpdateVolFM2:
 .uwdone
 	endif
 
+	if FEATURE_SOUNDTEST
+		move.w	d1,d5			; copy to d5
+		cmp.w	#$7F,d5			; check if volume is out of range
+		bls.s	.nocapx			; if not, branch
+		spl	d5			; if positive (above $7F), set to $FF. Otherwise, set to $00
+		and.b	#$7F,d5			; keep in range for the sound test
+
+.nocapx
+		move.b	d5,cChipVol(a1)		; save volume to chip
+	endif
+
 		moveq	#4-1,d3			; prepare 4 operators to d3
 		move.l	sp,a5			; copy stack pointer to a5
 		subq.l	#4,sp			; reserve some space in the stack
@@ -223,7 +234,7 @@ dAMPSnextFMSFX:
 		beq.w	.update			; if timed out, update channel
 
 	dCalcFreq				; calculate channel base frequency
-	dModPorta dAMPSdoPSGSFX, dAMPSnextFMSFX, 1; run modulation + portamento code
+	dModPortaWait	dAMPSdoPSGSFX, dAMPSnextFMSFX, 1; run modulation + portamento code
 		bsr.w	dUpdateFreqFM3		; send FM frequency to hardware
 
 	if FEATURE_DACFMVOLENV=0
@@ -233,7 +244,7 @@ dAMPSnextFMSFX:
 		jsr	dUpdateVolFM_SFX(pc)	; update FM volume
 
 .next
-		dbf	d0,dAMPSnextFMSFX	; make sure to run all the FM channels
+		dbf	d0,dAMPSnextFMSFX	; make sure to run all the FM SFX channels
 		jmp	dAMPSdoPSGSFX(pc)	; after that, process SFX PSG channels
 ; ---------------------------------------------------------------------------
 
@@ -243,7 +254,7 @@ dAMPSnextFMSFX:
 		jsr	dKeyOffFM2(pc)		; send key-off command to YM
 
 		tst.b	d1			; check if note is being played
-		bpl.s	.timer			; if not, it must be a timer. branch
+		bpl.s	.timer			; if not, it must be a timer. Branch
 		bsr.w	dGetFreqFM		; get frequency
 
 		move.b	(a2)+,d1		; check next byte
@@ -267,7 +278,7 @@ dAMPSnextFMSFX:
 		jsr	dUpdateVolFM_SFX(pc)	; update FM volume
 
 .noupdate
-		dbf	d0,dAMPSnextFMSFX	; make sure to run all the FM channels
+		dbf	d0,dAMPSnextFMSFX	; make sure to run all the FM SFX channels
 		jmp	dAMPSdoPSGSFX(pc)	; after that, process SFX PSG channels
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
@@ -286,7 +297,7 @@ dAMPSnextFM:
 
 	dGateFM					; handle FM-specific gate behavior
 	dCalcFreq				; calculate channel base frequency
-	dModPorta dAMPSdoPSG, dAMPSnextFM, 0	; run modulation + portamento code
+	dModPortaWait dAMPSdoPSG, dAMPSnextFM, 0; run modulation + portamento code
 		bsr.w	dUpdateFreqFM2		; send FM frequency to hardware
 
 	if FEATURE_DACFMVOLENV=0
@@ -296,7 +307,7 @@ dAMPSnextFM:
 		jsr	dUpdateVolFM(pc)	; update FM volume
 
 .next
-		dbf	d0,dAMPSnextFM		; make sure to run all the FM channels
+		dbf	d0,dAMPSnextFM		; make sure to run all the music FM channels
 		jmp	dAMPSdoPSG(pc)		; after that, process music PSG channels
 ; ---------------------------------------------------------------------------
 
@@ -330,7 +341,7 @@ dAMPSnextFM:
 		jsr	dUpdateVolFM(pc)	; update FM volume
 
 .noupdate
-		dbf	d0,dAMPSnextFM		; make sure to run all the FM channels
+		dbf	d0,dAMPSnextFM		; make sure to run all the music FM channels
 		jmp	dAMPSdoPSG(pc)		; after that, process music PSG channels
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
@@ -355,20 +366,7 @@ dUpdateFreqFM:
 		move.b	cDetune(a1),d3		; load detune value to d3
 		ext.w	d3			; extend to word
 		add.w	d3,d2			; add to channel base frequency to d2
-
-	if FEATURE_MODENV
-		jsr	dModEnvProg(pc)		; process modulation envelope
-	endif
-
-	if FEATURE_PORTAMENTO
-		add.w	cPortaFreq(a1),d2	; add portamento speed to frequency
-	endif
-
-	if FEATURE_MODULATION
-		btst	#cfbMod,(a1)		; check if channel is modulating
-		beq.s	dUpdateFreqFM2		; if not, branch
-		add.w	cModFreq(a1),d2		; add channel modulation frequency offset to d2
-	endif
+	dModPortaTrk	0			; run modulation and portamento code
 ; ---------------------------------------------------------------------------
 
 dUpdateFreqFM2:
@@ -376,6 +374,10 @@ dUpdateFreqFM2:
 		bne.s	locret_UpdFreqFM	; if is, do not update frequency
 
 dUpdateFreqFM3:
+	if FEATURE_SOUNDTEST
+		move.w	d2,cChipFreq(a1)	; save frequency to chip
+	endif
+
 		btst	#cfbRest,(a1)		; is this channel resting
 		bne.s	locret_UpdFreqFM	; if is, skip
 
@@ -416,7 +418,7 @@ dGetFreqFM:
 		andi.w	#$7F,d1			; keep within $80 notes
 		add.w	d1,d1			; double offset (each entry is a word)
 
-		lea	dFreqFM(pc),a4		; load FM frequency table to a1
+		lea	dFreqFM(pc),a4		; load FM frequency table to a4
 		move.w	(a4,d1.w),cFreq(a1)	; load and save the requested frequency
 
 	if safe=1
@@ -468,12 +470,12 @@ dFreqFM:dc.w								       $025E; Octave-1 - (80)
 	dc.w $1A84,$1AAB,$1AD3,$1AFE,$1B2D,$1B5C,$1B8F,$1BC5,$1BFF,$1C3C,$1C7C,$225E; Octave 3 - (A5 - B0)
 	dc.w $2284,$22AB,$22D3,$22FE,$232D,$235C,$238F,$23C5,$23FF,$243C,$247C,$2A5E; Octave 4 - (B1 - BC)
 	dc.w $2A84,$2AAB,$2AD3,$2AFE,$2B2D,$2B5C,$2B8F,$2BC5,$2BFF,$2C3C,$2C7C,$325E; Octave 5 - (BD - C8)
-	dc.w $3284,$32AB,$32D3,$32FE,$332D,$335C,$338F,$33C5,$33FF,$343C,$347C,$3A5E; Octave 6 - (c9 - D4)
-	dc.w $3A84,$3AAB,$3AD3,$3AFE,$3B2D,$3B5C,$3B8F,$3BC5,$3BFF,$3C3C,$3C7C	    ; Octave 7 - (D5 - DF)
+	dc.w $3284,$32AB,$32D3,$32FE,$332D,$335C,$338F,$33C5,$33FF,$343C,$347C,$3A5E; Octave 6 - (C9 - D4)
+	dc.w $3A84,$3AAB,$3AD3,$3AFE,$3B2D,$3B5C,$3B8F,$3BC5,$3BFF,$3C3C,$3C7C,$3C5E; Octave 7 - (D5 - E0)
 dFreqFM_:
 
 	if safe=1				; in safe mode, we have extra debug data
-.x :=		$100|((dFreqFM_-dFreqFM)/2)	; to check if we played an invalid note
+.x :=		$100|((dFreqFM_-dFreqFM)/2); to check if we played an invalid note
 		rept $80-((dFreqFM_-dFreqFM)/2)	; and if so, tell us which note it was
 			dc.w .x
 .x :=			.x+$101

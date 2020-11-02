@@ -4,12 +4,16 @@
 ; Sprite_1B8A4: Object_Tails:
 Obj_Tails:
 	; a0=character
-	cmpi.w	#2,(Player_mode).w
-	bne.s	+
+	cmpi.l	#Obj_Tails,(MainCharacter+id).w
+	bne.s	Obj_Tails_Normal
 	move.w	(Camera_Min_X_pos).w,(Tails_Min_X_pos).w
 	move.w	(Camera_Max_X_pos).w,(Tails_Max_X_pos).w
 	move.w	(Camera_Max_Y_pos_now).w,(Tails_Max_Y_pos).w
-+
+	tst.w	(Debug_placement_mode).w	; is debug mode being used?
+	beq.s	Obj_Tails_Normal			; if not, branch
+	jmp	(DebugMode).l
+
+Obj_Tails_Normal:
 	moveq	#0,d0
 	move.b	routine(a0),d0
 	move.w	Obj_Tails_Index(pc,d0.w),d1
@@ -33,9 +37,8 @@ Obj_Tails_Init:
 	move.w	#prio(2),priority(a0)
 	move.b	#$18,width_pixels(a0)
 	move.b	#$84,render_flags(a0) ; render_flags(Tails) = $80 | initial render_flags(Sonic)
-	move.w	#$600,(Tails_top_speed).w	; set Tails' top speed
-	move.w	#$C,(Tails_acceleration).w	; set Tails' acceleration
-	move.w	#$80,(Tails_deceleration).w	; set Tails' deceleration
+	lea		(Tails_top_speed).w,a2	; Load Tails_top_speed into a2
+	jsr		ApplySpeedSettings	; Fetch Speed settings
 	cmpi.w	#2,(Player_mode).w
 	bne.s	Obj_Tails_Init_2Pmode
 	tst.b	(Last_star_pole_hit).w
@@ -81,11 +84,24 @@ Obj_Tails_Init_Continued:
 Obj_Tails_Control:
 	cmpa.w	#MainCharacter,a0
 	bne.s	Obj_Tails_Control_Joypad2
+	jsr		PanCamera
+
+	tst.w	(Debug_mode_flag).w	; is debug cheat enabled?
+	beq.s	+			; if not, branch
+	btst	#button_B,(Ctrl_1_Press).w	; is button B pressed?
+	beq.s	+			; if not, branch
+	move.w	#1,(Debug_placement_mode).w	; change Tails into a ring/item
+	clr.b	(Control_Locked).w		; unlock control
+	rts
++
 	move.w	(Ctrl_1_Logical).w,(Ctrl_2_Logical).w
+	move.w	(Ctrl_6btn_1_Logical).w,(Ctrl_6btn_2_Logical).w
 	tst.b	(Control_Locked).w	; are controls locked?
 	bne.s	Obj_Tails_Control_Part2	; if yes, branch
 	move.w	(Ctrl_1).w,(Ctrl_2_Logical).w	; copy new held buttons, to enable joypad control
+	move.w	(Ctrl_6btn_1).w,(Ctrl_6btn_2_Logical).w	; copy new held buttons, to enable joypad control
 	move.w	(Ctrl_1).w,(Ctrl_1_Logical).w
+	move.w	(Ctrl_6btn_1).w,(Ctrl_6btn_1_Logical).w
 	bra.s	Obj_Tails_Control_Part2
 ; ---------------------------------------------------------------------------
 ; loc_1B9D4:
@@ -176,9 +192,8 @@ Obj_Tails_ChkShoes:		; Checks if Speed Shoes have expired and disables them if t
 	beq.s	Obj_Tails_ExitChk
 	subq.w	#1,speedshoes_time(a0)
 	bne.s	Obj_Tails_ExitChk
-	move.w	#$600,(Tails_top_speed).w
-	move.w	#$C,(Tails_acceleration).w
-	move.w	#$80,(Tails_deceleration).w
+	lea		(Tails_top_speed).w,a2	; Load Tails_top_speed into a2
+	jsr		ApplySpeedSettings	; Fetch Speed settings
 ; Obj_Tails_RmvSpeed:
 	bclr	#status_sec_hasSpeedShoes,status_secondary(a0)
 	command	Mus_ShoesOff	; Slow down tempo
@@ -372,10 +387,12 @@ loc_1BC68:
 +
 	or.w	d0,d1
 	jne		return_1BCDE
-	; https://info.sonicretro.org/SCHG_How-to:Fix_Tails%27_respawn_speeds
-	move.w	#$600,(Tails_top_speed).w	; set Tails' top speed
-	move.w	#$C,(Tails_acceleration).w	; set Tails' acceleration
-	move.w	#$80,(Tails_deceleration).w	; set Tails' deceleration
+	
+	move.l	a1,-(sp)		; Backup a1
+	lea		(Tails_top_speed).w,a2	; Load Tails_top_speed into a2
+	jsr		ApplySpeedSettings	; Fetch Speed settings
+	move.l	(sp)+,a1		; Restore a1
+
 	move.w	#6,(Tails_CPU_routine).w	; => TailsCPU_Normal
 	move.b	#0,obj_control(a0)
 	move.b	#AniIDTailsAni_Walk,anim(a0)
@@ -535,6 +552,7 @@ TailsCPU_Normal_SendAction:
 
 TailsCPU_Normal_FlyingControl:
 	move.w	(Ctrl_1_Logical).w,(Ctrl_2_Logical).w
+	move.w	(Ctrl_6btn_1_Logical).w,(Ctrl_6btn_2_Logical).w
 	rts
 
 ; ===========================================================================
@@ -842,7 +860,7 @@ loc_1456C:
 		clr.b 	double_jump_flag(a1)
 		clr.b 	glidemode(a1)
         ; Play grabbing sound (is this even in S2? [no, it's not])
-		sfx		sfx_S3K_4A
+		sfx		sfx_Grab
 		move.b	#AniIDSonAni_Hang2,anim(a1)
 		move.b	#1,(a2) ; ???
 
@@ -923,9 +941,8 @@ Obj_Tails_InWater:
 	move.l	#Obj_SmallBubbles,(Tails_BreathingBubbles+id).w ; load Obj_SmallBubbles (tail's breathing bubbles) at $FFFFD0C0
 	move.b	#$81,(Tails_BreathingBubbles+subtype).w
 	move.l	a0,(Tails_BreathingBubbles+objoff_3C).w ; set its parent to be this (Obj_SmallBubbles uses $3C instead of $3E for some reason)
-	move.w	#$300,(Tails_top_speed).w
-	move.w	#6,(Tails_acceleration).w
-	move.w	#$40,(Tails_deceleration).w
+	lea		(Tails_top_speed).w,a2	; Load Tails_top_speed into a2
+	jsr		ApplySpeedSettings	; Fetch Speed settings
 	asr	x_vel(a0)
 	asr	y_vel(a0)
 	asr	y_vel(a0)
@@ -941,9 +958,8 @@ Obj_Tails_OutWater:
 
 	movea.l	a0,a1
 	bsr.w	ResumeMusic
-	move.w	#$600,(Tails_top_speed).w
-	move.w	#$C,(Tails_acceleration).w
-	move.w	#$80,(Tails_deceleration).w
+	lea		(Tails_top_speed).w,a2	; Load Tails_top_speed into a2
+	jsr		ApplySpeedSettings	; Fetch Speed settings
 
 	cmpa.w	#MainCharacter,a0	; is this Tails alone?
 	bne.s	+			; if not, skip
@@ -1024,6 +1040,10 @@ locret_14820:
 		rts
 
 Tails_AirCurl:
+	; Prevent curling during flight assist
+	cmpi.l	#Obj_Tails,(MainCharacter).w
+	bne.s	+
+
 	tst.b	(Option_AirCurling).w
 	beq.s	+
 
@@ -1121,7 +1141,7 @@ Tails_FlyAnim_Tired:
 		andi.b	#$F,d0
 		bne.s	+
 
-		sfx		sfx_S3K_BB
+		sfx		sfx_FlyTired
 
 +		rts
 ; ---------------------------------------------------------------------------
@@ -1146,7 +1166,7 @@ Tails_FlyAnim_NotTired:
 		andi.b	#$F,d0
 		bne.s	+
 
-		sfx		sfx_S3K_BA
+		sfx		sfx_Flying
 
 +		rts
 ; ---------------------------------------------------------------------------
@@ -1628,6 +1648,12 @@ Tails_SetRollSpeed:
 	move.w	d0,y_vel(a0)	; set y velocity based on $14 and angle
 	muls.w	inertia(a0),d1
 	asr.l	#8,d1
+	; HJW: Mania doesn't cap this, however things obviously get buggy w/o it
+	; However if there's gonna be a cap anyway why isn't it global?
+	; Whatever
+	cmpi.b	#3,(Option_PhysicsStyle).w
+	bge.s	++
+	
 	cmpi.w	#$1000,d1
 	ble.s	+
 	move.w	#$1000,d1	; limit Tails' speed rolling right
@@ -2330,10 +2356,13 @@ loc_1CA0A:
 
 loc_1CA18:
 	move.w	#0,x_vel(a0)	; stop Tails since he hit a wall
+	; HJW: Mania doesn't cap this
+	cmpi.b	#3,(Option_PhysicsStyle).w
+	blt.s	loc_1CA2C
 	cmpi.w	#$FC0,y_vel(a0)
 	ble.s	loc_1CA2C
 	move.w	#$FC0,y_vel(a0)
-
+	
 loc_1CA2C:
 	move.w	y_vel(a0),inertia(a0)
 	tst.b	d3
@@ -2517,6 +2546,17 @@ return_1CBC4:
 ; ---------------------------------------------------------------------------
 ; loc_1CBC6:
 Obj_Tails_Hurt:
+	cmpi.l	#Obj_Tails,(MainCharacter+id).w
+	bne.s	Obj_Tails_Hurt_Normal
+	tst.w	(Debug_mode_flag).w
+	beq.s	Obj_Tails_Hurt_Normal
+	btst	#button_B,(Ctrl_1_Press).w
+	beq.s	Obj_Tails_Hurt_Normal
+	move.w	#1,(Debug_placement_mode).w
+	clr.b	(Control_Locked).w
+	rts
+
+Obj_Tails_Hurt_Normal:
 	tst.b	(Flying_carrying_Sonic_flag).w
 	beq.s	+
 	lea		(MainCharacter).w,a1
@@ -2573,6 +2613,16 @@ return_1CC4E:
 
 ; loc_1CC50:
 Obj_Tails_Dead:
+	cmpi.l	#Obj_Tails,(MainCharacter+id).w
+	bne.s	+
+	tst.w	(Debug_mode_flag).w
+	beq.s	+
+	btst	#button_B,(Ctrl_1_Press).w
+	beq.s	+
+	move.w	#1,(Debug_placement_mode).w
+	clr.b	(Control_Locked).w
+	rts
++
 	bsr.w	Obj_Tails_CheckGameOver
 	jsr	(ObjectMoveAndFall).l
 	bsr.w	Tails_RecordPos

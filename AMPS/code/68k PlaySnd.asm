@@ -69,15 +69,15 @@ dPlaySnd_Pause:
 
 dMuteDAC:
 	stopZ80					; wait for Z80 to stop
-		lea	SampleList(pc),a5	; load address for the stop sample data into a2
-		lea	dZ80+PCM1_Sample.l,a4	; load addresses for PCM 1 sample to a1
+		lea	SampleList(pc),a5	; load address for the stop sample data into a5
+		lea	dZ80+PCM1_Sample.l,a4	; load addresses for PCM 1 sample to a4
 
 	rept 12
 		move.b	(a5)+,(a4)+		; send sample data to Dual PCM
 	endm
 
-		lea	SampleList(pc),a5	; load address for the stop sample data into a2
-		lea	dZ80+PCM2_Sample.l,a4	; load addresses for PCM 2 sample to a1
+		lea	SampleList(pc),a5	; load address for the stop sample data into a5
+		lea	dZ80+PCM2_Sample.l,a4	; load addresses for PCM 2 sample to a4
 
 	rept 12
 		move.b	(a5)+,(a4)+		; send sample data to Dual PCM
@@ -136,7 +136,7 @@ dPlaySnd_Unpause:
 ; ---------------------------------------------------------------------------
 
 		lea	mSFXFM3.w,a1		; start from SFX FM1 channel
-		moveq	#SFX_FM-1,d0		; load the number of SFX FM channels to d4
+		moveq	#SFX_FM-1,d0		; load the number of SFX FM channels to d0
 		moveq	#cSizeSFX,d3		; get the size of each SFX channel to d3
 
 .sfxloop
@@ -223,12 +223,11 @@ dPlaySnd_Music:
 		lea	.index(pc),a2		; get music pointer table with an offset
 		add.w	d1,d1			; quadruple music ID
 		add.w	d1,d1			; since each entry is 4 bytes in size
-
 		move.b	(a2,d1.w),d6		; load speed shoes tempo from the unused 8 bits into d6
-		movea.l	(a2,d1.w),a2		; get music header pointer from the table
+		move.l	(a2,d1.w),a2		; get music header pointer from the table
 
 	if safe=1
-		move.l	a2,d2			; copy pointer to d0
+		move.l	a2,d2			; copy pointer to d2
 		and.l	#$FFFFFF,d2		; clearing the upper 8 bits allows the debugger
 		move.l	d2,a2			; to show the address correctly. Move ptr back to a2
 		AMPS_Debug_PlayTrackMus		; check if this was valid music
@@ -247,7 +246,7 @@ dPlaySnd_Music:
 		bset	#mfbBacked,mFlags.w	; check if song was backed up (and if not, set the bit)
 		bne.s	.noback			; if yes, preserved the backed up song
 
-		move.l	mTempoMain.w,mBackTempoMain.w; backup tempo settings
+		move.l	mSpeed.w,mBackSpeed.w	; backup tempo settings
 		move.l	mVctMus.w,mBackVctMus.w	; backup voice table address
 
 		lea	mBackUpArea.w,a4	; load source address to a4
@@ -262,7 +261,7 @@ dPlaySnd_Music:
 		move.w	(a4)+,(a3)+		; back up data for every channel
 	endif
 
-		mvnbt	d3, cfbInt, cfbVol	; each other bit except interrupted and volume update bits
+		moveq	#$FF-(1<<cfbInt)|(1<<cfbVol),d3; each other bit except interrupted and volume update bits
 
 .ch :=		mBackDAC1			; start at backup DAC1
 		rept Mus_Ch			; do for all music channels
@@ -278,20 +277,14 @@ dPlaySnd_Music:
 	endif
 ; ---------------------------------------------------------------------------
 
-		move.b	d6,mTempoSpeed.w	; save loaded value into tempo speed setting
+		move.b	d6,mSpeed.w		; save loaded value into tempo speed setting
+		move.b	d6,mSpeedAcc.w		; save loaded value as tempo speed accumulator
 		jsr	dStopMusic(pc)		; mute hardware and reset all driver memory
 		jsr	dResetVolume(pc)	; reset volumes and end any fades
 
-		moveq	#0,d3
 		move.b	(a2)+,d3		; load song tempo to d3
-		move.b	d3,mTempoMain.w		; save as regular tempo
-		btst	#mfbSpeed,mFlags.w	; check if speed shoes flag was set
-		beq.s	.tempogot		; if not, use main tempo
-		move.b	mTempoSpeed.w,d3	; load speed shoes tempo to d3 instead
-
-.tempogot
-		move.b	d3,mTempo.w		; save as the current tempo
-		move.b	d3,mTempoCur.w		; copy into the accumulator/counter
+		move.b	d3,mTempo.w		; save as the tempo accumulator
+		move.b	d3,mTempoAcc.w		; copy into the accumulator/counter
 		and.b	#$FF-(1<<mfbNoPAL),mFlags.w; enable PAL fix
 ; ---------------------------------------------------------------------------
 ; If the 7th bit (msb) of tick multiplier is set, PAL fix gets disabled.
@@ -300,7 +293,11 @@ dPlaySnd_Music:
 ; ---------------------------------------------------------------------------
 
 		move.b	(a2)+,d4		; load the tick multiplier to d4
-		bpl.s	.noPAL			; branch if the loaded value was positive
+		bmi.s	.yesPAL			; branch if the loaded value was negative
+		btst	#6,ConsoleRegion.w	; is this PAL system?
+		bne.s	.noPAL			; if yes, branch
+
+.yesPAL
 		or.b	#1<<mfbNoPAL,mFlags.w	; disable PAL fix
 
 .noPAL
@@ -313,7 +310,7 @@ dPlaySnd_Music:
 		moveq	#cSize,d6		; prepare channel size to d6
 		moveq	#1,d5			; prepare duration of 0 frames to d5
 
-		mvbit	d2, cfbRun, cfbVol	; prepare running tracker and volume flags into d2
+		moveq	#(1<<cfbRun)|(1<<cfbVol),d2; prepare running tracker and volume flags into d2
 		moveq	#$C0,d1			; prepare panning value of centre to d1
 		move.w	#$100,d3		; prepare default DAC frequency to d3
 ; ---------------------------------------------------------------------------
@@ -356,7 +353,7 @@ dPlaySnd_Music:
 	endif
 
 		ext.w	d0			; convert byte to word (because of dbf)
-		mvbit	d2, cfbRun, cfbRest	; prepare running tracker and channel rest flags to d2
+		moveq	#(1<<cfbRun)|(1<<cfbRest),d2; prepare running tracker and channel rest flags to d2
 
 .loopFM
 		move.b	d2,(a1)			; save channel flags
@@ -381,7 +378,7 @@ dPlaySnd_Music:
 ; It adds a delay of 1 frame to DAC and FM due to the YMCue, and PCM
 ; buffering to avoid quality loss from DMA's. This means that, since PSG
 ; is controlled by the 68000, we would be off by a single frame without
-; this fix
+; this fix.
 ; ---------------------------------------------------------------------------
 
 .doPSG
@@ -392,7 +389,7 @@ dPlaySnd_Music:
 		bmi.s	.finish			; if no PSG channels are loaded, branch
 	endif
 
-		mvbit	d2, cfbRun, cfbVol, cfbRest; prepare running tracker, resting and volume flags into d2
+		moveq	#(1<<cfbRun)|(1<<cfbVol)|(1<<cfbRest),d2; prepare running tracker, resting and volume flags into d2
 		moveq	#2,d5			; prepare duration of 1 frames to d5
 		lea	dPSGtypeVals(pc),a4	; prepare PSG type value list into a4
 		lea	mPSG1.w,a1		; start from PSG1 channel
@@ -494,12 +491,11 @@ dPlaySnd_SFX:
 ; have the same effect, but saves us 8 cycles overall
 ; ---------------------------------------------------------------------------
 
-.noring
 .index =	SoundIndex-(SFXoff*4)		; effin ASS
 		lea	.index(pc),a1		; get sfx pointer table with an offset to a1
 		add.w	d1,d1			; quadruple sfx ID
 		add.w	d1,d1			; since each entry is 4 bytes in size
-		movea.l	(a1,d1.w),a2		; get SFX header pointer from the table
+		move.l	(a1,d1.w),a2		; get SFX header pointer from the table
 ; ---------------------------------------------------------------------------
 ; This implements a system where the sound effect swaps every time its
 ; played. This in particular needed with Sonic 1 to 3K, where the ring SFX
@@ -512,7 +508,7 @@ dPlaySnd_SFX:
 		bchg	#mfbSwap,mFlags.w	; swap the flag and check if it was set
 		beq.s	.noswap			; if was not, do not swap sound effect
 		addq.w	#4,d1			; go to next SFX
-		movea.l	(a1,d1.w),a2		; get the next SFX pointer from the table
+		move.l	(a1,d1.w),a2		; get the next SFX pointer from the table
 
 .noswap
 	if safe=1
@@ -693,7 +689,7 @@ dPlaySnd_SFX:
 		rts
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
-; pointers for music channels SFX can override and addresses of SFX channels
+; Pointers for music channels SFX can override and addresses of SFX channels
 ; ---------------------------------------------------------------------------
 
 dSFXoffList:	dc.w mSFXFM3			; FM3
@@ -874,13 +870,6 @@ dUpdateVolumeAll:
 
 dPlaySnd_ShoesOn:
 		bset	#mfbSpeed,mFlags.w	; enable speed shoes flag
-		move.b	mTempoSpeed.w,mTempoCur.w; set tempo accumulator/counter to speed shoes
-		move.b	mTempoSpeed.w,mTempo.w	; set main tempor to speed shoes
-
-	if FEATURE_BACKUP
-		move.b	mBackTempoSpeed.w,mBackTempoCur.w; do the same for backup tempos
-		move.b	mBackTempoSpeed.w,mBackTempo.w
-	endif
 		rts
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
@@ -902,13 +891,6 @@ dPlaySnd_Reset:
 
 dPlaySnd_ShoesOff:
 		bclr	#mfbSpeed,mFlags.w	; disable speed shoes flag
-		move.b	mTempoMain.w,mTempoCur.w; set tempo accumulator/counter to normal
-		move.b	mTempoMain.w,mTempo.w	; set main tempor to normal
-
-	if FEATURE_BACKUP
-		move.b	mBackTempoMain.w,mBackTempoCur.w; do the same for backup tempos
-		move.b	mBackTempoMain.w,mBackTempo.w
-	endif
 		rts
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
@@ -936,11 +918,11 @@ dPlaySnd_OutWater:
 ; Force volume update on all FM channels
 ;
 ; thrash:
-;   d6 - Used for quickly or'ing the value
+;   d6 - Used for quickly OR-ing the value
 ; ---------------------------------------------------------------------------
 
 dReqVolUpFM:
-		moveq	#1<<cfbVol,d6		; prepare volume update flag to d0
+		moveq	#1<<cfbVol,d6		; prepare volume update flag to d6
 
 .ch :=	mSFXFM3					; start at SFX FM3
 	rept SFX_FM				; loop through all SFX FM channels
@@ -950,7 +932,7 @@ dReqVolUpFM:
 ; ---------------------------------------------------------------------------
 
 dReqVolUpMusicFM:
-		moveq	#1<<cfbVol,d6		; prepare volume update flag to d0
+		moveq	#1<<cfbVol,d6		; prepare volume update flag to d6
 
 .ch :=	mFM1					; start at FM1
 	rept Mus_FM				; loop through all music FM channels

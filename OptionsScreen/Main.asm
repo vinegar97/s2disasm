@@ -55,7 +55,7 @@ OptionsScreen_DrawMenu:
 
 	addi.w	#1,d6 ; increment current item
 
-	cmpi.w	#5,d6 ; limit number of items drawn
+	cmpi.w	#7,d6 ; limit number of items drawn
 	bge.s	+
 	cmp.b	d5,d6 ; make sure we don't overflow (TODO: scroll)
 	bhi.s	+
@@ -71,6 +71,8 @@ OptionsScreen_BoxLocations:
 	dc.l vdpComm(VRAM_Plane_A_Name_Table+planeLocH40(1,9),VRAM,WRITE)
 	dc.l vdpComm(VRAM_Plane_A_Name_Table+planeLocH40(1,13),VRAM,WRITE)
 	dc.l vdpComm(VRAM_Plane_A_Name_Table+planeLocH40(1,17),VRAM,WRITE)
+	dc.l vdpComm(VRAM_Plane_A_Name_Table+planeLocH40(1,21),VRAM,WRITE)
+	dc.l vdpComm(VRAM_Plane_A_Name_Table+planeLocH40(1,25),VRAM,WRITE)
 
 OptionsScreen_DrawMenuItem_GetLoc:
 	lea		(OptionsScreen_BoxLocations).l,a1
@@ -121,6 +123,7 @@ OptionsScreen_GetValTextPtr_Index:	offsetTable
 	offsetTableEntry.w	OptionsScreen_GetValTextPtr_MenuItemValue ; 10 (MenuItemValuePlayer)
 	offsetTableEntry.w	OptionsScreen_GetValTextPtr_MenuItemValue ; 12 (MenuItemValue2P)
 	offsetTableEntry.w	OptionsScreen_GetValTextPtr_Null ; 14 (MenuItemBack)
+	offsetTableEntry.w	OptionsScreen_GetValTextPtr_Null ; 16 (MenuItemCredits)
 
 OptionsScreen_GetValTextPtr_Null:
 	move.l	#Txt_Empty,a1
@@ -199,6 +202,7 @@ OptionsScreen_Input_Index:	offsetTable
 	offsetTableEntry.w	OptionsScreen_Input_MenuItemValuePlayer ; 10 (MenuItemValuePlayer)
 	offsetTableEntry.w	OptionsScreen_Input_MenuItemValue2P ; 12 (MenuItemValue2P)
 	offsetTableEntry.w	OptionsScreen_Input_MenuItemBack ; 14 (MenuItemBack)
+	offsetTableEntry.w	OptionsScreen_Input_MenuItemCredits ; 16 (MenuItemCredits)
 
 OptionsScreen_Input_Null:
 	rts
@@ -261,6 +265,7 @@ OptionsScreen_Input_MenuItemValue:
 	blo.s	+
 	move.b	#0,(a0)
 +
+	jsr		SaveSRAM
 	rts
 
 OptionsScreen_Input_MenuItemBack:
@@ -269,7 +274,7 @@ OptionsScreen_Input_MenuItemBack:
 	btst	#button_start,d0
 	beq.s	+
 	bsr.w	OptionsScreen_Input_MenuItemSubEnter
-	sfx		sfx_S3K_42
+	sfx		sfx_InstaAttack
 +
 	rts
 
@@ -318,6 +323,18 @@ OptionsScreen_Input_MenuItemSound:
 	lea	(Level_select_flag).w,a1	; Also Slow_motion_flag
 	moveq	#0,d2	; flag to tell the routine to enable the continues cheat
 	bsr.w	CheckCheats
++
+	rts
+
+OptionsScreen_Input_MenuItemCredits:
+	move.b	(Ctrl_1_Press).w,d0
+	or.b	(Ctrl_2_Press).w,d0
+	btst	#button_start,d0
+	beq.s	+
+	move.b	#GameModeID_EndingSequence,(Game_Mode).w
+	clr.b	(Ending_PalCycle_flag).w
+	move.b	#1,(Credits_Trigger).w
+	jmp		EndgameCredits_Loop
 +
 	rts
 

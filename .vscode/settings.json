@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "*.vertex": "glsl",
+        "*.fragment": "glsl"
+    }
+}

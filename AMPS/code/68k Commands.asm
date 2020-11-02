@@ -11,11 +11,10 @@
 dCommands:
 		add.b	d1,d1			; quadruple command ID
 		add.b	d1,d1			; since each entry is 4 bytes large
-
 		btst	#cfbCond,(a1)		; check if condition state
 		bne.w	.falsecomm		; branch if false
-.cunt = 	.comm-$80			; AS is ASS
-		jmp	.cunt(pc,d1.w)		; jump to appropriate handler
+.whyyy =	.comm-$80			; AS is ASS
+		jmp	.whyyy(pc,d1.w)		; jump to appropriate handler
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
 ; Command handlers for normal execution
@@ -64,8 +63,8 @@ dCommands:
 		jmp	.meta(pc,d1.w)		; jump to appropriate meta handler
 
 .falsecomm
-.fuck = 	.false-$80			; AS is ASS
-		jmp	.fuck(pc,d1.w)		; jump to appropriate handler (false command)
+.awman =	.false-$80			; AS is ASS
+		jmp	.awman(pc,d1.w)		; jump to appropriate handler (false command)
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
 ; Command handlers for meta commands
@@ -83,7 +82,7 @@ dCommands:
 		bra.w	dcCondReg		; FF 20 - Get RAM table offset by y, and chk zz with cond x (COMM_CONDITION - COMM_SPEC)
 		bra.w	dcSound			; FF 24 - Play another music/sfx (SND_CMD)
 		bra.w	dcsModFreq		; FF 28 - Set modulation frequency to xxxx (MOD_SET - MODS_FREQ)
-		bra.w	dcsModReset		; FF 2C - Reset modulation data (MOD_SET - MODS_RESET)
+		bra.w	dcModReset		; FF 2C - Reset modulation data (MOD_SET - MODS_RESET)
 		bra.w	dcSpecFM3		; FF 30 - Enable FM3 special mode (SPC_FM3)
 		bra.w	dcFilter		; FF 34 - Set DAC filter bank. (DAC_FILTER)
 		bra.w	dcBackup		; FF 38 - Load the last song from back-up (FADE_IN_SONG)
@@ -320,41 +319,27 @@ dcsTransp:
 
 dcsTempoShoes:
 		move.b	(a2)+,d3		; load tempo value from tracker
-		move.b	d3,mTempoSpeed.w	; save as the speed shoes tempo
-		btst	#mfbSpeed,mFlags.w	; check if speed shoes mode is active
-		bne.s	dcsTempoCur		; if is, load as current tempo too
+		move.b	d3,mSpeed.w		; save as the speed shoes tempo
+		move.b	d3,mSpeedAcc.w		; copy to speed shoes tempo accumulator
 		rts
 ; ---------------------------------------------------------------------------
 
 dcsTempo:
 		move.b	(a2)+,d3		; load tempo value from tracker
-		move.b	d3,mTempoMain.w		; save as the main tempo
-		btst	#mfbSpeed,mFlags.w	; check if speed shoes mode is active
-		bne.s	locret_Tempo		; if not, load as current tempo too
-
-dcsTempoCur:
-		move.b	d3,mTempo.w		; save as current tempo
-
-locret_Tempo:
+		move.b	d3,mTempo.w		; save as the main tempo
+		move.b	d3,mTempoAcc.w		; copy to current tempo
 		rts
 ; ---------------------------------------------------------------------------
 
 dcaTempoShoes:
 		move.b	(a2)+,d3		; load tempo value from tracker
-		add.b	d3,mTempoSpeed.w	; add to the speed shoes tempo
-		btst	#mfbSpeed,mFlags.w	; check if speed shoes mode is active
-		bne.s	dcaTempoCur		; if is, add to current tempo too
+		add.b	d3,mSpeed.w		; add to the speed shoes tempo
 		rts
 ; ---------------------------------------------------------------------------
 
 dcaTempo:
 		move.b	(a2)+,d3		; load tempo value from tracker
-		add.b	d3,mTempoMain.w		; add to the main tempo
-		btst	#mfbSpeed,mFlags.w	; check if speed shoes mode is active
-		bne.s	locret_Tempo		; if not, add to current tempo too
-
-dcaTempoCur:
-		add.b	d3,mTempo.w		; add to current tempo
+		add.b	d3,mTempo.w		; add to the main tempo
 		rts
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
@@ -577,7 +562,8 @@ dcPortamento:
 dcMod68K:
 	if FEATURE_MODULATION
 		move.l	a2,cMod(a1)		; set modulation data address
-		addq.w	#3,a2			; skip all the modulation data
+		addq.w	#2,a2			; skip all the modulation data
+		move.b	(a2)+,cModStep(a1)	; copy step offset
 		move.b	(a2)+,cModDelay(a1)	; copy delay
 	; continue to enabling modulation
 	endif
@@ -614,16 +600,20 @@ dcsModFreq:
 ; Tracker command for resetting modulation
 ; ---------------------------------------------------------------------------
 
-dcsModReset:
+dcModReset:
 	if FEATURE_MODULATION
 		move.l	cMod(a1),a4		; get modulation data address
 		clr.w	cModFreq(a1)		; clear frequency offset
 		move.b	(a4)+,cModSpeed(a1)	; copy speed
 
 		move.b	(a4)+,d4		; get number of steps
+		beq.s	.set			; branch if 0 specifically (otherwise this would cause a problem)
 		lsr.b	#1,d4			; halve it
-		move.b	d4,cModCount(a1)	; save as the current number of steps
+		bne.s	.set			; if result is not 0, branch
+		moveq	#1,d4			; use 1 is the initial count, not 0!
 
+.set
+		move.b	d4,cModCount(a1)	; save as the current number of steps
 		move.b	(a4)+,cModStep(a1)	; copy step offset
 		move.b	(a4)+,cModDelay(a1)	; copy delay
 		rts
@@ -685,7 +675,7 @@ dcBackup:
 		lea	dFadeInDataLog(pc),a4	; prepare stock fade in program to a4
 		jsr	dLoadFade(pc)		; initiate fade in
 
-		move.l	mBackTempoMain.w,mTempoMain.w; restore tempo settings
+		move.l	mBackSpeed.w,mSpeed.w	; restore tempo settings
 		move.l	mBackVctMus.w,mVctMus.w	; restore voice table address
 
 		lea	mBackUpLoc.w,a4		; load source address to a4
@@ -749,7 +739,7 @@ dcBackup:
 		move.b	#$FF,dPSG.l		; mute PSG4
 		cmp.b	#ctPSG4,mPSG3+cType.w	; check if PSG3 channel is in PSG4 mode
 		bne.s	locret_Backup		; if not, skip
-		move.b	mPSG3+cStatPSG4.w,dPSG.l; update PSG4 status to PSG port
+		move.b	mPSG3+cStatPSG4.w,dPSG.l	; update PSG4 status to PSG port
 
 	elseif safe=1
 		AMPS_Debug_dcBackup
@@ -764,7 +754,7 @@ locret_Backup:
 
 dcVoice:
 		moveq	#0,d4
-		move.b	(a2)+,d4		; load voice/sample/volume envelope from tracker to d1
+		move.b	(a2)+,d4		; load voice/sample/volume envelope from tracker to d4
 		move.b	d4,cVoice(a1)		; save to channel
 
 	if FEATURE_DACFMVOLENV
@@ -878,6 +868,17 @@ dUpdateVoiceFM:
 
 .uwdone
 	endif
+
+	if FEATURE_SOUNDTEST
+		move.w	d3,d5			; copy to d5
+		cmp.w	#$7F,d5			; check if volume is out of range
+		bls.s	.nocapx			; if not, branch
+		spl	d5			; if positive (above $7F), set to $FF. Otherwise, set to $00
+		and.b	#$7F,d5			; keep in range for the sound test
+
+.nocapx
+		move.b	d5,cChipVol(a1)		; save volume to chip
+	endif
 ; ---------------------------------------------------------------------------
 
 		lea	dOpTLFM(pc),a2		; load TL registers to a2
@@ -899,7 +900,7 @@ dUpdateVoiceFM:
 	endif
 
 .slot
-		cmp.w	#$80,d5			; check if volume is out of range
+		cmp.w	#$7F,d5			; check if volume is out of range
 		bls.s	.nocap			; if not, branch
 		spl	d5			; if positive (above $7F), set to $FF. Otherwise, set to $00
 
@@ -952,9 +953,19 @@ dUpdateVoiceFM:
 dcStop:
 		and.b	#$FF-(1<<cfbHold)-(1<<cfbRun),(a1); clear hold and running tracker flags
 	dStopChannel	0			; stop channel operation
-
 		cmpa.w	#mSFXFM3,a1		; check if this is a SFX channel
-		blo.s	.exit			; if not, skip all this
+		bhs.s	.sfx			; if yes, run SFX code
+
+		btst	#ctbDAC,cType(a1)	; check if the channel is a DAC channel
+		beq.s	.nodac			; if not, skip
+		clr.b	cPanning(a1)		; clear panning (required for DAC to work right)
+
+.nodac
+		addq.l	#2,(sp)			; go to next channel immediately (this skips a bra.s instruction)
+		rts
+; ---------------------------------------------------------------------------
+
+.sfx
 		clr.b	cPrio(a1)		; clear channel priority
 
 		lea	dSFXoverList(pc),a4	; load quick reference to the SFX override list to a4
@@ -1096,7 +1107,7 @@ dcsComm:
 
 dcCondRegTable:
 	dc.w ConsoleRegion, mFlags	; 0
-	dc.w mTempoMain, mTempoSpeed	; 2
+	dc.w mTempo, mSpeed		; 2
 	dc.w 0, 0			; 4
 	dc.w 0, 0			; 6
 	dc.w 0, 0			; 8

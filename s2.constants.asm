@@ -1,6 +1,9 @@
 ; >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 ; Equates section - Names for variables.
 
+SRAM = $200001
+SRAM_Write = $A130F1
+
 ; ---------------------------------------------------------------------------
 ; size variables - you'll get an informational error if you need to change these...
 ; they are all in units of bytes
@@ -45,6 +48,7 @@ x_radius		ds.b 1		; object's width / 2, often used for floor/wall collision
 flip_turned =		*		; 0 for normal, 1 to invert flipping (it's a 180 degree rotation about the axis of Sonic's spine, so he stays in the same position but looks turned around)
 objoff_40 =		*
 objoff_41 =		*
+shield_reaction = *
 glidemode		ds.b 1
 double_jump_flag = *
 glideflags		ds.b 1
@@ -53,6 +57,7 @@ mapping_frame		ds.b 1		; the frame the object is currently intending to display
 anim_frame		ds.b 1		; offset into animation script. Yes, it has nothing to do with frames as such.
 anim			ds.b 1		; animation ID
 next_anim		ds.b 1		; animation to be played next. If same as anim, animation will not reset
+anim_frame_timer =		*
 anim_frame_duration	ds.b 1		; how long until next frame of animation must be played
 width_pixels		ds.b 1		; object's width / 2, often used for determining when object is offscreen (no need to draw sprites)
 
@@ -71,6 +76,7 @@ routine			ds.b 1		; objects routine counter
 routine_secondary	ds.b 1		; secondary object routine counter
 flip_angle =		*-1		; angle about the x axis (360 degrees = 256) (twist/tumble)
 objoff_29 =		*-1
+vram_art =		*
 
 objoff_2A =		*
 object_control =		*
@@ -242,6 +248,11 @@ touch_top_mask     = p1_touch_top|p2_touch_top
 ; Controller Buttons
 ;
 ; Buttons bit numbers
+button_Z:			EQU	0
+button_Y:			EQU	1
+button_X:			EQU	2
+button_mode:		EQU	3
+
 button_up:			EQU	0
 button_down:			EQU	1
 button_left:			EQU	2
@@ -251,6 +262,11 @@ button_C:			EQU	5
 button_A:			EQU	6
 button_start:			EQU	7
 ; Buttons masks (1 << x == pow(2, x))
+button_Z_mask:			EQU	1<<button_Z	; $01
+button_Y_mask:			EQU	1<<button_Y	; $02
+button_X_mask:			EQU	1<<button_X	; $04
+button_mode_mask:		EQU	1<<button_mode	; $08
+
 button_up_mask:			EQU	1<<button_up	; $01
 button_down_mask:		EQU	1<<button_down	; $02
 button_left_mask:		EQU	1<<button_left	; $04
@@ -276,6 +292,11 @@ Status_RollJump:     EQU 4
 Status_Push:         EQU 5
 Status_Underwater:   EQU 6
 
+Shield_Reaction_Bounce:	EQU 3
+Shield_Reaction_Fire:	EQU 4
+Shield_Reaction_Ltng:	EQU 5
+Shield_Reaction_Bubble:	EQU 6
+
 ; ---------------------------------------------------------------------------
 ; status_secondary bitfield variables
 ;
@@ -288,6 +309,10 @@ Status_FireShield:   EQU 4
 Status_LtngShield:   EQU 5
 Status_BublShield:   EQU 6
 
+Status_FireShield_mask:   EQU 1<<Status_FireShield
+Status_LtngShield_mask:   EQU 1<<Status_LtngShield
+Status_BublShield_mask:   EQU 1<<Status_BublShield
+
 status_sec_hasShield:		EQU	0
 status_sec_isInvincible:	EQU	1
 status_sec_hasSpeedShoes:	EQU	2
@@ -297,6 +322,12 @@ status_sec_hasShield_mask:	EQU	1<<status_sec_hasShield		; $01
 status_sec_isInvincible_mask:	EQU	1<<status_sec_isInvincible	; $02
 status_sec_hasSpeedShoes_mask:	EQU	1<<status_sec_hasSpeedShoes	; $04
 status_sec_isSliding_mask:	EQU	1<<status_sec_isSliding		; $80
+
+; ---------------------------------------------------------------------------
+; Elemental Shield DPLC variables
+LastLoadedDPLC      = $34
+Art_Address         = $38
+DPLC_Address        = $3C
 
 ; ---------------------------------------------------------------------------
 ; Constants that can be used instead of hard-coded IDs for various things.
@@ -541,6 +572,7 @@ PLCID_KnucklesLife =	id(PLCptr_KnucklesLife)
 PLCID_Std2Knuckles =	id(PLCptr_Std2Knuckles)
 PLCID_ResultsKnuckles =	id(PLCptr_ResultsKnuckles)
 PLCID_SignpostKnuckles =	id(PLCptr_SignpostKnuckles)
+PLCID_TitleCard =	id(PLCptr_TitleCard)
 
 ; 2P VS results screens
 offset := TwoPlayerResultsPointers
@@ -730,6 +762,10 @@ Tails_Tails:			; address of the Tail's Tails object
 				ds.b object_size
 SuperSonicStars:
 				ds.b object_size
+HyperSonicKnux_Trail:
+				ds.b object_size
+Tails_Tails_Trail:
+				ds.b object_size
 Sonic_BreathingBubbles:		; Sonic's breathing bubbles
 				ds.b object_size
 Tails_BreathingBubbles:		; Tails' breathing bubbles
@@ -738,9 +774,9 @@ Sonic_Dust:			; Sonic's spin dash dust
 				ds.b object_size
 Tails_Dust:			; Tails' spin dash dust
 				ds.b object_size
+Shield:
 Sonic_Shield:
 				ds.b object_size
-Shield = *
 Tails_Shield:
 				ds.b object_size
 Sonic_InvincibilityStars:
@@ -766,8 +802,8 @@ Sprite_Table_2:			ds.b $280	; Sprite attribute table buffer for the bottom split
 DMA_queue:
 VDP_Command_Buffer:		ds.w 7*$12	; stores 18 ($12) VDP commands to issue the next time ProcessDMAQueue is called
 DMA_queue_slot:
-VDP_Command_Buffer_Slot:	ds.l 1		; stores the address of the next open slot for a queued VDP command
-
+VDP_Command_Buffer_Slot:	ds.w 1		; stores the address of the next open slot for a queued VDP command
+	ds.w 1 ; Padding, remove me!
 H_scroll_buffer:
 Horiz_Scroll_Buf:		ds.b $400
 Horiz_Scroll_Buf_End:
@@ -775,6 +811,7 @@ Stat_table:
 Sonic_Stat_Record_Buf:		ds.b $100
 Pos_table:
 Sonic_Pos_Record_Buf:		ds.b $100
+Pos_table_P2:
 Tails_Pos_Record_Buf:		ds.b $100
 CNZ_saucer_data:		ds.b $40	; the number of saucer bumpers in a group which have been destroyed. Used to decide when to give 500 points instead of 10
 CNZ_saucer_data_End:
@@ -859,7 +896,7 @@ Camera_BG_X_offset:		ds.w 1		; Used to control background scrolling in X in WFZ 
 Camera_BG_Y_offset:		ds.w 1		; Used to control background scrolling in Y in WFZ ending and HTZ screen shake
 HTZ_Terrain_Delay:		ds.w 1		; During HTZ screen shake, this is a delay between rising and sinking terrain during which there is no shaking
 HTZ_Terrain_Direction:		ds.b 1		; During HTZ screen shake, 0 if terrain/lava is rising, 1 if lowering
-				ds.b 1
+ActTransition_Flag:				ds.b 1
 Vscroll_Factor_P2_HInt:		ds.l 1
 Camera_X_pos_copy:		ds.l 1
 Camera_Y_pos_copy:		ds.l 1
@@ -867,17 +904,21 @@ Tails_Min_X_pos:		ds.w 1
 Tails_Max_X_pos:		ds.w 1
 Tails_Min_Y_pos:		ds.w 1		; seems not actually implemented (only written to) (unused)
 Tails_Max_Y_pos:		ds.w 1
+Camera_Pan:				ds.w 1
+Camera_Pan_2P:			ds.w 1
 Camera_RAM_End:
 
 Block_cache:			ds.b $80
 Ring_consumption_table:		ds.b $80	; contains RAM addresses of rings currently being consumed
 Ring_consumption_table_End:
 
+Target_water_palette:
 Underwater_target_palette:	ds.b palette_line_size	; This is used by the screen-fading subroutines.
 Underwater_target_palette_line2:ds.b palette_line_size	; While Underwater_palette contains the blacked-out palette caused by the fading,
 Underwater_target_palette_line3:ds.b palette_line_size	; Underwater_target_palette will contain the palette the screen will ultimately fade in to.
 Underwater_target_palette_line4:ds.b palette_line_size
 
+Water_palette:
 Underwater_palette:		ds.b palette_line_size	; main palette for underwater parts of the screen
 Underwater_palette_line2:	ds.b palette_line_size
 Underwater_palette_line3:	ds.b palette_line_size
@@ -893,14 +934,35 @@ Ctrl_1:						; 2 bytes
 Ctrl_1_Held:			ds.b 1		; 1 byte ; (pressed and held were switched around before)
 Ctrl_1_pressed:
 Ctrl_1_Press:			ds.b 1		; 1 byte
+
 Ctrl_2:						; 2 bytes
 Ctrl_2_Held:			ds.b 1		; 1 byte
 Ctrl_2_pressed:
 Ctrl_2_Press:			ds.b 1		; 1 byte
-				ds.b 4		; $FFFFF608-$FFFFF60B ; seems unused
+Ctrl_2_Logical:					; 2 bytes
+Ctrl_2_Held_Logical:		ds.b 1		; 1 byte
+Ctrl_2_Press_Logical:		ds.b 1		; 1 byte
+
+; Extra buttons
+Ctrl_6btn_1_Logical:					; 2 bytes
+Ctrl_6btn_1_Held_Logical:		ds.b 1		; 1 byte
+Ctrl_6btn_1_pressed_logical:
+Ctrl_6btn_1_Press_Logical:		ds.b 1		; 1 byte
+Ctrl_6btn_1:						; 2 bytes
+Ctrl_6btn_1_Held:			ds.b 1		; 1 byte ; (pressed and held were switched around before)
+Ctrl_6btn_1_pressed:
+Ctrl_6btn_1_Press:			ds.b 1		; 1 byte
+
+Ctrl_6btn_2:						; 2 bytes
+Ctrl_6btn_2_Held:			ds.b 1		; 1 byte
+Ctrl_6btn_2_pressed:
+Ctrl_6btn_2_Press:			ds.b 1		; 1 byte
+Ctrl_6btn_2_Logical:					; 2 bytes
+Ctrl_6btn_2_Held_Logical:		ds.b 1		; 1 byte
+Ctrl_6btn_2_Press_Logical:		ds.b 1		; 1 byte
+
 VDP_reg_1_command:
 VDP_Reg1_val:			ds.w 1		; normal value of VDP register #1 when display is disabled
-				ds.b 6		; $FFFFF60E-$FFFFF613 ; seems unused
 Demo_Time_left:			ds.w 1		; 2 bytes
 
 V_scroll_value:
@@ -936,7 +998,9 @@ Hint_flag:			ds.w 1		; unless this is 1, H-int won't run
 
 Water_Level_1:			ds.w 1
 Water_Level_2:			ds.w 1
+ChecksumValue:					; the accumulated value of checksum check
 Water_Level_3:			ds.w 1
+ChecksumStart:					; set if start button was pressed during checksum check
 Water_on:			ds.b 1		; is set based on Water_flag
 Water_routine:			ds.b 1
 Water_fullscreen_flag:		ds.b 1		; was "Water_move"
@@ -965,9 +1029,6 @@ WFZ_BG_Y_Speed:			ds.w 1
 PalCycle_Timer2:		ds.w 1
 PalCycle_Timer3:		ds.w 1
 
-Ctrl_2_Logical:					; 2 bytes
-Ctrl_2_Held_Logical:		ds.b 1		; 1 byte
-Ctrl_2_Press_Logical:		ds.b 1		; 1 byte
 Sonic_Look_delay_counter:	ds.w 1		; 2 bytes
 Tails_Look_delay_counter:	ds.w 1		; 2 bytes
 Super_Sonic_frame_count:	ds.w 1
@@ -1141,12 +1202,11 @@ Debug_Accel_Timer:		ds.b 1
 Debug_Speed:			ds.b 1
 Vint_runcount:			ds.l 1
 
-Apparent_zone_and_act:
-Current_zone_and_act:
+Apparent_ZoneAndAct:
+Apparent_Zone:			ds.b 1
+Apparent_Act:			ds.b 1
 Current_ZoneAndAct:				; 2 bytes
-Apparent_zone:
 Current_Zone:			ds.b 1		; 1 byte
-Apparent_act:
 Current_Act:			ds.b 1		; 1 byte
 Life_count:			ds.b 1
 				ds.b 1
@@ -1158,6 +1218,8 @@ Continue_count:			ds.b 1
 Super_Sonic_flag:		ds.b 1
 Time_Over_flag:			ds.b 1
 Extra_life_flags:		ds.b 1
+Returning_From_SS:		ds.b 1
+						ds.b 1 ; align
 
 ; If set, the respective HUD element will be updated.
 Update_HUD_lives:		ds.b 1
@@ -1317,7 +1379,8 @@ Got_Emeralds_array:		ds.b 7		; 7 bytes
 Super_Emerald_count:			ds.b 1
 Next_Extra_life_score:		ds.l 1
 Next_Extra_life_score_2P:	ds.l 1
-Level_Has_Signpost:		ds.w 1		; 1 = signpost, 0 = boss or nothing
+Level_Has_Signpost:		ds.b 1		; 1 = signpost, 0 = boss or nothing
+						ds.b 1
 Signpost_prev_frame:		ds.b 1
 				ds.b 1		; $FFFFFFCB ; seems unused
 Camera_Min_Y_pos_Debug_Copy:	ds.w 1
@@ -1331,6 +1394,7 @@ Correct_cheat_entries:		ds.w 1
 Correct_cheat_entries_2:	ds.w 1		; for 14 continues or 7 emeralds codes
 
 Two_player_mode:		ds.w 1		; flag (0 for main game)
+ChecksumAddr:			ds.l 1		; the checksum address we're checking
 
 Demo_mode_flag:			ds.w 1		; 1 if a demo is playing (2 bytes)
 Demo_number:			ds.w 1		; which demo will play next (2 bytes)
@@ -1360,10 +1424,19 @@ Option_TailsFlight:				ds.b 1 ; 0 = on + assist, 1 = on, 2 = off
 Option_SpeedTrail:			ds.b 1
 Option_PeelOut:			ds.b 1 ; 0 = off, 1 = ability + anim, 3 = anim, 2 = ability
 
-Options_RAM_End:
+Option_Shields:			ds.b 1 ; see OptionsScreen/Data.asm, i probably got way too granular with these choices lmao
+Option_CameraStyle:		ds.b 1; 0 = normal, 1 = extended, 2 = full scd
+
+Option_SuperMusic:		ds.b 1 ; 0 = on
+Option_InvincShields:	ds.b 1
+
+Option_ActTransitions:	ds.b 1
+						ds.b 1
 
 Option_Emulator_Scaling:	ds.b 1
 Option_Emulator_MirrorMode:	ds.b 1
+
+Options_RAM_End:
 
 Save_pointer:				ds.l	1
 Saved_data:					ds.b	$54
@@ -1392,6 +1465,11 @@ SegaHideTM:				; Object that hides TM symbol on JP region
 				ds.b object_size
 SegaScr_Object_RAM_End:
 
+; RAM variables - Save Screen
+;	phase	Object_RAM	; Move back to the object RAM
+;SaveScreen_MiniChar:		
+;				ds.b object_size
+;SaveScreen_Object_RAM_End:
 
 ; RAM variables - Title screen
 	phase	Object_RAM	; Move back to the object RAM
@@ -1470,12 +1548,6 @@ SpecialStageResults2:
 SS_Dynamic_Object_RAM_End:
 				ds.b object_size
 SS_Object_RAM_End:
-
-; RAM variables - Save Screen
-	phase	Object_RAM	; Move back to the object RAM
-SaveScreen_MiniChar:		
-				ds.b object_size
-SaveScreen_Object_RAM_End:
 
 				; The special stage mode also uses the rest of the RAM for
 				; different purposes.
@@ -2073,13 +2145,16 @@ ArtTile_ArtNem_SuperSonic_stars       = $05F2
 
 ; Universal (used on all standard levels).
 ArtTile_ArtNem_Checkpoint             = $047C
-ArtTile_ArtNem_TailsDust              = $048C
-ArtTile_ArtNem_SonicDust              = $049C
-ArtTile_ArtNem_Numbers                = $04AC
-ArtTile_ArtNem_Shield                 = $04BE
-ArtTile_ArtNem_Invincible_stars       = $04DE
+ArtTile_ArtNem_TailsDust              = $048A
+ArtTile_ArtNem_SonicDust              = $049A
+ArtTile_ArtNem_Numbers                = $04AA
+ArtTile_Shield                		  = $04BC
+
+ArtTile_Shield_Sparks                 = ArtTile_Shield + $1D
+ArtTile_ArtNem_Invincible_stars       = $04DD + 2
+
 ArtTile_ArtNem_Powerups               = $0680
-ArtTile_ArtNem_Ring                   = $06BC - 6
+ArtTile_ArtNem_Ring                   = $06B6
 ArtTile_ArtNem_HUD                    = ArtTile_ArtNem_Powerups + $4A
 ArtTile_ArtUnc_Sonic                  = $0780
 ArtTile_ArtUnc_Tails                  = $07A0

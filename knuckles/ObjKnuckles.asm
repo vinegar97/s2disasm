@@ -30,9 +30,8 @@ Obj_Knuckles_Init:					  ; ...
 	move.w	#prio(2),priority(a0)
 	move.b	#$18,width_pixels(a0)
 	move.b	#4,render_flags(a0)
-	move.w	#$600,(Sonic_top_speed).w	; set Sonic's top speed
-	move.w	#$C,(Sonic_acceleration).w	; set Sonic's acceleration
-	move.w	#$80,(Sonic_deceleration).w	; set Sonic's deceleration
+	lea		(Sonic_top_speed).w,a2	; Load Sonic_top_speed into a2
+	jsr		ApplySpeedSettings	; Fetch Speed settings
 	tst.b	(Last_star_pole_hit).w
 	bne.s	Obj_Knuckles_Init_Continued
 	; only happens when not starting at a checkpoint:
@@ -65,6 +64,7 @@ Obj_Knuckles_Init_Continued:				  ; ...
 
 Obj_Knuckles_Control:					  ; ...
     ;jmp Obj_Sonic_Control
+	jsr		PanCamera
 	tst.w	(Debug_mode_flag).w	; is debug cheat enabled?
 	beq.s	+			; if not, branch
 	btst	#button_B,(Ctrl_1_Press).w	; is button B pressed?
@@ -76,6 +76,7 @@ Obj_Knuckles_Control:					  ; ...
 +	tst.b	(Control_Locked).w	; are controls locked?
 	bne.s	+			; if yes, branch
 	move.w	(Ctrl_1).w,(Ctrl_1_Logical).w	; copy new held buttons, to enable joypad control
+	move.w	(Ctrl_6btn_1).w,(Ctrl_6btn_1_Logical).w
 +
 	btst	#0,obj_control(a0)	; is Sonic interacting with another object that holds him in place or controls his movement somehow?
 	bne.s	+			; if yes, branch to skip Sonic's control
@@ -285,7 +286,7 @@ loc_315804:			  ; ...
 	move.b	#0,anim_frame(a0)
 	move.b	#3,glideunk(a0)
 	move.w	x_pos(a0),2+x_pos(a0)
-	sfx		sfx_S3K_4A
+	sfx		sfx_Grab
 	rts
 ; ---------------------------------------------------------------------------
 
@@ -355,7 +356,7 @@ loc_3158F0:			  ; ...
 	bsr.w	Knuckles_ResetOnFloor_Part2
 	move.w	#$F,move_lock(a0)
 	move.b	#$23,anim(a0)
-	sfx		sfx_S3K_4C
+	sfx		sfx_GlideLand
 
 return_315900:			  ; ...
 	rts
@@ -408,7 +409,7 @@ loc_315958:			  ; ...
 	move.b	(Timer_frames+1).w,d0
 	andi.b	#7,d0
 	bne.s	+
-	sfx		sfx_S3K_7E
+	sfx		sfx_GroundSlide
 +	rts
 ; ---------------------------------------------------------------------------
 
@@ -921,17 +922,18 @@ Knuckles_TurnSuper:				  ; ...
 		move.b	#$81,obj_control(a0)
 		move.b	#$1F,anim(a0)
     	move.l	#Obj_SuperSonicStars,(SuperSonicStars+id).w ; load Obj_SuperSonicStars (super sonic stars object) at $FFFFD040
-		move.w	#$800,(Sonic_top_speed).w
-		move.w	#$18,(Sonic_acceleration).w
-		move.w	#$C0,(Sonic_deceleration).w
+		lea		(Sonic_top_speed).w,a2	; Load Sonic_top_speed into a2
+		jsr		ApplySpeedSettings	; Fetch Speed settings
 		move.w	#0,$32(a0)
 		bset	#1,$2B(a0)
 		move.w	#$DF,d0
         sfx	sfx_Transform				; Play transformation sound effect.
+		tst.b	(Option_SuperMusic).w	; Allow super music?
+		bne.s	+						; If not, branch
         music	mus_SuperSonic				; load the Super Sonic song and return
 ; End of function Knuckles_JumpHeight
-
 ; ---------------------------------------------------------------------------
++
 		rts
 
 ; =============== S U B	R O U T	I N E =======================================

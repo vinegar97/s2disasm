@@ -42,9 +42,29 @@
       <ArtFile filename="../art/nemesis/Monitor and contents.bin" />
       <MapFile type="Binary" filename="../mappings/sprite/Obj_Monitor.bin" frame="10" startpal="0" />
     </ImageFromMappings>
-    <ImageFromMappings id="broken">
+    <ImageFromMappings id="fireshield">
       <ArtFile filename="../art/nemesis/Monitor and contents.bin" />
       <MapFile type="Binary" filename="../mappings/sprite/Obj_Monitor.bin" frame="11" startpal="0" />
+    </ImageFromMappings>
+    <ImageFromMappings id="electricshield">
+      <ArtFile filename="../art/nemesis/Monitor and contents.bin" />
+      <MapFile type="Binary" filename="../mappings/sprite/Obj_Monitor.bin" frame="12" startpal="0" />
+    </ImageFromMappings>
+    <ImageFromMappings id="bubbleshield">
+      <ArtFile filename="../art/nemesis/Monitor and contents.bin" />
+      <MapFile type="Binary" filename="../mappings/sprite/Obj_Monitor.bin" frame="13" startpal="0" />
+    </ImageFromMappings>
+    <ImageFromMappings id="randomshield">
+      <ArtFile filename="../art/nemesis/Monitor and contents.bin" />
+      <MapFile type="Binary" filename="../mappings/sprite/Obj_Monitor.bin" frame="1" startpal="0" />
+    </ImageFromMappings>
+    <ImageFromMappings id="super">
+      <ArtFile filename="../art/nemesis/Monitor and contents.bin" />
+      <MapFile type="Binary" filename="../mappings/sprite/Obj_Monitor.bin" frame="14" startpal="0" />
+    </ImageFromMappings>
+    <ImageFromMappings id="broken">
+      <ArtFile filename="../art/nemesis/Monitor and contents.bin" />
+      <MapFile type="Binary" filename="../mappings/sprite/Obj_Monitor.bin" frame="15" startpal="0" />
     </ImageFromMappings>
   </Images>
   <Subtypes>
@@ -58,7 +78,12 @@
     <Subtype id="07" name="Invincibility" image="invincibility" />
     <Subtype id="08" name="Teleport" image="teleport" />
     <Subtype id="09" name="Random" image="random" />
-    <Subtype id="0A" name="Broken" image="broken" />
+    <Subtype id="0A" name="Fire Shield" image="fireshield" />
+    <Subtype id="0B" name="Electric Shield" image="electricshield" />
+    <Subtype id="0C" name="Bubble Shield" image="bubbleshield" />
+    <Subtype id="0D" name="Super" image="super" />
+    <Subtype id="0E" name="Random Shield" image="static" />
+    <Subtype id="0F" name="Broken" image="broken" />
   </Subtypes>
   <Properties>
     <BitsProperty name="Contents" type="MonitorType" startbit="0" length="4" />
@@ -75,6 +100,11 @@
       <EnumMember name="Invincibility" />
       <EnumMember name="Teleport" />
       <EnumMember name="Random" />
+      <EnumMember name="Fire Shield" />
+      <EnumMember name="Electric Shield" />
+      <EnumMember name="Bubble Shield" />
+      <EnumMember name="Super" />
+      <EnumMember name="Random Shield" />
       <EnumMember name="Broken" />
     </Enum>
   </Enums>
