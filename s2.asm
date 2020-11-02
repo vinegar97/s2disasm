@@ -18590,6 +18590,8 @@ LevEvents_HTZ_Routine1:
 	blo.s	LevEvents_HTZ_Routine1_Part2
 	cmpi.w	#$1800,(Camera_X_pos).w
 	blo.s	LevEvents_HTZ_Routine1_Part2
+	cmpi.w	#$1F00,(Camera_X_pos).w
+	bgt.s	LevEvents_HTZ_Routine1_Part2
 	move.b	#1,(Screen_Shaking_Flag_HTZ).w
 	move.l	(Camera_X_pos).w,(Camera_BG_X_pos).w
 	move.l	(Camera_Y_pos).w,(Camera_BG_Y_pos).w
