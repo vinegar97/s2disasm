@@ -4,12 +4,16 @@
 ; Sprite_1B8A4: Object_Tails:
 Obj_Tails:
 	; a0=character
-	cmpi.w	#2,(Player_mode).w
-	bne.s	+
+	cmpi.l	#Obj_Tails,(MainCharacter+id).w
+	bne.s	Obj_Tails_Normal
 	move.w	(Camera_Min_X_pos).w,(Tails_Min_X_pos).w
 	move.w	(Camera_Max_X_pos).w,(Tails_Max_X_pos).w
 	move.w	(Camera_Max_Y_pos_now).w,(Tails_Max_Y_pos).w
-+
+	tst.w	(Debug_placement_mode).w	; is debug mode being used?
+	beq.s	Obj_Tails_Normal			; if not, branch
+	jmp	(DebugMode).l
+
+Obj_Tails_Normal:
 	moveq	#0,d0
 	move.b	routine(a0),d0
 	move.w	Obj_Tails_Index(pc,d0.w),d1
@@ -81,6 +85,15 @@ Obj_Tails_Control:
 	cmpa.w	#MainCharacter,a0
 	bne.s	Obj_Tails_Control_Joypad2
 	jsr		PanCamera
+
+	tst.w	(Debug_mode_flag).w	; is debug cheat enabled?
+	beq.s	+			; if not, branch
+	btst	#button_B,(Ctrl_1_Press).w	; is button B pressed?
+	beq.s	+			; if not, branch
+	move.w	#1,(Debug_placement_mode).w	; change Tails into a ring/item
+	clr.b	(Control_Locked).w		; unlock control
+	rts
++
 	move.w	(Ctrl_1_Logical).w,(Ctrl_2_Logical).w
 	tst.b	(Control_Locked).w	; are controls locked?
 	bne.s	Obj_Tails_Control_Part2	; if yes, branch
@@ -2525,6 +2538,17 @@ return_1CBC4:
 ; ---------------------------------------------------------------------------
 ; loc_1CBC6:
 Obj_Tails_Hurt:
+	cmpi.l	#Obj_Tails,(MainCharacter+id).w
+	bne.s	Obj_Tails_Hurt_Normal
+	tst.w	(Debug_mode_flag).w
+	beq.s	Obj_Tails_Hurt_Normal
+	btst	#button_B,(Ctrl_1_Press).w
+	beq.s	Obj_Tails_Hurt_Normal
+	move.w	#1,(Debug_placement_mode).w
+	clr.b	(Control_Locked).w
+	rts
+
+Obj_Tails_Hurt_Normal:
 	tst.b	(Flying_carrying_Sonic_flag).w
 	beq.s	+
 	lea		(MainCharacter).w,a1
@@ -2581,6 +2605,16 @@ return_1CC4E:
 
 ; loc_1CC50:
 Obj_Tails_Dead:
+	cmpi.l	#Obj_Tails,(MainCharacter+id).w
+	bne.s	+
+	tst.w	(Debug_mode_flag).w
+	beq.s	+
+	btst	#button_B,(Ctrl_1_Press).w
+	beq.s	+
+	move.w	#1,(Debug_placement_mode).w
+	clr.b	(Control_Locked).w
+	rts
++
 	bsr.w	Obj_Tails_CheckGameOver
 	jsr	(ObjectMoveAndFall).l
 	bsr.w	Tails_RecordPos
